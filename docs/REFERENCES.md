@@ -184,7 +184,7 @@ $$\text{HR@K} = \frac{\#\text{hits}}{|\text{test set}|}$$
 where a "hit" means the held-out positive item is in the top-K predictions.
 
 **Interpretation:**
-- HR@10 = 0.8756 means 87.56% of test users have their held-out program in the top 10 recommendations
+- HR@10 = 0.8736 means 87.36% of test users have their held-out program in the top 10 recommendations
 - Higher is better; maximum is 1.0
 
 **Usage:** FitNova Layer 2 evaluation
@@ -204,7 +204,7 @@ $$\text{DCG@K} = \sum_{i=1}^{K} \frac{2^{rel_i} - 1}{\log_2(i + 1)}$$
 and IDCG@K is the ideal DCG (best possible ranking).
 
 **Interpretation:**
-- NDCG@10 = 0.6363 accounts for where the held-out program ranks
+- NDCG@10 = 0.6011 accounts for where the held-out program ranks
 - Penalizes poor rankings; rewards top-K placement
 - Ranges [0, 1]; 1.0 is perfect
 

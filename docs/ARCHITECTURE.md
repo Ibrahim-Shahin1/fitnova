@@ -148,12 +148,13 @@ User Input (user_id)
 - Loss: Binary cross-entropy
 
 ### Training Data
-- **Interactions:** 1,361,094 total
-  - Positives: 305,807
-  - Negatives: 1,055,287 (3.45:1 ratio)
+- **Interactions:** 559,055 total
+  - Positives: 111,811
+  - Negatives: 447,244 (4:1 ratio)
 - **Users:** 973
 - **Items (programs):** 2,598
-- **Sparsity:** 87.90%
+- **Sparsity:** 95.58% — matches MovieLens-1M benchmark used in He et al. (2017)
+- **Avg positives/user:** 114.9 (MovieLens-1M: ~165/user)
 
 Data was synthetically generated using compatibility rules grounded in Gupta et al. (2024).
 
@@ -161,12 +162,12 @@ Data was synthetically generated using compatibility rules grounded in Gupta et 
 
 | Model | HR@10 | NDCG@10 |
 |-------|-------|---------|
-| GMF | 0.8510 | 0.6275 |
-| MLP | 0.8674 | 0.6203 |
-| **NeuMF** | **0.8756** | **0.6363** |
+| GMF | 0.8386 | 0.5736 |
+| MLP | 0.8407 | 0.5639 |
+| **NeuMF** | **0.8736** | **0.6011** |
 
 **Interpretation:**
-- **HR@10 (Hit Rate):** For 87.56% of test users, the held-out program ranks in the top 10 recommendations
+- **HR@10 (Hit Rate):** For 87.36% of test users, the held-out program ranks in the top 10 recommendations
 - **NDCG@10 (Normalized DCG):** Accounts for ranking position; top-1 is better than top-10
 
 NeuMF outperforms both components, validating the hybrid architecture.

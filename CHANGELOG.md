@@ -16,14 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implements He et al. (2017) Neural Collaborative Filtering architecture
   - Two-pathway design: GMF (linear) + MLP (non-linear)
   - Pre-training + fine-tuning protocol with Adam and SGD optimizers
-  - Binary cross-entropy loss on 1.36M synthetic user-item interactions
+  - Binary cross-entropy loss on 559,055 synthetic user-item interactions
 
 - **Synthetic Interaction Data Generation** (completed in prior phase)
-  - 1,361,094 total interactions (305,807 positive, 1,055,287 negative)
+  - 559,055 total interactions (111,811 positive, 447,244 negative)
   - Generated using Gupta et al. (2024) compatibility rules
   - Feature weights: experience (0.35), workout_type (0.30), duration (0.20), frequency (0.15)
-  - 87.90% sparsity (973 users × 2,598 programs)
+  - 95.58% sparsity (973 users × 2,598 programs) — matches MovieLens-1M benchmark (He et al. 2017)
   - Gaussian noise (σ=0.08) + 1.35× correction for Expert-Advanced pairs
+  - Avg 114.9 positives/user (vs MovieLens-1M: ~165/user)
 
 #### Trained Models
 - `backend/models/neumf_final.keras` — Final NeuMF model (~760 KB)
@@ -54,13 +55,14 @@ Evaluated on leave-one-out protocol with HR@10 and NDCG@10 metrics (973 test use
 
 | Component | HR@10 | NDCG@10 |
 |-----------|-------|---------|
-| GMF | 0.8510 | 0.6275 |
-| MLP | 0.8674 | 0.6203 |
-| **NeuMF (Fused)** | **0.8756** | **0.6363** |
+| GMF | 0.8386 | 0.5736 |
+| MLP | 0.8407 | 0.5639 |
+| **NeuMF (Fused)** | **0.8736** | **0.6011** |
 
 **Interpretation:**
-- 87.56% of test users have the held-out program in top-10 recommendations
+- 87.36% of test users have the held-out program in top-10 recommendations
 - NDCG accounts for ranking position; NeuMF best balances precision and ranking
+- Small drop from initial run (0.8756) expected: data density now matches MovieLens-1M benchmark
 
 **Validation:** Results align with He et al. (2017) findings on Netflix/MovieLens
 

@@ -25,7 +25,7 @@ Use **Neural Matrix Factorization (NeuMF)** from He et al. (2017) for the collab
    - Together: more expressive than either alone
 
 2. **Empirical Validation:** He et al. (2017) showed NeuMF outperforms individual components
-   - Our results align: GMF HR@10=0.8510, MLP HR@10=0.8674, NeuMF HR@10=0.8756
+   - Our results align: GMF HR@10=0.8386, MLP HR@10=0.8407, NeuMF HR@10=0.8736
 
 3. **Academic Rigor:** WWW 2017 paper is seminal in collaborative filtering
    - Cited 4000+ times
@@ -92,12 +92,12 @@ By grounding synthetic data in these empirical findings:
 
 2. Negative sampling (3.45:1 ratio):
    - Avoid 99.999% sparsity (all positives)
-   - Maintain realistic sparsity (87.90%)
+   - Maintain realistic sparsity (95.58%) — calibrated to match MovieLens-1M benchmark
    - All 2,598 programs have ≥1 positive interaction
 
 ### Quality Metrics
-- ✅ Sparsity: 87.90% (target: 85–92%)
-- ✅ Positives: 305,807 (distributed across experience levels)
+- ✅ Sparsity: 95.58% (target: 94–96%, matches MovieLens-1M benchmark)
+- ✅ Positives: 111,811 (distributed across experience levels)
 - ✅ No cold programs: All 2,598 programs seen at least once
 - ✅ Balanced distribution: 38.6% Beginner, 41.7% Intermediate, 19.6% Expert users
 
@@ -296,7 +296,7 @@ if equipment == "No Dumbbells":
    - Model is an artifact of the work, like a dissertation
 
 4. **Academic Accountability:**
-   - Models are source of truth (HR@10=0.8756)
+   - Models are source of truth (HR@10=0.8736)
    - Should be versioned with exact training code and data
 
 ### Alternatives Considered
@@ -414,8 +414,8 @@ These decisions will be recorded as their phases are executed:
 
 | Decision | Status | Impact | Alternatives |
 |----------|--------|--------|--------------|
-| NeuMF architecture | ✅ Done | HR@10=0.8756 | SVD, ALS, GBM, GNN |
-| Gupta et al. rules | ✅ Done | 87.90% sparsity | Random, generic weights |
+| NeuMF architecture | ✅ Done | HR@10=0.8736 | SVD, ALS, GBM, GNN |
+| Gupta et al. rules | ✅ Done | 95.58% sparsity (matches MovieLens-1M) | Random, generic weights |
 | 3-layer pipeline | ✅ Done | Cold-start + collab + personal | Single-layer variants |
 | LLM adaptation | ✅ Done (Phase 4) | Natural, personalized output | Templates, raw programs |
 | Model artifacts in Git | ✅ Done | Reproducibility, deployment | .gitignore, Git LFS |
