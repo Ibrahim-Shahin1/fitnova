@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"print\\(''test''\\)\")",
+      "Read(//c/Users/tsh_x/Desktop/FitNova Drafts2/generated_data//**)",
+      "Read(//c/Users/tsh_x/Desktop/FitNova Drafts2//**)"
+    ]
+  }
+}
