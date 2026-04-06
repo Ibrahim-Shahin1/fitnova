@@ -70,7 +70,14 @@ def parse_list_field(val):
 
 def classify_exercise(name):
     """Classify an exercise name into workout type categories.
-    Exact copy of the function in generate_interactions.py."""
+
+    NOTE: This is intentionally stricter than the version in generate_interactions.py.
+    The training data used a broader classifier (with a yoga fallback for 'plank',
+    'rotation', 'twist') which caused many strength programs to be tagged as Yoga.
+    The catalog classifier fixes this so the content filter returns genuine yoga
+    programs for yoga users. NeuMF is not affected (it uses learned embeddings,
+    not these flags directly).
+    """
     if pd.isna(name):
         return set()
     name_lower = str(name).lower()
@@ -82,10 +89,9 @@ def classify_exercise(name):
     cardio_kw = ['run', 'jog', 'walk', 'cycle', 'bike', 'swim', 'cardio',
                  'treadmill', 'elliptical', 'stair', 'skip', 'jumping jack',
                  'mountain climber', 'jump rope', 'rowing machine', 'step']
-    yoga_kw = ['yoga', 'stretch', 'flexibility', 'pigeon', 'warrior',
-               'downward', 'sun salutation', 'meditation', 'breathing',
-               'mobility', 'hip opener', 'cobra', 'child pose', 'flow',
-               'vinyasa', 'yin', 'restorative']
+    yoga_kw = ['yoga', 'pigeon', 'warrior', 'downward dog', 'sun salutation',
+               'meditation', 'cobra pose', 'child pose', 'flow', 'vinyasa',
+               'yin ', 'restorative', 'hip opener']
     strength_kw = ['squat', 'bench', 'deadlift', 'press', 'curl', 'row',
                    'pull-up', 'push-up', 'lunge', 'extension', 'fly', 'raise',
                    'shrug', 'dip', 'chin', 'pulldown', 'pushdown', 'cable',
@@ -113,12 +119,9 @@ def classify_exercise(name):
             break
 
     if not types:
-        if any(x in name_lower for x in ['hold', 'plank', 'rotation', 'twist']):
-            types.add('Yoga')
-        elif any(x in name_lower for x in ['push', 'pull', 'lift']):
-            types.add('Strength')
-        else:
-            types.add('Strength')
+        # Default unclassified exercises to Strength — safer than assuming Yoga
+        # for generic terms like 'plank', 'rotation', 'twist', 'hold'
+        types.add('Strength')
 
     return types
 

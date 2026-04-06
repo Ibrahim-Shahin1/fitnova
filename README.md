@@ -58,9 +58,16 @@ FitNova Application/
 │   ├── training/              # Training pipeline
 │   │   ├── train_neumf.py     # NeuMF training script
 │   │   └── train_log.txt      # Training log
-│   ├── services/              # (Phase 2+) Service modules
+│   ├── services/              # Recommendation service modules
+│   │   ├── content_filter.py  # Layer 1: content-based filtering
+│   │   ├── neumf_ranker.py    # Layer 2: NeuMF re-ranker + cold-start
+│   │   └── recommender.py     # Pipeline orchestrator
 │   ├── data/                  # Data processing
-│   ├── main.py                # (Phase 5) FastAPI app
+│   │   ├── build_catalog.py   # Program catalog builder
+│   │   ├── program_catalog.pkl
+│   │   ├── datasets/          # Raw datasets (gym_members tracked; programs CSV gitignored — 282MB)
+│   │   └── interactions.csv   # Synthetic training interactions
+│   ├── main.py                # (Phase 5) FastAPI app — not yet built
 │   └── requirements.txt        # Python dependencies
 ├── lib/                        # Flutter Dart source
 │   └── main.dart              # (Phase 6) Flutter app
@@ -96,17 +103,16 @@ python training/train_neumf.py
 
 Expected output:
 ```
-GMF   — HR@10: 0.8510  |  NDCG@10: 0.6275
-MLP   — HR@10: 0.8674  |  NDCG@10: 0.6203
-NeuMF — HR@10: 0.8756  |  NDCG@10: 0.6363
+GMF   — HR@10: 0.8386  |  NDCG@10: 0.5736
+MLP   — HR@10: 0.8407  |  NDCG@10: 0.5639
+NeuMF — HR@10: 0.8736  |  NDCG@10: 0.6011
 ```
 
-### Run FastAPI Server (Phase 5+)
+### Run FastAPI Server (Phase 5 — not yet built)
 
 ```bash
-cd backend
-python main.py
-# Navigate to http://localhost:8000/docs for interactive API docs
+# Coming in Phase 5
+# cd backend && uvicorn main:app --reload
 ```
 
 ### Run Flutter App (Phase 6+)
@@ -121,13 +127,13 @@ The project follows a **7-phase implementation plan**:
 
 | Phase | Status | Deliverable |
 |-------|--------|-------------|
-| **1. Data Pipeline** | Upcoming | Program catalog builder |
-| **2. Layer 1** | Upcoming | Content-based filtering |
-| **3. Layer 1+2** | Upcoming | Recommendation pipeline |
-| **4. Layer 3** | Upcoming | LLM adapter |
-| **5. FastAPI** | Upcoming | REST API endpoint |
+| **1. Data Pipeline** | ✅ Complete | `build_catalog.py` → `program_catalog.pkl` |
+| **2. Layer 1** | ✅ Complete | `content_filter.py` — cosine similarity, 7ms |
+| **3. Layer 1+2** | ✅ Complete | `neumf_ranker.py` + `recommender.py` |
+| **4. Layer 3** | In Progress | LLM adapter (Gemini Flash) |
+| **5. FastAPI** | Upcoming | `POST /generate-plan` endpoint |
 | **6. Flutter** | Upcoming | Mobile UI |
-| **7. Testing** | Upcoming | Unit/integration tests + docs |
+| **7. Testing** | Upcoming | pytest suite + academic write-up |
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed phase breakdown.
 
@@ -187,5 +193,5 @@ MIT (or Apache 2.0, to be confirmed)
 
 ---
 
-**Status:** Phase 1 development (Program Catalog Builder)
+**Status:** Phase 4 development (LLM Adaptation)
 **Last Updated:** April 2026

@@ -370,6 +370,11 @@ Assuming 2–3 hours per phase for implementation + testing:
 
 - Training: `backend/training/train_neumf.py`
 - Trained models: `backend/models/*.keras`
-- Program data: `/FitNova Drafts2/datasets/programs_detailed_boostcamp_kaggle.csv`
-- User data: `/FitNova Drafts2/generated_data/user_features.csv`
-- Program features: `/FitNova Drafts2/generated_data/program_features.csv`
+- Program data: `backend/data/datasets/programs_detailed_boostcamp_kaggle.csv`
+  - **Note:** This 282MB file is gitignored. Download from Kaggle (Boostcamp dataset)
+    and place at the path above, or set `FITNOVA_PROGRAM_CSV` env var to your location.
+    The catalog artifact (`program_catalog.pkl`) IS tracked in Git, so rebuilding is
+    only needed if you change the classification logic.
+- User data: `backend/data/user_features.csv`
+- Program features: `backend/data/program_features.csv`
+- Gym members raw data: `backend/data/datasets/gym_members_exercise_tracking.csv` (tracked, 64KB)
