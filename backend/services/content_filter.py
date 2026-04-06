@@ -12,6 +12,8 @@ import pickle
 
 import numpy as np
 
+from backend.data.workout_taxonomy import RELATED_TYPES
+
 # Paths (relative to this file -> backend/data/)
 _DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
 _CATALOG_PATH = os.path.join(_DATA_DIR, 'program_catalog.pkl')
@@ -31,13 +33,9 @@ EXP_SCORE_TABLE = {
     3: {0: 0.1, 1: 0.6, 2: 1.0},  # Expert
 }
 
-# Rule 2: Related workout types
-RELATED_TYPES = {
-    'Cardio': {'HIIT'},
-    'HIIT': {'Cardio', 'Strength'},
-    'Strength': {'HIIT'},
-    'Yoga': set(),
-}
+EXACT_INTENT_BONUS = 0.40
+SECONDARY_INTENT_BONUS = 0.12
+RELATED_INTENT_BONUS = 0.05
 
 
 class ContentBasedFilter:
@@ -57,11 +55,15 @@ class ContentBasedFilter:
         self.prog_tpw = np.zeros(n, dtype=np.float32)
         self.prog_freq = np.zeros(n, dtype=np.int32)
         self.prog_type_sets = []
+        self.prog_primary_type = []
+        self.prog_secondary_types = []
 
         for pid in range(n):
             p = self.catalog[pid]
             self.prog_level[pid] = p['level_encoded']
             self.prog_tpw[pid] = p['time_per_workout_minutes']
+            self.prog_primary_type.append(p.get('primary_type'))
+            self.prog_secondary_types.append(set(p.get('secondary_types', [])))
 
             # Derive weekly frequency from exercises (same as generate_interactions.py)
             exercises = p['exercises']
@@ -113,6 +115,7 @@ class ContentBasedFilter:
 
         exp_lookup = EXP_SCORE_TABLE[u_exp]
         scores = np.zeros(self.n_programs, dtype=np.float32)
+        tie_breakers = np.zeros(self.n_programs, dtype=np.float32)
 
         for p_idx in range(self.n_programs):
             # Rule 1: Experience level match
@@ -120,10 +123,17 @@ class ContentBasedFilter:
 
             # Rule 2: Workout type match
             p_types = self.prog_type_sets[p_idx]
-            if u_wt in p_types:
+            primary_type = self.prog_primary_type[p_idx]
+            secondary_types = self.prog_secondary_types[p_idx]
+            if u_wt == primary_type:
                 r2 = 1.0
+                tie_breakers[p_idx] = EXACT_INTENT_BONUS
+            elif u_wt in secondary_types:
+                r2 = 0.6
+                tie_breakers[p_idx] = SECONDARY_INTENT_BONUS
             elif u_related & p_types:
-                r2 = 0.5
+                r2 = 0.35
+                tie_breakers[p_idx] = RELATED_INTENT_BONUS
             else:
                 r2 = 0.0
 
@@ -150,9 +160,9 @@ class ContentBasedFilter:
                 r4 = 0.0
 
             scores[p_idx] = (W_EXPERIENCE * r1 + W_WORKOUT_TYPE * r2 +
-                             W_DURATION * r3 + W_FREQUENCY * r4)
+                             W_DURATION * r3 + W_FREQUENCY * r4 + tie_breakers[p_idx])
 
-        ranked = np.argsort(-scores)
+        ranked = np.lexsort((np.arange(self.n_programs), -tie_breakers, -scores))
         return [(int(pid), float(scores[pid])) for pid in ranked]
 
     def get_top_n(self, user_profile: dict, n: int = 50) -> list[int]:

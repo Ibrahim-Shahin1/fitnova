@@ -40,14 +40,21 @@ class Recommender:
                 - neumf_ranked: list[tuple[int, float]] (re-ranked by Layer 2)
                 - similar_user_id: int (cold-start mapped user)
         """
-        # Layer 1: Content-based filtering -> top N candidates
-        content_candidates = self.content_filter.get_top_n(user_profile, n=top_n_content)
+        # Layer 1: Content-based filtering -> top N candidates with scores
+        scored_candidates = self.content_filter.score_programs(user_profile)[:top_n_content]
+        content_candidates = [program_id for program_id, _ in scored_candidates]
+        content_score_map = {program_id: score for program_id, score in scored_candidates}
 
         # Cold-start: map new user to most similar trained user
         similar_user_id = self.neumf_ranker.find_similar_user(user_profile)
 
         # Layer 2: NeuMF re-ranking of candidates
-        neumf_ranked = self.neumf_ranker.score_candidates(similar_user_id, content_candidates)
+        neumf_ranked = self.neumf_ranker.score_candidates(
+            similar_user_id,
+            content_candidates,
+            user_profile=user_profile,
+            content_scores=content_score_map,
+        )
 
         return {
             'program_id': neumf_ranked[0][0],

@@ -1,197 +1,147 @@
-# FitNova — AI-Powered Fitness Planning
+# FitNova - AI-Powered Fitness Planning
 
-An intelligent fitness planning application that generates personalized weekly workout plans using a **3-layer recommendation pipeline** combining content-based filtering, neural collaborative filtering (NeuMF), and large language model adaptation.
-
-## Project Overview
-
-FitNova is a graduation project that demonstrates how to build an AI-powered mobile fitness application. The core feature—**fitness planning**—uses a novel hybrid approach that addresses both the cold-start problem and delivers highly personalized, context-aware workout recommendations.
-
-### Key Features
-
-1. **Fitness Planning** — The core AI feature (in development)
-2. Exercise Form Correction — Computer vision module (separate)
-3. Nutrition Guidance — Dietary recommendations (separate)
+FitNova is a graduation project for personalized fitness planning. The backend uses a 3-layer recommendation pipeline that combines rule-based content filtering, NeuMF collaborative re-ranking, and an LLM adaptation layer for weekly plan generation.
 
 ## Architecture
 
-```
+```text
 User Profile (8 inputs)
-    ↓
-Layer 1: Content-Based Filtering (cosine similarity)
-    ↓ Returns top-50 candidate programs
+    ->
+Layer 1: Content-Based Filtering (weighted compatibility)
+    -> Returns top-50 candidate programs
 Layer 2: NeuMF (Neural Matrix Factorization)
-    ↓ Re-ranks and selects top program
-Layer 3: LLM Adaptation (Claude/Gemini)
-    ↓ Personalizes weekly plan
-Final Output: JSON Weekly Plan
+    -> Re-ranks candidates and selects top program
+Layer 3: LLM Adaptation (Gemini / Claude)
+    -> Personalizes the weekly plan
+Final Output: JSON weekly plan
 ```
 
-### Layer Details
+### Layer 1
+- Matches a user profile against 2,598 programs with weighted compatibility rules.
+- Uses experience level, workout-type intent, session duration, and weekly frequency.
+- Solves the cold-start problem immediately for new users.
 
-**Layer 1 — Content-Based Filtering**
-- Matches user profile to 2,598 fitness programs using cosine similarity
-- Features: experience level, goal, equipment, workout type, duration, frequency
-- Solves the cold-start problem (works for new users immediately)
+### Layer 2
+- Implements He et al. (2017) Neural Collaborative Filtering.
+- Combines GMF and MLP into a fused NeuMF recommender.
+- Trained on 603,500 repo-local synthetic user-item interactions.
+- Current performance: `HR@10 = 0.8952`, `NDCG@10 = 0.7622`.
 
-**Layer 2 — Neural Matrix Factorization (NeuMF)**
-- Implements He et al. (2017) "Neural Collaborative Filtering"
-- Combines GMF (linear relationships) + MLP (non-linear interactions)
-- Trained on 1.36M synthetic user-item interactions
-- Performance: **HR@10 = 0.8756** | **NDCG@10 = 0.6363** ✓
-
-**Layer 3 — LLM Personalization**
-- Takes top-ranked program and user context
-- Uses LLM (Gemini Flash) to generate personalized weekly plan
-- Outputs structured JSON with exercises, sets, reps, rest times
+### Layer 3
+- Takes the top-ranked program and user context.
+- Adapts it into a structured weekly plan with an LLM.
 
 ## Project Structure
 
-```
+```text
 FitNova Application/
-├── backend/                    # Python FastAPI backend
-│   ├── models/                # Trained TensorFlow models
-│   │   ├── neumf_final.keras  # Production NeuMF model
-│   │   ├── gmf_pretrained.keras
-│   │   ├── mlp_pretrained.keras
-│   │   ├── neumf_metadata.pkl
-│   │   └── user_pos_items.pkl
-│   ├── training/              # Training pipeline
-│   │   ├── train_neumf.py     # NeuMF training script
-│   │   └── train_log.txt      # Training log
-│   ├── services/              # Recommendation service modules
-│   │   ├── content_filter.py  # Layer 1: content-based filtering
-│   │   ├── neumf_ranker.py    # Layer 2: NeuMF re-ranker + cold-start
-│   │   └── recommender.py     # Pipeline orchestrator
-│   ├── data/                  # Data processing
-│   │   ├── build_catalog.py   # Program catalog builder
-│   │   ├── program_catalog.pkl
-│   │   ├── datasets/          # Raw datasets (gym_members tracked; programs CSV gitignored — 282MB)
-│   │   └── interactions.csv   # Synthetic training interactions
-│   ├── main.py                # (Phase 5) FastAPI app — not yet built
-│   └── requirements.txt        # Python dependencies
-├── lib/                        # Flutter Dart source
-│   └── main.dart              # (Phase 6) Flutter app
-├── docs/                       # Documentation
-│   ├── DEVELOPMENT.md         # Development roadmap
-│   ├── ARCHITECTURE.md        # System design details
-│   ├── DECISIONS.md           # Technical decisions
-│   └── REFERENCES.md          # Academic citations
-├── CHANGELOG.md               # Version history
-└── .gitignore                 # Git ignore rules
+|-- backend/
+|   |-- data/
+|   |   |-- build_catalog.py
+|   |   |-- generate_interactions.py
+|   |   |-- workout_taxonomy.py
+|   |   |-- program_catalog.pkl
+|   |   |-- interactions.csv
+|   |   |-- program_features.csv
+|   |   `-- user_features.csv
+|   |-- models/
+|   |   |-- neumf_final.keras
+|   |   |-- gmf_pretrained.keras
+|   |   |-- mlp_pretrained.keras
+|   |   |-- neumf_metadata.pkl
+|   |   `-- user_pos_items.pkl
+|   |-- services/
+|   |   |-- content_filter.py
+|   |   |-- neumf_ranker.py
+|   |   `-- recommender.py
+|   |-- tests/
+|   |   |-- test_content_filter.py
+|   |   |-- test_recommender.py
+|   |   `-- test_workout_taxonomy.py
+|   |-- training/
+|   |   |-- train_neumf.py
+|   |   `-- train_log.txt
+|   `-- requirements.txt
+|-- docs/
+|-- lib/
+|-- smoke_test_content_filter.py
+`-- smoke_test_recommender.py
 ```
 
 ## Quick Start
 
-### Prerequisites
-- Python 3.10+
-- Flutter 3.0+
-- Git
-
-### Backend Setup
+### Backend setup
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### Run Training (optional — models already trained)
+### Rebuild derived data
+
+```bash
+python backend/data/build_catalog.py
+python backend/data/generate_interactions.py
+```
+
+### Retrain NeuMF
 
 ```bash
 cd backend
 python training/train_neumf.py
 ```
 
-Expected output:
-```
-GMF   — HR@10: 0.8386  |  NDCG@10: 0.5736
-MLP   — HR@10: 0.8407  |  NDCG@10: 0.5639
-NeuMF — HR@10: 0.8736  |  NDCG@10: 0.6011
+Expected summary:
+
+```text
+GMF   - HR@10: 0.8253 | NDCG@10: 0.6750
+MLP   - HR@10: 0.8828 | NDCG@10: 0.7450
+NeuMF - HR@10: 0.8952 | NDCG@10: 0.7622
 ```
 
-### Run FastAPI Server (Phase 5 — not yet built)
+### Run backend tests
 
 ```bash
-# Coming in Phase 5
-# cd backend && uvicorn main:app --reload
+python -m pytest backend/tests -q
 ```
 
-### Run Flutter App (Phase 6+)
-
-```bash
-flutter run
-```
-
-## Development Roadmap
-
-The project follows a **7-phase implementation plan**:
+## Roadmap
 
 | Phase | Status | Deliverable |
-|-------|--------|-------------|
-| **1. Data Pipeline** | ✅ Complete | `build_catalog.py` → `program_catalog.pkl` |
-| **2. Layer 1** | ✅ Complete | `content_filter.py` — cosine similarity, 7ms |
-| **3. Layer 1+2** | ✅ Complete | `neumf_ranker.py` + `recommender.py` |
-| **4. Layer 3** | In Progress | LLM adapter (Gemini Flash) |
-| **5. FastAPI** | Upcoming | `POST /generate-plan` endpoint |
-| **6. Flutter** | Upcoming | Mobile UI |
-| **7. Testing** | Upcoming | pytest suite + academic write-up |
-
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed phase breakdown.
-
-## Technical Decisions
-
-Key architectural choices and their rationale are documented in [docs/DECISIONS.md](docs/DECISIONS.md):
-- Why NeuMF (He et al. 2017) over other collaborative filtering models
-- Why synthetic interaction data grounded in Gupta et al. (2024) research
-- Why a 3-layer pipeline (cold-start + collaboration + personalization)
-
-## Academic References
-
-- **He et al. (2017)** — *Neural Collaborative Filtering*, WWW 2017
-- **Gupta et al. (2024)** — *Analyzing Gym Members' Fitness Patterns*, IEEE ICTACS 2024
-
-Full references in [docs/REFERENCES.md](docs/REFERENCES.md).
+|---|---|---|
+| 1. Data Pipeline | Complete | Catalog + synthetic data generation |
+| 2. Layer 1 | Complete | Intent-aware content filtering |
+| 3. Layer 1+2 | Complete | NeuMF re-ranking pipeline |
+| 4. Layer 3 | In Progress | LLM weekly-plan adaptation |
+| 5. FastAPI | Upcoming | `POST /generate-plan` endpoint |
+| 6. Flutter | Upcoming | Mobile UI |
+| 7. Testing | Backend Complete | `pytest` coverage for taxonomy, filtering, and recommender |
 
 ## Datasets
 
-**Dataset 1 — Fitness Programs** (600K+ rows, 2,598 programs)
-- Boostcamp Kaggle Dataset
-- Includes: exercise names, sets, reps, program level, goal, equipment, weekly schedule
-
-**Dataset 2 — Gym Members** (973 rows)
-- Kaggle dataset linked to Gupta et al. (2024) research
-- Includes: age, gender, experience level, BMI, workout type, frequency, duration
+- Fitness Programs: 605K+ exercise rows collapsed into 2,598 programs.
+- Gym Members: 973 user profiles with workout type, duration, frequency, BMI, age, and gender.
 
 ## Model Performance
 
-The trained NeuMF model was evaluated on a leave-one-out protocol using HR@10 and NDCG@10 metrics:
+The current NeuMF artifacts were evaluated with leave-one-out testing:
 
 | Component | HR@10 | NDCG@10 |
-|-----------|-------|---------|
-| GMF alone | 0.8510 | 0.6275 |
-| MLP alone | 0.8674 | 0.6203 |
-| **NeuMF (Fused)** | **0.8756** | **0.6363** |
+|---|---:|---:|
+| GMF | 0.8253 | 0.6750 |
+| MLP | 0.8828 | 0.7450 |
+| NeuMF | 0.8952 | 0.7622 |
 
-NeuMF outperforms both components independently, validating the hybrid architecture.
+NeuMF outperforms both component models on the committed synthetic dataset.
 
 ## Documentation
 
-- **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** — Setup, running phases, dependencies
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System design, data flow, model details
-- **[docs/DECISIONS.md](docs/DECISIONS.md)** — Why each major choice was made
-- **[docs/REFERENCES.md](docs/REFERENCES.md)** — Academic citations and dataset sources
-- **[CHANGELOG.md](CHANGELOG.md)** — Version history and milestones
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/DECISIONS.md](docs/DECISIONS.md)
+- [docs/REFERENCES.md](docs/REFERENCES.md)
+- [CHANGELOG.md](CHANGELOG.md)
 
-## License
+## Status
 
-MIT (or Apache 2.0, to be confirmed)
-
-## Contact / Supervisor
-
-[Your Name]
-[Your Email]
-[University / Institution]
-
----
-
-**Status:** Phase 4 development (LLM Adaptation)
-**Last Updated:** April 2026
+Phase 4 backend development is active. The recommender pipeline, taxonomy, synthetic interaction generation, and backend regression tests are in place.

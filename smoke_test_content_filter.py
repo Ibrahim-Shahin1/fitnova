@@ -1,11 +1,16 @@
+import sys
 import pickle
 import time
 
 from backend.services.content_filter import ContentBasedFilter
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 cf = ContentBasedFilter()
 print(f'Loaded {cf.n_programs} programs')
-catalog = pickle.load(open('backend/data/program_catalog.pkl', 'rb'))
+with open('backend/data/program_catalog.pkl', 'rb') as handle:
+    catalog = pickle.load(handle)
 
 # --- Test 1: Beginner + Strength + 1hr + 4 days/week ---
 t = time.time()
@@ -46,7 +51,11 @@ for pid in results2[:10]:
     print(f'  {pid}: {p["title"][:50]} | level={p["level_encoded"]} yoga={p["has_yoga"]} str={p["has_strength"]}')
 
 top5_yoga = [catalog[pid]['has_yoga'] for pid in results2[:5]]
-assert any(y == 1 for y in top5_yoga), f"At least some top-5 should have has_yoga=1, got: {top5_yoga}"
+top5_primary = [catalog[pid].get('primary_type') for pid in results2[:5]]
+assert all(y == 1 for y in top5_yoga), f"Top-5 should all have has_yoga=1, got: {top5_yoga}"
+assert sum(primary == 'Yoga' for primary in top5_primary) >= 3, \
+    f"Top-5 should contain at least 3 Yoga-primary programs, got: {top5_primary}"
 print(f'  [PASS] Top-5 yoga flags: {top5_yoga}')
+print(f'  [PASS] Top-5 primary types: {top5_primary}')
 
 print('\n[ALL TESTS PASSED]')

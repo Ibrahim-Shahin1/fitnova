@@ -16,6 +16,19 @@ _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
 _MODELS_DIR = os.path.join(_BASE_DIR, 'models')
 _DATA_DIR = os.path.join(_BASE_DIR, 'data')
 
+INTENT_ALIGNMENT_SCORE = {
+    'primary': 1.0,
+    'secondary': 0.45,
+    'related': 0.18,
+    'none': 0.0,
+}
+INTENT_ALIGNMENT_BUCKET = {
+    'primary': 3,
+    'secondary': 2,
+    'related': 1,
+    'none': 0,
+}
+
 
 class NeuMFRanker:
     def __init__(self):
@@ -45,8 +58,41 @@ class NeuMFRanker:
         self.user_feature_matrix[:, 0] = (self.user_feature_matrix[:, 0] - 1) / 2.0
         self.user_feature_matrix[:, 1] = self.user_feature_matrix[:, 1] / 3.0
 
+        with open(os.path.join(_DATA_DIR, 'program_catalog.pkl'), 'rb') as f:
+            self.catalog = pickle.load(f)
+
         with open(os.path.join(_DATA_DIR, 'norm_stats.pkl'), 'rb') as f:
             self.norm_stats = pickle.load(f)
+
+    @staticmethod
+    def _normalize_scores(scores: np.ndarray) -> np.ndarray:
+        min_score = float(scores.min())
+        max_score = float(scores.max())
+        if max_score - min_score < 1e-9:
+            return np.ones_like(scores, dtype=np.float32)
+        return ((scores - min_score) / (max_score - min_score)).astype(np.float32)
+
+    def _intent_alignment(self, program_id: int, workout_type: str) -> tuple[float, int]:
+        program = self.catalog[program_id]
+        primary_type = program.get('primary_type')
+        secondary_types = set(program.get('secondary_types', []))
+
+        if workout_type == primary_type:
+            return INTENT_ALIGNMENT_SCORE['primary'], INTENT_ALIGNMENT_BUCKET['primary']
+        if workout_type in secondary_types:
+            return INTENT_ALIGNMENT_SCORE['secondary'], INTENT_ALIGNMENT_BUCKET['secondary']
+
+        related_types = set()
+        if workout_type == 'Cardio':
+            related_types = {'HIIT'}
+        elif workout_type == 'HIIT':
+            related_types = {'Cardio', 'Strength'}
+        elif workout_type == 'Strength':
+            related_types = {'HIIT'}
+
+        if primary_type in related_types or related_types & secondary_types:
+            return INTENT_ALIGNMENT_SCORE['related'], INTENT_ALIGNMENT_BUCKET['related']
+        return INTENT_ALIGNMENT_SCORE['none'], INTENT_ALIGNMENT_BUCKET['none']
 
     def find_similar_user(self, user_profile: dict) -> int:
         """
@@ -101,13 +147,21 @@ class NeuMFRanker:
         similarities = cosine_similarity(new_user_vec, self.user_feature_matrix)[0]
         return int(np.argmax(similarities))
 
-    def score_candidates(self, user_id: int, candidate_ids: list[int]) -> list[tuple[int, float]]:
+    def score_candidates(
+        self,
+        user_id: int,
+        candidate_ids: list[int],
+        user_profile: dict | None = None,
+        content_scores: dict[int, float] | None = None,
+    ) -> list[tuple[int, float]]:
         """
         Score candidate programs for a given user_id using NeuMF.
 
         Args:
             user_id: trained user_id (0-972)
             candidate_ids: list of program_ids to score
+            user_profile: optional request profile for intent-aware blending
+            content_scores: optional content-filter score map for these candidates
 
         Returns:
             List of (program_id, score) sorted by score descending.
@@ -120,5 +174,34 @@ class NeuMFRanker:
             [user_arr, item_arr], batch_size=n, verbose=0
         ).flatten()
 
-        ranked = sorted(zip(candidate_ids, scores), key=lambda x: -x[1])
-        return [(int(pid), float(s)) for pid, s in ranked]
+        final_scores = scores.astype(np.float32)
+        if user_profile:
+            neumf_norm = self._normalize_scores(scores)
+            if content_scores:
+                content_arr = np.array(
+                    [content_scores.get(candidate_id, 0.0) for candidate_id in candidate_ids],
+                    dtype=np.float32,
+                )
+                content_norm = self._normalize_scores(content_arr)
+            else:
+                content_norm = np.zeros(n, dtype=np.float32)
+
+            intent_profiles = [
+                self._intent_alignment(candidate_id, user_profile['workout_type'])
+                for candidate_id in candidate_ids
+            ]
+            intent_arr = np.array([score for score, _ in intent_profiles], dtype=np.float32)
+            intent_buckets = np.array([bucket for _, bucket in intent_profiles], dtype=np.int32)
+            final_scores = (
+                0.45 * neumf_norm
+                + 0.25 * content_norm
+                + 0.30 * intent_arr
+            )
+        else:
+            intent_buckets = np.zeros(n, dtype=np.int32)
+
+        ranked = sorted(
+            zip(candidate_ids, final_scores, intent_buckets),
+            key=lambda x: (-x[2], -x[1], x[0]),
+        )
+        return [(int(pid), float(s)) for pid, s, _ in ranked]

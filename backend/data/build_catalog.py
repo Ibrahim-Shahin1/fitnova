@@ -26,6 +26,11 @@ from ast import literal_eval
 import numpy as np
 import pandas as pd
 
+try:
+    from backend.data.workout_taxonomy import infer_program_type_profile
+except ImportError:
+    from workout_taxonomy import infer_program_type_profile
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PATHS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -52,7 +57,7 @@ CATALOG_PATH  = os.path.join(OUTPUT_DIR, "program_catalog.pkl")
 NORM_PATH     = os.path.join(OUTPUT_DIR, "norm_stats.pkl")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HELPERS  (copied exactly from generate_interactions.py)
+# HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
 def parse_list_field(val):
@@ -66,64 +71,6 @@ def parse_list_field(val):
         return [str(result)]
     except Exception:
         return [str(val).strip()]
-
-
-def classify_exercise(name):
-    """Classify an exercise name into workout type categories.
-
-    NOTE: This is intentionally stricter than the version in generate_interactions.py.
-    The training data used a broader classifier (with a yoga fallback for 'plank',
-    'rotation', 'twist') which caused many strength programs to be tagged as Yoga.
-    The catalog classifier fixes this so the content filter returns genuine yoga
-    programs for yoga users. NeuMF is not affected (it uses learned embeddings,
-    not these flags directly).
-    """
-    if pd.isna(name):
-        return set()
-    name_lower = str(name).lower()
-    types = set()
-
-    hiit_kw = ['hiit', 'circuit', 'burpee', 'sprint', 'tabata', 'explosive',
-               'plyo', 'box jump', 'battle rope', 'kettlebell swing', 'emom',
-               'amrap', 'interval', 'metabolic']
-    cardio_kw = ['run', 'jog', 'walk', 'cycle', 'bike', 'swim', 'cardio',
-                 'treadmill', 'elliptical', 'stair', 'skip', 'jumping jack',
-                 'mountain climber', 'jump rope', 'rowing machine', 'step']
-    yoga_kw = ['yoga', 'pigeon', 'warrior', 'downward dog', 'sun salutation',
-               'meditation', 'cobra pose', 'child pose', 'flow', 'vinyasa',
-               'yin ', 'restorative', 'hip opener']
-    strength_kw = ['squat', 'bench', 'deadlift', 'press', 'curl', 'row',
-                   'pull-up', 'push-up', 'lunge', 'extension', 'fly', 'raise',
-                   'shrug', 'dip', 'chin', 'pulldown', 'pushdown', 'cable',
-                   'dumbbell', 'barbell', 'smith', 'machine', 'weight', 'lat',
-                   'tricep', 'bicep', 'incline', 'decline', 'overhead',
-                   'hammer', 'leg press', 'calf', 'hip thrust', 'glute',
-                   'romanian', 'clean', 'snatch', 'jerk', 'power clean',
-                   'military', 'skull crusher', 'preacher', 'pec']
-
-    for kw in hiit_kw:
-        if kw in name_lower:
-            types.add('HIIT')
-            break
-    for kw in cardio_kw:
-        if kw in name_lower:
-            types.add('Cardio')
-            break
-    for kw in yoga_kw:
-        if kw in name_lower:
-            types.add('Yoga')
-            break
-    for kw in strength_kw:
-        if kw in name_lower:
-            types.add('Strength')
-            break
-
-    if not types:
-        # Default unclassified exercises to Strength — safer than assuming Yoga
-        # for generic terms like 'plank', 'rotation', 'twist', 'hold'
-        types.add('Strength')
-
-    return types
 
 
 def format_reps(reps_val):
@@ -195,10 +142,8 @@ def build_catalog():
         prog_len = float(first_row['program_length']) if pd.notna(first_row['program_length']) else 4.0
         tpw      = float(first_row['time_per_workout']) if pd.notna(first_row['time_per_workout']) else 60.0
 
-        # Workout type flags
-        all_types = set()
-        for ex_name in group['exercise_name'].dropna().unique():
-            all_types.update(classify_exercise(ex_name))
+        exercise_names = group['exercise_name'].dropna().astype(str).tolist()
+        type_profile = infer_program_type_profile(title, exercise_names)
 
         # Full exercise schedule (all weeks/days)
         exercise_rows = []
@@ -230,10 +175,13 @@ def build_catalog():
             'equipment':               equipment,
             'program_length_weeks':    prog_len,
             'time_per_workout_minutes': tpw,
-            'has_cardio':  1 if 'Cardio'   in all_types else 0,
-            'has_strength': 1 if 'Strength' in all_types else 0,
-            'has_yoga':    1 if 'Yoga'     in all_types else 0,
-            'has_hiit':    1 if 'HIIT'     in all_types else 0,
+            'primary_type':            type_profile['primary_type'],
+            'secondary_types':         type_profile['secondary_types'],
+            'type_scores':             type_profile['scores'],
+            'has_cardio':              type_profile['has_cardio'],
+            'has_strength':            type_profile['has_strength'],
+            'has_yoga':                type_profile['has_yoga'],
+            'has_hiit':                type_profile['has_hiit'],
             'exercises':   exercise_rows,
             'week1_exercises': week1,
         })
@@ -388,6 +336,7 @@ def build_catalog():
     print(f"    goal        : {p['goal']} (encoded={p['goal_encoded']})")
     print(f"    equipment   : {p['equipment']} (encoded={p['equipment_encoded']})")
     print(f"    level       : {p['level_encoded']}")
+    print(f"    primary     : {p['primary_type']} | secondary={p['secondary_types']}")
     print(f"    types       : cardio={p['has_cardio']} strength={p['has_strength']} "
           f"yoga={p['has_yoga']} hiit={p['has_hiit']}")
     print(f"    weeks/tpw   : {p['program_length_weeks']}w / {p['time_per_workout_minutes']}min")
