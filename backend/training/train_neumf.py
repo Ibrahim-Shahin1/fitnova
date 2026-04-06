@@ -36,7 +36,10 @@ from tensorflow.keras import layers, optimizers
 # CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 
-DATA_DIR = r"C:\Users\tsh_x\Desktop\FitNova Drafts2\generated_data"
+# Generated interaction data lives in backend/data/ by default.
+# Override with FITNOVA_DATA_DIR env var if needed.
+_REPO_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
+DATA_DIR = os.environ.get("FITNOVA_DATA_DIR", _REPO_DATA_DIR)
 
 # Output goes inside backend/models/ relative to this script
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")

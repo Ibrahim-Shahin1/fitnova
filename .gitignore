@@ -87,3 +87,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Large raw datasets (too big for Git — download separately)
+# gym_members_exercise_tracking.csv is small (64KB) and IS tracked
+backend/data/datasets/programs_detailed_boostcamp_kaggle.csv

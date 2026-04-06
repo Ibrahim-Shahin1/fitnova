@@ -30,11 +30,24 @@ import pandas as pd
 # PATHS
 # ─────────────────────────────────────────────────────────────────────────────
 
-PROGRAM_CSV   = r"C:\Users\tsh_x\Desktop\FitNova Drafts2\datasets\programs_detailed_boostcamp_kaggle.csv"
-PROG_FEAT_CSV = r"C:\Users\tsh_x\Desktop\FitNova Drafts2\generated_data\program_features.csv"
-USER_FEAT_CSV = r"C:\Users\tsh_x\Desktop\FitNova Drafts2\generated_data\user_features.csv"
+# All paths default to repo-local locations.
+# Override with env vars if your datasets live elsewhere:
+#   FITNOVA_PROGRAM_CSV  — path to programs_detailed_boostcamp_kaggle.csv
+#   FITNOVA_GYM_CSV      — path to gym_members_exercise_tracking.csv
+#   FITNOVA_DATA_DIR     — directory containing generated_data files
 
-OUTPUT_DIR    = os.path.dirname(os.path.abspath(__file__))
+_THIS_DIR  = os.path.dirname(os.path.abspath(__file__))
+_DATA_DIR  = os.environ.get("FITNOVA_DATA_DIR", _THIS_DIR)
+_DATASETS_DIR = os.path.join(_THIS_DIR, "datasets")
+
+PROGRAM_CSV   = os.environ.get(
+    "FITNOVA_PROGRAM_CSV",
+    os.path.join(_DATASETS_DIR, "programs_detailed_boostcamp_kaggle.csv")
+)
+PROG_FEAT_CSV = os.path.join(_DATA_DIR, "program_features.csv")
+USER_FEAT_CSV = os.path.join(_DATA_DIR, "user_features.csv")
+
+OUTPUT_DIR    = _THIS_DIR
 CATALOG_PATH  = os.path.join(OUTPUT_DIR, "program_catalog.pkl")
 NORM_PATH     = os.path.join(OUTPUT_DIR, "norm_stats.pkl")
 
@@ -303,7 +316,10 @@ def build_catalog():
     # Since we can't recover exact original min/max from normalized values alone,
     # we derive them from the raw gym member data directly.
 
-    gym_csv = r"C:\Users\tsh_x\Desktop\FitNova Drafts2\datasets\gym_members_exercise_tracking.csv"
+    gym_csv = os.environ.get(
+        "FITNOVA_GYM_CSV",
+        os.path.join(_DATASETS_DIR, "gym_members_exercise_tracking.csv")
+    )
     gym_raw = pd.read_csv(gym_csv)
 
     # Clean column names (same as generate_interactions.py)
