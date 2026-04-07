@@ -24,8 +24,8 @@ Final Output: JSON weekly plan
 ### Layer 2
 - Implements He et al. (2017) Neural Collaborative Filtering.
 - Combines GMF and MLP into a fused NeuMF recommender.
-- Trained on 603,500 repo-local synthetic user-item interactions.
-- Current performance: `HR@10 = 0.8952`, `NDCG@10 = 0.7622`.
+- Trained on 809,439 synthetic interactions across 3,048 programs (2,598 real + 450 augmented).
+- Current performance: `HR@10 = 0.9270`, `NDCG@10 = 0.7469`.
 
 ### Layer 3
 - Takes the top-ranked program and user context.
@@ -94,9 +94,9 @@ python training/train_neumf.py
 Expected summary:
 
 ```text
-GMF   - HR@10: 0.8253 | NDCG@10: 0.6750
-MLP   - HR@10: 0.8828 | NDCG@10: 0.7450
-NeuMF - HR@10: 0.8952 | NDCG@10: 0.7622
+GMF   - HR@10: 0.9075 | NDCG@10: 0.7251
+MLP   - HR@10: 0.9065 | NDCG@10: 0.7208
+NeuMF - HR@10: 0.9270 | NDCG@10: 0.7469
 ```
 
 ### Run backend tests
@@ -128,9 +128,9 @@ The current NeuMF artifacts were evaluated with leave-one-out testing:
 
 | Component | HR@10 | NDCG@10 |
 |---|---:|---:|
-| GMF | 0.8253 | 0.6750 |
-| MLP | 0.8828 | 0.7450 |
-| NeuMF | 0.8952 | 0.7622 |
+| GMF | 0.9075 | 0.7251 |
+| MLP | 0.9065 | 0.7208 |
+| NeuMF | 0.9270 | 0.7469 |
 
 NeuMF outperforms both component models on the committed synthetic dataset.
 

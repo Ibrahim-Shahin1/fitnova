@@ -32,7 +32,7 @@ NeuMF outputs a program_id (e.g., 42). Without this catalog, we cannot retrieve 
 - `backend/data/program_catalog.pkl` — compiled catalog (dict mapping program_id → program data)
 
 ### Verification
-- `len(catalog) == 2598`
+- `len(catalog) == 3048` (2,598 real + 450 synthetic augmentation)
 - `catalog[0]['title'] == "Weightlifting Mobility program"`
 - Spot-check 5 random programs against source CSV
 

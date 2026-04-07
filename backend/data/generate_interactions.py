@@ -10,6 +10,7 @@ from __future__ import annotations
 from ast import literal_eval
 from collections import Counter
 import os
+import pickle
 import sys
 import time
 
@@ -407,10 +408,57 @@ def main():
     )
 
     programs_df = build_program_dataframe(programs_raw)
+
+    # ── Synthetic augmentation (Yoga / Cardio / HIIT balance) ────────────────
+    synth_path = os.path.join(OUTPUT_DIR, "synthetic_programs.pkl")
+    if os.path.exists(synth_path):
+        with open(synth_path, "rb") as f:
+            synth_raw = pickle.load(f)
+        n_real = len(programs_df)
+        synth_rows = []
+        for prog in synth_raw:
+            synth_rows.append({
+                "program_id":               n_real + len(synth_rows),
+                "title":                    prog["title"],
+                "level_encoded":            prog["level_encoded"],
+                "goal":                     prog["goal"],
+                "equipment":                prog["equipment"],
+                "program_length_weeks":     prog["program_length_weeks"],
+                "time_per_workout_minutes": prog["time_per_workout_minutes"],
+                "weekly_frequency":         prog["weekly_frequency"],
+                "primary_type":             prog["primary_type"],
+                "secondary_types":          prog["secondary_types"],
+                "has_cardio":               prog["has_cardio"],
+                "has_strength":             prog["has_strength"],
+                "has_yoga":                 prog["has_yoga"],
+                "has_hiit":                 prog["has_hiit"],
+            })
+        programs_df = pd.concat(
+            [programs_df, pd.DataFrame(synth_rows)],
+            ignore_index=True,
+        )
+        print(f"  Loaded {len(synth_raw)} synthetic programs. "
+              f"Total programs: {len(programs_df)}")
+    else:
+        print("  No synthetic_programs.pkl found - using real programs only.")
+
     program_features = build_program_features(programs_df)
     user_features = build_user_features(users_df)
 
     base_scores = build_score_matrix(users_df, programs_df)
+
+    # Boost minority-type programs so NeuMF sees adequate signal for
+    # Yoga/Cardio/HIIT, which are heavily underrepresented in the real catalog.
+    _TYPE_BOOST = {"Yoga": 1.3, "Cardio": 1.3, "HIIT": 1.3}
+    _boost_vec = np.array(
+        [_TYPE_BOOST.get(t, 1.0) for t in programs_df["primary_type"]],
+        dtype=np.float32,
+    )
+    if (_boost_vec != 1.0).any():
+        base_scores = np.clip(base_scores * _boost_vec[np.newaxis, :], 0.0, 1.0)
+        n_boosted = int((_boost_vec != 1.0).sum())
+        print(f"  Applied 1.3x interaction boost to {n_boosted} minority programs")
+
     noise = np.random.default_rng(RANDOM_SEED).normal(0, NOISE_STD, size=base_scores.shape).astype(np.float32)
     noisy_scores = np.clip(base_scores + noise, 0.0, 1.0)
     interaction_matrix = threshold_scores(

@@ -45,9 +45,10 @@ DATA_DIR = os.environ.get("FITNOVA_DATA_DIR", _REPO_DATA_DIR)
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Dataset dimensions (must match generated data)
+# Dataset dimensions — overridden at runtime in main() from program_features.csv.
+# These defaults reflect the original catalog size before augmentation.
 NUM_USERS = 973
-NUM_ITEMS = 2598
+NUM_ITEMS = 3048  # 2598 real + 450 synthetic (Yoga/Cardio/HIIT augmentation)
 
 # Model hyperparameters — following He et al. (2017)
 GMF_FACTORS = 16          # embedding dim for GMF pathway
@@ -377,10 +378,21 @@ def evaluate(model, test_interactions, user_pos_items, num_neg=NUM_NEG_TEST, top
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main():
+    global NUM_USERS, NUM_ITEMS
+
+    # Derive dataset dimensions from the generated files so the embedding
+    # layers are always sized correctly even after catalog augmentation.
+    _pf = pd.read_csv(os.path.join(DATA_DIR, "program_features.csv"))
+    _uf = pd.read_csv(os.path.join(DATA_DIR, "user_features.csv"))
+    NUM_ITEMS = len(_pf)
+    NUM_USERS = len(_uf)
+    del _pf, _uf
+
     print("=" * 60)
     print("FitNova — NeuMF Training Pipeline")
     print("He et al. (2017) Neural Collaborative Filtering")
     print("=" * 60)
+    print(f"  Dataset dimensions: {NUM_USERS} users x {NUM_ITEMS} items")
 
     # ── Load & split ─────────────────────────────────────────────────────────
     positives, negatives = load_data()

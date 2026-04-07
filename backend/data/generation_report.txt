@@ -1,12 +1,12 @@
 FITNOVA GENERATION REPORT
 ========================================
-Programs: 2598
-Interactions: 603500
-Positives: 152563
-Negatives: 450937
+Programs: 3048
+Interactions: 809439
+Positives: 161948
+Negatives: 647491
 
 Primary type distribution:
-  Yoga: 5
+  Yoga: 155
   Strength: 2577
-  Cardio: 14
-  HIIT: 2
+  Cardio: 164
+  HIIT: 152

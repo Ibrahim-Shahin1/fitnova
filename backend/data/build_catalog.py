@@ -186,11 +186,44 @@ def build_catalog():
             'week1_exercises': week1,
         })
 
+    n_real_programs = len(programs_list)
+    print(f"  Built {n_real_programs} real program records in {time.time()-t2:.1f}s")
+
+    # ── Load synthetic programs (augmentation for minority types) ─────────────
+    synth_path = os.path.join(_THIS_DIR, 'synthetic_programs.pkl')
+    if os.path.exists(synth_path):
+        with open(synth_path, 'rb') as f:
+            synth_raw = pickle.load(f)
+        for prog in synth_raw:
+            pid = len(programs_list)
+            programs_list.append({
+                'program_id':               pid,
+                'title':                    prog['title'],
+                'description':              prog.get('description', ''),
+                'level_encoded':            prog['level_encoded'],
+                'goal':                     prog['goal'],
+                'equipment':                prog['equipment'],
+                'program_length_weeks':     prog['program_length_weeks'],
+                'time_per_workout_minutes': prog['time_per_workout_minutes'],
+                'primary_type':             prog['primary_type'],
+                'secondary_types':          prog['secondary_types'],
+                'type_scores':              prog.get('type_scores', {}),
+                'has_cardio':               prog['has_cardio'],
+                'has_strength':             prog['has_strength'],
+                'has_yoga':                 prog['has_yoga'],
+                'has_hiit':                 prog['has_hiit'],
+                'exercises':                prog.get('exercises', []),
+                'week1_exercises':          prog.get('week1_exercises', []),
+            })
+        print(f"  Loaded {len(synth_raw)} synthetic programs. "
+              f"Total: {len(programs_list)}")
+    else:
+        print(f"  No synthetic_programs.pkl found - using real programs only.")
+
     programs_df = pd.DataFrame([
         {k: v for k, v in p.items() if k not in ('exercises', 'week1_exercises')}
         for p in programs_list
     ])
-    print(f"  Built {len(programs_list)} program records in {time.time()-t2:.1f}s")
 
     # ── Step 3: Compute goal_encoded and equipment_encoded ────────────────────
     # Must match generate_interactions.py lines 654-657 EXACTLY:
@@ -217,6 +250,8 @@ def build_catalog():
     mismatches = 0
     for p in programs_list:
         pid = p['program_id']
+        if pid >= n_real_programs:
+            continue  # synthetic programs are not in program_features.csv
         ref = pf[pf['program_id'] == pid]
         if ref.empty:
             print(f"  WARNING: program_id {pid} not found in program_features.csv")
@@ -233,7 +268,8 @@ def build_catalog():
                 mismatches += 1
 
     if mismatches == 0:
-        print("  All 2598 programs verified against program_features.csv. OK")
+        print(f"  All {n_real_programs} real programs verified against "
+              f"program_features.csv. OK")
     else:
         print(f"  {mismatches} mismatches found (see above)")
 
@@ -328,7 +364,8 @@ def build_catalog():
     print(f"  catalog[0]['title']       : {catalog[0]['title']}")
     print(f"  catalog[0] exercises      : {len(catalog[0]['exercises'])} rows")
     print(f"  catalog[0] week1          : {len(catalog[0]['week1_exercises'])} exercises")
-    print(f"  catalog[2597]['title']    : {catalog[2597]['title']}")
+    last_id = len(catalog) - 1
+    print(f"  catalog[{last_id}]['title']  : {catalog[last_id]['title']}")
     print()
     print("  Sample program (id=1):")
     p = catalog[1]
