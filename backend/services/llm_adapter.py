@@ -10,22 +10,35 @@ from __future__ import annotations
 
 from collections import defaultdict
 import json
+import logging
 import os
 import pickle
+import re
 from typing import Any
 
 from dotenv import load_dotenv
 from openai import APIConnectionError, APITimeoutError, OpenAI
 
+logger = logging.getLogger("fitnova.llm")
 
 _BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
 _DATA_DIR = os.path.join(_BASE_DIR, "data")
 _CATALOG_PATH = os.path.join(_DATA_DIR, "program_catalog.pkl")
 _ENV_PATH = os.path.join(_BASE_DIR, ".env")
 
+# Max exercises per day shown in the LLM prompt (keeps context bounded)
+_MAX_PROMPT_EXERCISES_PER_DAY = 8
+
+# Max exercises per day in the template fallback (keeps plans readable)
+_MAX_TEMPLATE_EXERCISES = {1: 5, 2: 7, 3: 8}  # by experience level
+
+# Reps threshold above which a time-based value is considered garbage for Strength
+_MAX_REASONABLE_HOLD_SECONDS = 120
+
 
 class LLMAdapter:
-    SYSTEM_PROMPT = """You are FitNova's fitness coach.
+    SYSTEM_PROMPT = """You are FitNova's expert fitness coach. Your job is to create a structured, \
+realistic weekly training plan that a real gym-goer would follow.
 
 Return ONLY valid JSON with this exact top-level structure:
 {
@@ -42,30 +55,45 @@ Return ONLY valid JSON with this exact top-level structure:
   }
 }
 
-Rules:
+STRICT RULES:
 - The plan must contain exactly 7 days named day_1 through day_7.
-- Each day must include: day_number, focus, is_rest_day, exercises.
-- Rest days must use: is_rest_day=true and exercises=[].
-- Workout days must equal the user's workout_frequency exactly.
-- For workout days, each exercise item must include:
-  exercise_name, sets, reps, rest_seconds, coaching_cue.
-- Adjust volume by level:
-  beginner = 2-3 sets
-  intermediate = 3-4 sets
-  advanced = 4-5 sets
-- Respect the supplied program structure and week 1 exercise list.
-- Keep exercise names practical and do not invent medical advice.
+- Each day must include: day_number (int), focus (str), is_rest_day (bool), exercises (list).
+- Rest days: is_rest_day=true, exercises=[].
+- The NUMBER of workout days must equal workout_frequency exactly.
+- For each workout day exercise include: exercise_name, sets (int), reps (str), rest_seconds (int), coaching_cue (str).
+- Volume by experience level:
+    beginner    = 2-3 sets, 10-15 reps, 60-90s rest
+    intermediate = 3-4 sets, 8-12 reps, 90-120s rest
+    advanced    = 4-5 sets, 5-8 reps, 120-180s rest
+- program_title: Write a CLEAR, DESCRIPTIVE title like "Intermediate Push/Pull/Legs Strength" or \
+"Beginner 3-Day Full Body". NEVER copy a gibberish or single-word raw program title.
+- focus: Label each day precisely — "Push", "Pull", "Legs", "Upper Body", "Lower Body", "Full Body", \
+"Conditioning", "Mobility & Recovery", etc. — based on the ACTUAL exercises in that day.
+- coaching_cue: Write SPECIFIC technique cues for each exercise (2 sentences). \
+DO NOT write the same generic cue for every exercise.
+- Keep exercise names practical. Do not invent medical advice.
+- Use the supplied week 1 exercise list as a reference for exercise selection and structure. \
+You may add or substitute exercises to make the plan coherent.
 """
 
-    def __init__(self, catalog_path: str = _CATALOG_PATH, env_path: str = _ENV_PATH, client: OpenAI | None = None):
+    def __init__(
+        self,
+        catalog_path: str = _CATALOG_PATH,
+        env_path: str = _ENV_PATH,
+        client: OpenAI | None = None,
+    ):
         load_dotenv(dotenv_path=env_path)
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY is missing. Add it to backend/.env or your environment.")
+            raise ValueError(
+                "OPENAI_API_KEY is missing. Add it to backend/.env or your environment."
+            )
 
         self.client = client or OpenAI(api_key=api_key)
         with open(catalog_path, "rb") as handle:
             self.catalog = pickle.load(handle)
+
+    # ── Public API ────────────────────────────────────────────────────────────
 
     def generate_plan(self, program_id: int, user_profile: dict) -> dict:
         program = self._get_program(program_id)
@@ -75,15 +103,18 @@ Rules:
             result = self._validate_response(llm_payload, program, user_profile)
             result["source"] = "llm"
             return result
-        except Exception:
+        except Exception as exc:
+            logger.error("LLM call failed, using template fallback: %s", exc)
             result = self._build_template_plan(program, user_profile)
             result["source"] = "template_fallback"
             return result
 
+    # ── LLM Call ──────────────────────────────────────────────────────────────
+
     def _call_llm(self, user_prompt: str) -> dict:
         last_error: Exception | None = None
 
-        for attempt in range(2):
+        for attempt in range(3):
             try:
                 response = self.client.chat.completions.create(
                     model="gpt-4o-mini",
@@ -93,8 +124,8 @@ Rules:
                     ],
                     response_format={"type": "json_object"},
                     temperature=0.7,
-                    max_tokens=3000,
-                    timeout=30,
+                    max_tokens=4000,
+                    timeout=60,
                 )
                 content = response.choices[0].message.content
                 if not content:
@@ -102,7 +133,8 @@ Rules:
                 return json.loads(content)
             except (APITimeoutError, APIConnectionError) as exc:
                 last_error = exc
-                if attempt == 1:
+                logger.warning("LLM attempt %d failed: %s", attempt + 1, exc)
+                if attempt == 2:
                     raise
             except json.JSONDecodeError as exc:
                 raise ValueError("LLM response was not valid JSON") from exc
@@ -111,16 +143,20 @@ Rules:
             raise last_error
         raise RuntimeError("LLM call failed unexpectedly")
 
+    # ── Prompt Builder ────────────────────────────────────────────────────────
+
     def _build_user_prompt(self, program: dict, user_profile: dict) -> str:
         grouped = self._group_week1_exercises(program)
+        level = int(user_profile.get("experience_level", 2))
+
         lines = [
             "Build a personalized 7-day weekly workout plan from this program.",
             "",
             "User profile:",
-            f"- experience_level: {self._experience_label(user_profile.get('experience_level', 2))}",
+            f"- experience_level: {self._experience_label(level)}",
             f"- workout_type: {user_profile.get('workout_type', 'Strength')}",
             f"- session_duration_hours: {user_profile.get('session_duration_hours', 1.0)}",
-            f"- workout_frequency: {user_profile.get('workout_frequency', 3)}",
+            f"- workout_frequency: {user_profile.get('workout_frequency', 3)} days/week",
             f"- age: {user_profile.get('age', 'unknown')}",
             f"- gender: {user_profile.get('gender', 'unknown')}",
             f"- bmi: {user_profile.get('bmi', 'unknown')}",
@@ -130,20 +166,35 @@ Rules:
             f"- primary_type: {program.get('primary_type', 'Strength')}",
             f"- goal: {program.get('goal', 'General Fitness')}",
             f"- equipment: {program.get('equipment', 'Unknown')}",
-            f"- level_encoded: {program.get('level_encoded', 1)}",
+            f"- level: {self._experience_label(int(program.get('level_encoded', 1)))}",
             f"- time_per_workout_minutes: {program.get('time_per_workout_minutes', 60)}",
             "",
-            "Week 1 exercises grouped by day:",
+            f"Week 1 exercises (up to {_MAX_PROMPT_EXERCISES_PER_DAY} per day shown):",
         ]
 
         for day_number in sorted(grouped):
+            day_exercises = grouped[day_number][:_MAX_PROMPT_EXERCISES_PER_DAY]
             lines.append(f"Day {day_number}:")
-            for exercise in grouped[day_number]:
+            for exercise in day_exercises:
+                clean_reps = self._sanitize_reps(
+                    str(exercise.get("reps") or ""),
+                    program.get("primary_type", "Strength"),
+                    level,
+                    str(exercise.get("exercise_name", "")),
+                )
                 lines.append(
-                    f"- {exercise['exercise_name']} | sets={exercise['sets']} | reps={exercise['reps']}"
+                    f"  - {exercise['exercise_name']} | sets={exercise.get('sets', 3)} | reps={clean_reps}"
                 )
 
+        lines.append("")
+        lines.append(
+            "Note: Use the exercise list as a reference. "
+            "Ensure the split and focus labels match the exercises you assign."
+        )
+
         return "\n".join(lines)
+
+    # ── Template Fallback ─────────────────────────────────────────────────────
 
     def _build_template_plan(self, program: dict, user_profile: dict) -> dict:
         grouped = self._group_week1_exercises(program)
@@ -151,9 +202,12 @@ Rules:
         scheduled_days = self._select_workout_days(workout_frequency)
         source_days = sorted(grouped) or [1]
         level = int(user_profile.get("experience_level", 2))
+        max_ex = _MAX_TEMPLATE_EXERCISES.get(level, 7)
 
         plan: dict[str, dict[str, Any]] = {}
         source_index = 0
+        day_focuses: list[str] = []
+
         for day_number in range(1, 8):
             key = f"day_{day_number}"
             if day_number not in scheduled_days:
@@ -167,40 +221,62 @@ Rules:
 
             source_day = source_days[source_index % len(source_days)]
             source_index += 1
-            source_exercises = grouped.get(source_day, [])
-            focus = self._infer_focus(program, source_day, source_exercises)
+            raw_exercises = grouped.get(source_day, [])
+
+            # Filter garbage exercise names, then cap count
+            valid_exercises = [
+                ex for ex in raw_exercises
+                if self._is_valid_exercise_name(str(ex.get("exercise_name", "")))
+            ][:max_ex]
+
+            focus = self._infer_focus(program, source_day, valid_exercises)
+            day_focuses.append(focus)
+
             plan[key] = {
                 "day_number": day_number,
                 "focus": focus,
                 "is_rest_day": False,
                 "exercises": [
-                    self._normalize_exercise(exercise, level, program.get("primary_type", "Strength"))
-                    for exercise in source_exercises
+                    self._normalize_exercise(
+                        ex, level, program.get("primary_type", "Strength")
+                    )
+                    for ex in valid_exercises
                 ],
             }
 
+        title = self._sanitize_title(
+            program.get("title", ""),
+            user_profile,
+            level,
+            workout_frequency,
+            day_focuses,
+        )
+
         return {
-            "program_title": program.get("title", f"Program {program.get('program_id', 'unknown')}"),
+            "program_title": title,
             "personalization_notes": (
-                f"Template fallback generated for a {self._experience_label(level).lower()} "
-                f"{user_profile.get('workout_type', 'Strength').lower()} user with "
-                f"{workout_frequency} workout days per week."
+                f"Personalized for a {self._experience_label(level).lower()} "
+                f"{user_profile.get('workout_type', 'Strength').lower()} user "
+                f"training {workout_frequency}x per week."
             ),
             "plan": plan,
         }
+
+    # ── Validate LLM Response ─────────────────────────────────────────────────
 
     def _validate_response(self, payload: dict, program: dict, user_profile: dict) -> dict:
         if not isinstance(payload, dict):
             raise ValueError("LLM response must be a JSON object")
 
         plan = payload.get("plan")
-        expected_keys = [f"day_{index}" for index in range(1, 8)]
+        expected_keys = [f"day_{i}" for i in range(1, 8)]
         if not isinstance(plan, dict) or set(plan.keys()) != set(expected_keys):
             raise ValueError("Plan must contain exactly day_1 through day_7")
 
         level = int(user_profile.get("experience_level", 2))
         normalized_plan: dict[str, dict[str, Any]] = {}
         workout_day_count = 0
+
         for index, key in enumerate(expected_keys, start=1):
             day_payload = plan.get(key)
             if not isinstance(day_payload, dict):
@@ -230,7 +306,8 @@ Rules:
 
             normalized_plan[key] = {
                 "day_number": int(day_payload.get("day_number", index)),
-                "focus": day_payload.get("focus") or ("Rest & Recovery" if is_rest_day else f"Workout Day {index}"),
+                "focus": day_payload.get("focus")
+                or ("Rest & Recovery" if is_rest_day else f"Workout Day {index}"),
                 "is_rest_day": is_rest_day,
                 "exercises": [] if is_rest_day else normalized_exercises,
             }
@@ -238,14 +315,264 @@ Rules:
         if workout_day_count != int(user_profile.get("workout_frequency", 3)):
             raise ValueError("Workout day count does not match workout_frequency")
 
+        raw_title = str(payload.get("program_title") or "")
+        clean_title = self._sanitize_title(
+            raw_title,
+            user_profile,
+            level,
+            int(user_profile.get("workout_frequency", 3)),
+        )
+
         return {
-            "program_title": str(payload.get("program_title") or program.get("title", "Unknown Program")),
+            "program_title": clean_title,
             "personalization_notes": str(
                 payload.get("personalization_notes")
                 or f"Adapted for {self._experience_label(level).lower()} level."
             ),
             "plan": normalized_plan,
         }
+
+    # ── Core Exercise Normalizer ───────────────────────────────────────────────
+
+    def _normalize_exercise(
+        self,
+        exercise: dict,
+        experience_level: int,
+        primary_type: str,
+        source_is_llm: bool = False,
+    ) -> dict:
+        # Sets: always clamp to experience-appropriate range
+        default_sets = {1: 3, 2: 4, 3: 5}.get(experience_level, 4)
+        raw_sets = exercise.get("sets", default_sets)
+        try:
+            sets = int(raw_sets)
+        except (TypeError, ValueError):
+            sets = default_sets
+
+        min_sets, max_sets = {1: (2, 3), 2: (3, 4), 3: (4, 5)}.get(experience_level, (3, 4))
+        sets = max(min_sets, min(max_sets, sets))
+
+        # Reps: sanitize garbage time-based values from catalog
+        raw_reps = str(exercise.get("reps") or "")
+        reps = self._sanitize_reps(
+            raw_reps,
+            primary_type,
+            experience_level,
+            str(exercise.get("exercise_name", "")),
+        )
+
+        # Rest & coaching cue
+        if source_is_llm:
+            rest_seconds = exercise.get("rest_seconds") or self._default_rest_seconds(
+                primary_type, experience_level
+            )
+            coaching_cue = exercise.get("coaching_cue") or self._default_coaching_cue(
+                primary_type, exercise.get("exercise_name", "exercise")
+            )
+        else:
+            rest_seconds = self._default_rest_seconds(primary_type, experience_level)
+            coaching_cue = self._default_coaching_cue(
+                primary_type, exercise.get("exercise_name", "exercise")
+            )
+
+        return {
+            "exercise_name": str(exercise.get("exercise_name", "Unknown Exercise")),
+            "sets": sets,
+            "reps": reps,
+            "rest_seconds": int(rest_seconds),
+            "coaching_cue": coaching_cue,
+        }
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _sanitize_reps(
+        reps: str,
+        primary_type: str,
+        experience_level: int,
+        exercise_name: str,
+    ) -> str:
+        """Replace nonsensical time-based reps values with appropriate rep ranges."""
+        if not reps or reps.lower() in ("none", "as prescribed", ""):
+            defaults = {1: "10", 2: "8-10", 3: "6-8"}
+            return defaults.get(experience_level, "10")
+
+        # Match "NNN sec" pattern
+        match = re.match(r"^(\d+)\s*sec$", reps.strip(), re.IGNORECASE)
+        if match:
+            seconds = int(match.group(1))
+
+            # Isometric / hold exercises — cap at reasonable duration
+            isometric_terms = ("plank", "hold", "hang", "wall sit", "iso", "static")
+            is_isometric = any(t in exercise_name.lower() for t in isometric_terms)
+            if is_isometric:
+                max_hold = {1: 30, 2: 45, 3: 60}.get(experience_level, 45)
+                capped = min(seconds, max_hold)
+                return f"{capped} sec"
+
+            # Time-based cardio/yoga — keep if reasonable
+            if primary_type in ("Cardio", "Yoga", "HIIT") and seconds <= 300:
+                return reps
+
+            # Strength or unreasonably long → replace with rep range
+            if primary_type == "Strength" or seconds > _MAX_REASONABLE_HOLD_SECONDS:
+                rep_defaults = {1: "10", 2: "8-10", 3: "6-8"}
+                return rep_defaults.get(experience_level, "10")
+
+        return reps
+
+    @staticmethod
+    def _sanitize_title(
+        raw_title: str,
+        user_profile: dict,
+        level: int,
+        workout_frequency: int,
+        day_focuses: list[str] | None = None,
+    ) -> str:
+        """Return a clean, descriptive title. Replaces gibberish program titles."""
+        level_label = LLMAdapter._experience_label(level)
+        wtype = user_profile.get("workout_type", "Strength")
+
+        # Detect gibberish: single word, non-alphabetic, or too short
+        stripped = raw_title.replace(" ", "").replace("/", "").replace("-", "")
+        is_gibberish = (
+            not raw_title
+            or len(raw_title.split()) < 2
+            or not stripped.isalpha()
+            or len(raw_title) < 5
+        )
+
+        if is_gibberish:
+            split_label = LLMAdapter._infer_split_label(day_focuses or [])
+            if split_label:
+                return f"{level_label} {split_label} {wtype} Plan ({workout_frequency}x/week)"
+            return f"{level_label} {wtype} Plan ({workout_frequency}x/week)"
+
+        return raw_title
+
+    @staticmethod
+    def _infer_split_label(day_focuses: list[str]) -> str:
+        """Infer a common split name from the focus labels of workout days."""
+        workout_focuses = [f for f in day_focuses if f not in ("Rest & Recovery", "")]
+        if not workout_focuses:
+            return ""
+
+        has_push = any("push" in f.lower() for f in workout_focuses)
+        has_pull = any("pull" in f.lower() for f in workout_focuses)
+        has_legs = any("leg" in f.lower() for f in workout_focuses)
+        has_upper = any("upper" in f.lower() for f in workout_focuses)
+        has_lower = any("lower" in f.lower() for f in workout_focuses)
+        has_full = any("full" in f.lower() for f in workout_focuses)
+
+        if has_push and has_pull and has_legs:
+            return "Push/Pull/Legs"
+        if has_upper and has_lower:
+            return "Upper/Lower"
+        if has_full:
+            return "Full Body"
+        return ""
+
+    @staticmethod
+    def _is_valid_exercise_name(name: str) -> bool:
+        """Reject obviously garbage exercise names."""
+        name = name.strip()
+        if len(name) < 3:
+            return False
+        if name.isdigit():
+            return False
+        # Reject strings with no vowels (likely keyboard mash) if long enough
+        if len(name) > 4 and not re.search(r"[aeiouAEIOU]", name):
+            return False
+        return True
+
+    @staticmethod
+    def _categorize_exercise(exercise_name: str) -> str:
+        """Categorize an exercise by movement pattern for coaching cue selection."""
+        name = exercise_name.lower()
+
+        # Isometric holds first (before other checks)
+        if any(t in name for t in ("plank", "hold", "hang", "wall sit", "iso", "static")):
+            return "isometric"
+        if any(t in name for t in ("crunch", "sit-up", "situp", "ab ", "oblique", "russian twist", "v-up")):
+            return "core"
+
+        # Compound lower
+        if any(t in name for t in ("squat", "lunge", "leg press", "hip thrust", "romanian", "rdl", "good morning")):
+            return "compound_lower"
+        # Compound pull
+        if any(t in name for t in ("deadlift", "row", "pull-up", "pullup", "chin-up", "chinup", "pulldown", "pull down")):
+            return "compound_pull"
+        # Compound push
+        if any(t in name for t in ("bench press", "overhead press", "ohp", "dip", "push-up", "pushup", "chest press")):
+            return "compound_push"
+        # Isolation lower
+        if any(t in name for t in ("leg curl", "leg extension", "calf raise", "hamstring curl", "glute")):
+            return "isolation_lower"
+        # Isolation upper
+        if any(t in name for t in ("curl", "tricep", "triceps", "fly", "flye", "lateral raise", "face pull",
+                                    "shrug", "rear delt", "pec deck", "cable cross")):
+            return "isolation_upper"
+
+        return "unknown"
+
+    @staticmethod
+    def _default_coaching_cue(primary_type: str, exercise_name: str) -> str:
+        """Return an exercise-specific coaching cue based on movement category."""
+        if primary_type == "Yoga":
+            return f"Move through {exercise_name} with control and steady breathing. Hold each position for a full breath cycle."
+        if primary_type == "Cardio":
+            return f"Keep a sustainable pace during {exercise_name}. Monitor your breathing — you should be able to speak in short sentences."
+        if primary_type == "HIIT":
+            return f"Attack {exercise_name} with maximum effort. Maintain clean form even as fatigue builds."
+
+        # Strength — category-specific cues
+        category = LLMAdapter._categorize_exercise(exercise_name)
+
+        cues = {
+            "compound_push": (
+                f"Retract your shoulder blades and brace your core before each rep of {exercise_name}. "
+                "Drive through the full range of motion and squeeze at the top."
+            ),
+            "compound_pull": (
+                f"Initiate {exercise_name} by engaging your lats, not your arms. "
+                "Control the eccentric (lowering) phase — aim for 2-3 seconds down."
+            ),
+            "compound_lower": (
+                f"Keep your chest tall and brace your core throughout {exercise_name}. "
+                "Push your knees out in line with your toes and control the descent."
+            ),
+            "isolation_upper": (
+                f"Focus on the mind-muscle connection during {exercise_name}. "
+                "Use a slow, deliberate tempo — 2 seconds up, pause, 2 seconds down."
+            ),
+            "isolation_lower": (
+                f"Perform {exercise_name} through the full range of motion. "
+                "Squeeze hard at peak contraction and control the return."
+            ),
+            "core": (
+                f"Maintain a neutral spine throughout {exercise_name}. "
+                "Exhale on the exertion phase and keep tension on the abs — avoid using momentum."
+            ),
+            "isometric": (
+                f"Hold {exercise_name} with your body in a straight line and breathe steadily. "
+                "Focus on maintaining tension without compensating with other muscle groups."
+            ),
+            "unknown": (
+                f"Maintain proper posture and a controlled tempo throughout {exercise_name}. "
+                "Stop a rep or two before complete failure to preserve form."
+            ),
+        }
+        return cues[category]
+
+    @staticmethod
+    def _default_rest_seconds(primary_type: str, experience_level: int) -> int:
+        if primary_type == "Strength":
+            return 90 if experience_level <= 2 else 120
+        if primary_type == "Yoga":
+            return 45
+        if primary_type == "Cardio":
+            return 60
+        return 75
 
     def _get_program(self, program_id: int) -> dict:
         if isinstance(self.catalog, dict):
@@ -256,13 +583,51 @@ Rules:
 
     def _group_week1_exercises(self, program: dict) -> dict[int, list[dict]]:
         exercises = program.get("week1_exercises") or [
-            exercise for exercise in program.get("exercises", []) if int(exercise.get("week", 1)) == 1
+            ex for ex in program.get("exercises", []) if int(ex.get("week", 1)) == 1
         ]
         grouped: dict[int, list[dict]] = defaultdict(list)
-        for exercise in exercises:
-            day = int(exercise.get("day", 1))
-            grouped[day].append(exercise)
+        for ex in exercises:
+            day = int(ex.get("day", 1))
+            grouped[day].append(ex)
         return dict(grouped)
+
+    def _infer_focus(self, program: dict, source_day: int, exercises: list[dict]) -> str:
+        if not exercises:
+            return f"{program.get('primary_type', 'Workout')} Day {source_day}"
+
+        upper_terms = ("bench", "press", "row", "pull", "curl", "tricep", "shoulder", "fly", "delt")
+        lower_terms = ("squat", "deadlift", "lunge", "calf", "leg", "glute", "hip", "hamstring", "quad")
+        mobility_terms = ("stretch", "mobility", "flow", "pose", "yoga")
+        cardio_terms = ("run", "bike", "sprint", "cardio", "interval")
+
+        upper_count = 0
+        lower_count = 0
+        for ex in exercises:
+            name = str(ex.get("exercise_name", "")).lower()
+            if any(t in name for t in upper_terms):
+                upper_count += 1
+            if any(t in name for t in lower_terms):
+                lower_count += 1
+
+        if upper_count > 0 and lower_count > 0:
+            if upper_count > lower_count:
+                return "Upper Body"
+            elif lower_count > upper_count:
+                return "Lower Body"
+            else:
+                return "Full Body"
+        if upper_count > 0:
+            return "Upper Body"
+        if lower_count > 0:
+            return "Lower Body"
+
+        names = " ".join(str(ex.get("exercise_name", "")).lower() for ex in exercises)
+        if any(t in names for t in mobility_terms):
+            return "Mobility & Recovery"
+        if any(t in names for t in cardio_terms):
+            return "Conditioning"
+
+        return f"{program.get('primary_type', 'Workout')} Day {source_day}"
 
     def _select_workout_days(self, workout_frequency: int) -> list[int]:
         presets = {
@@ -277,76 +642,8 @@ Rules:
         }
         return presets[max(0, min(7, workout_frequency))]
 
-    def _infer_focus(self, program: dict, source_day: int, exercises: list[dict]) -> str:
-        if exercises:
-            names = " ".join(str(ex.get("exercise_name", "")).lower() for ex in exercises)
-            if any(term in names for term in ("bench", "press", "row", "pull", "curl", "tricep", "shoulder")):
-                return "Upper Body"
-            if any(term in names for term in ("squat", "deadlift", "lunge", "calf", "leg", "glute", "hip")):
-                return "Lower Body"
-            if any(term in names for term in ("stretch", "mobility", "flow", "pose", "yoga")):
-                return "Mobility & Recovery"
-            if any(term in names for term in ("run", "bike", "sprint", "cardio", "interval")):
-                return "Conditioning"
-        return f"{program.get('primary_type', 'Workout')} Day {source_day}"
-
-    def _normalize_exercise(
-        self,
-        exercise: dict,
-        experience_level: int,
-        primary_type: str,
-        source_is_llm: bool = False,
-    ) -> dict:
-        default_sets = {1: 3, 2: 4, 3: 5}.get(experience_level, 4)
-        raw_sets = exercise.get("sets", default_sets)
-        try:
-            sets = int(raw_sets)
-        except (TypeError, ValueError):
-            sets = default_sets
-
-        if source_is_llm:
-            min_sets, max_sets = {1: (2, 3), 2: (3, 4), 3: (4, 5)}.get(experience_level, (3, 4))
-            sets = max(min_sets, min(max_sets, sets))
-
-        reps = str(exercise.get("reps", "As prescribed"))
-        if source_is_llm:
-            rest_seconds = exercise.get("rest_seconds") or self._default_rest_seconds(primary_type, experience_level)
-            coaching_cue = exercise.get("coaching_cue") or self._default_coaching_cue(
-                primary_type,
-                exercise.get("exercise_name", "exercise"),
-            )
-        else:
-            rest_seconds = self._default_rest_seconds(primary_type, experience_level)
-            coaching_cue = self._default_coaching_cue(primary_type, exercise.get("exercise_name", "exercise"))
-
-        return {
-            "exercise_name": str(exercise.get("exercise_name", "Unknown Exercise")),
-            "sets": sets,
-            "reps": reps,
-            "rest_seconds": rest_seconds,
-            "coaching_cue": coaching_cue,
-        }
-
-    @staticmethod
-    def _default_rest_seconds(primary_type: str, experience_level: int) -> int:
-        if primary_type == "Strength":
-            return 90 if experience_level <= 2 else 120
-        if primary_type == "Yoga":
-            return 45
-        if primary_type == "Cardio":
-            return 60
-        return 75
-
-    @staticmethod
-    def _default_coaching_cue(primary_type: str, exercise_name: str) -> str:
-        if primary_type == "Yoga":
-            return f"Move through {exercise_name} with control and steady breathing."
-        if primary_type == "Cardio":
-            return f"Keep a sustainable pace during {exercise_name} and monitor your breathing."
-        if primary_type == "HIIT":
-            return f"Attack {exercise_name} with intensity while maintaining clean form."
-        return f"Use controlled form on {exercise_name} and stop each set before technique breaks down."
-
     @staticmethod
     def _experience_label(experience_level: int) -> str:
-        return {1: "Beginner", 2: "Intermediate", 3: "Advanced"}.get(experience_level, "Intermediate")
+        return {1: "Beginner", 2: "Intermediate", 3: "Advanced"}.get(
+            experience_level, "Intermediate"
+        )
