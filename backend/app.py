@@ -22,6 +22,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from backend.services.chat_service import ChatService
 from backend.services.llm_adapter import LLMAdapter
 from backend.services.recommender import Recommender
 
@@ -75,6 +76,38 @@ class GeneratePlanResponse(BaseModel):
     weekly_plan: dict[str, DayPlan]
 
 
+class ChatMessage(BaseModel):
+    role: str = Field(..., pattern=r"^(user|assistant)$")
+    content: str
+
+
+class UserContext(BaseModel):
+    workout_type: str = Field(
+        ..., pattern=r"^(Strength|Cardio|Yoga|HIIT)$",
+        description="One of: Strength, Cardio, Yoga, HIIT"
+    )
+    age: int = Field(default=30, ge=10, le=100)
+    gender: str = Field(default="Male", pattern=r"^(Male|Female)$")
+    bmi: float = Field(default=25.0, gt=10, lt=60)
+
+
+class ChatRequest(BaseModel):
+    conversation: list[ChatMessage] = Field(
+        default_factory=list,
+        description="Chat history so far (can be empty for initial greeting)"
+    )
+    user_context: UserContext
+
+
+class ChatResponse(BaseModel):
+    status: str = Field(..., description='"continue" or "ready"')
+    message: str = Field(..., description="Assistant's reply")
+    extracted: dict = Field(
+        default_factory=dict,
+        description="Extracted fields so far (experience_level, session_duration_hours, workout_frequency)"
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # App lifecycle
 # ─────────────────────────────────────────────────────────────────────────────
@@ -86,6 +119,8 @@ async def lifespan(app: FastAPI):
     app.state.recommender = Recommender()
     logger.info("Loading LLM adapter (Layer 3)...")
     app.state.llm_adapter = LLMAdapter()
+    logger.info("Loading chat service...")
+    app.state.chat_service = ChatService()
     logger.info("FitNova backend ready.")
     yield
     logger.info("Shutting down FitNova backend.")
@@ -161,3 +196,29 @@ async def generate_plan(profile: UserProfileRequest, request: Request):
         source=plan_result["source"],
         weekly_plan=plan_result["plan"],
     )
+
+
+@app.post("/chat", response_model=ChatResponse, tags=["Chat"])
+async def chat(req: ChatRequest, request: Request):
+    """
+    Conversational intake: the AI asks natural questions to gather the user's
+    experience level, session duration, and workout frequency.
+
+    Send an empty ``conversation`` list to get the initial greeting.
+    Keep sending the full conversation history with each turn.
+    When ``status`` is ``"ready"``, all fields are gathered — call
+    ``/generate-plan`` with the complete profile.
+    """
+    try:
+        result = request.app.state.chat_service.process_message(
+            conversation=[m.model_dump() for m in req.conversation],
+            user_context=req.user_context.model_dump(),
+        )
+    except Exception as exc:
+        logger.exception("Chat service failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Chat failed: {exc}",
+        )
+
+    return ChatResponse(**result)
