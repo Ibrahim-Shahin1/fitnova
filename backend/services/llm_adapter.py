@@ -74,6 +74,12 @@ DO NOT write the same generic cue for every exercise.
 - Keep exercise names practical. Do not invent medical advice.
 - Use the supplied week 1 exercise list as a reference for exercise selection and structure. \
 You may add or substitute exercises to make the plan coherent.
+- If training_focus is provided, adapt the plan accordingly:
+  * "powerbuilding" — first 1-2 exercises per session are heavy compounds (bench/squat/deadlift) \
+at 3-5 reps, followed by 3-5 hypertrophy accessories at 8-12 reps.
+  * "powerlifting" — focus on big-3 + close variants at low reps (3-5), long rest (3-5 min).
+  * "hypertrophy" — classic bodybuilding split, 8-15 reps, moderate rest (60-90s).
+  * "general" — balanced mix of upper, lower, and core in every session.
 """
 
     def __init__(
@@ -92,6 +98,24 @@ You may add or substitute exercises to make the plan coherent.
         self.client = client or OpenAI(api_key=api_key)
         with open(catalog_path, "rb") as handle:
             self.catalog = pickle.load(handle)
+
+        # ── Injury exercise blacklist ─────────────────────────────────────
+        blacklist_path = os.path.join(_DATA_DIR, "injury_exercise_blacklist.json")
+        try:
+            with open(blacklist_path, "r", encoding="utf-8") as f:
+                self.injury_blacklist: dict = json.load(f)
+        except FileNotFoundError:
+            logger.warning("injury_exercise_blacklist.json not found — injury filtering disabled")
+            self.injury_blacklist = {}
+
+        # ── Exercise demonstration media ──────────────────────────────────
+        media_path = os.path.join(_DATA_DIR, "exercise_media.json")
+        try:
+            with open(media_path, "r", encoding="utf-8") as f:
+                self.media_lookup: dict = json.load(f)
+        except FileNotFoundError:
+            logger.warning("exercise_media.json not found — media injection disabled")
+            self.media_lookup = {}
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -160,6 +184,17 @@ You may add or substitute exercises to make the plan coherent.
             f"- age: {user_profile.get('age', 'unknown')}",
             f"- gender: {user_profile.get('gender', 'unknown')}",
             f"- bmi: {user_profile.get('bmi', 'unknown')}",
+        ]
+
+        # Optional enrichment fields
+        if user_profile.get("training_focus"):
+            lines.append(f"- training_focus: {user_profile['training_focus']}")
+        if user_profile.get("years_training") is not None:
+            lines.append(f"- years_training: {user_profile['years_training']}")
+        if user_profile.get("equipment"):
+            lines.append(f"- available_equipment: {', '.join(user_profile['equipment'])}")
+
+        lines += [
             "",
             "Program details:",
             f"- title: {program.get('title', 'Unknown Program')}",
@@ -172,10 +207,15 @@ You may add or substitute exercises to make the plan coherent.
             f"Week 1 exercises (up to {_MAX_PROMPT_EXERCISES_PER_DAY} per day shown):",
         ]
 
+        avoid_kws = self._get_avoid_keywords(user_profile.get("injuries", []))
+
         for day_number in sorted(grouped):
             day_exercises = grouped[day_number][:_MAX_PROMPT_EXERCISES_PER_DAY]
             lines.append(f"Day {day_number}:")
             for exercise in day_exercises:
+                ex_name_lower = str(exercise.get("exercise_name", "")).lower()
+                if avoid_kws and any(kw in ex_name_lower for kw in avoid_kws):
+                    continue  # skip exercises that conflict with user injuries
                 clean_reps = self._sanitize_reps(
                     str(exercise.get("reps") or ""),
                     program.get("primary_type", "Strength"),
@@ -191,6 +231,24 @@ You may add or substitute exercises to make the plan coherent.
             "Note: Use the exercise list as a reference. "
             "Ensure the split and focus labels match the exercises you assign."
         )
+
+        # ── Injury safety constraints (appended to prompt) ───────────────
+        injuries = user_profile.get("injuries", [])
+        if injuries:
+            nice_injuries = ", ".join(i.replace("_", " ") for i in injuries)
+            lines.append("")
+            lines.append("## SAFETY CONSTRAINTS — NEVER VIOLATE")
+            lines.append(f"The user has these injuries: {nice_injuries}")
+            lines.append("")
+            lines.append(
+                "NEVER include exercises whose name contains any of these substrings:"
+            )
+            for kw in avoid_kws:
+                lines.append(f"  - {kw}")
+            lines.append("")
+            lines.append(
+                "In personalization_notes, briefly mention the injury accommodations you made."
+            )
 
         return "\n".join(lines)
 
@@ -223,10 +281,18 @@ You may add or substitute exercises to make the plan coherent.
             source_index += 1
             raw_exercises = grouped.get(source_day, [])
 
-            # Filter garbage exercise names, then cap count
+            # Filter garbage exercise names AND injury-unsafe exercises, then cap count
+            avoid_kws = self._get_avoid_keywords(user_profile.get("injuries", []))
             valid_exercises = [
                 ex for ex in raw_exercises
                 if self._is_valid_exercise_name(str(ex.get("exercise_name", "")))
+                and not (
+                    avoid_kws
+                    and any(
+                        kw in str(ex.get("exercise_name", "")).lower()
+                        for kw in avoid_kws
+                    )
+                )
             ][:max_ex]
 
             focus = self._infer_focus(program, source_day, valid_exercises)
@@ -315,6 +381,26 @@ You may add or substitute exercises to make the plan coherent.
         if workout_day_count != int(user_profile.get("workout_frequency", 3)):
             raise ValueError("Workout day count does not match workout_frequency")
 
+        # ── Post-validation: remove injury-unsafe exercises ──────────────
+        injuries = user_profile.get("injuries", [])
+        if injuries:
+            avoid_kws = self._get_avoid_keywords(injuries)
+            for day_key, day_data in normalized_plan.items():
+                if day_data.get("is_rest_day"):
+                    continue
+                original = day_data.get("exercises", [])
+                safe = [
+                    ex for ex in original
+                    if not any(kw in ex["exercise_name"].lower() for kw in avoid_kws)
+                ]
+                if len(safe) != len(original):
+                    removed = len(original) - len(safe)
+                    logger.info(
+                        "Removed %d unsafe exercises from %s for injuries %s",
+                        removed, day_key, injuries,
+                    )
+                day_data["exercises"] = safe
+
         raw_title = str(payload.get("program_title") or "")
         clean_title = self._sanitize_title(
             raw_title,
@@ -331,6 +417,16 @@ You may add or substitute exercises to make the plan coherent.
             ),
             "plan": normalized_plan,
         }
+
+    # ── Injury Helpers ─────────────────────────────────────────────────────────
+
+    def _get_avoid_keywords(self, injuries: list[str]) -> list[str]:
+        """Collect all avoid_keywords for the given injury IDs."""
+        keywords: list[str] = []
+        for injury_id in injuries:
+            entry = self.injury_blacklist.get(injury_id, {})
+            keywords.extend(entry.get("avoid_keywords", []))
+        return [k.lower() for k in keywords]
 
     # ── Core Exercise Normalizer ───────────────────────────────────────────────
 
@@ -375,13 +471,23 @@ You may add or substitute exercises to make the plan coherent.
                 primary_type, exercise.get("exercise_name", "exercise")
             )
 
-        return {
-            "exercise_name": str(exercise.get("exercise_name", "Unknown Exercise")),
+        exercise_name = str(exercise.get("exercise_name", "Unknown Exercise"))
+        result = {
+            "exercise_name": exercise_name,
             "sets": sets,
             "reps": reps,
             "rest_seconds": int(rest_seconds),
             "coaching_cue": coaching_cue,
         }
+
+        # Inject media URL if available for this exercise
+        media = self.media_lookup.get(exercise_name)
+        if media:
+            vid = media.get("video_id", "")
+            result["media_url"] = f"https://www.youtube.com/watch?v={vid}"
+            result["media_thumbnail"] = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+
+        return result
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 

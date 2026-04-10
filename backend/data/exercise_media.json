@@ -1,0 +1,122 @@
+{
+  "Bench Press (Barbell)": {
+    "video_id": "PLACEHOLDER_bench_press_barbell",
+    "type": "video"
+  },
+  "Squat (Barbell)": {
+    "video_id": "PLACEHOLDER_squat_barbell",
+    "type": "video"
+  },
+  "Leg Extension": {
+    "video_id": "PLACEHOLDER_leg_extension",
+    "type": "video"
+  },
+  "Lateral Raise (Dumbbell)": {
+    "video_id": "PLACEHOLDER_lateral_raise_dumbbell",
+    "type": "video"
+  },
+  "Lat Pulldown": {
+    "video_id": "PLACEHOLDER_lat_pulldown",
+    "type": "video"
+  },
+  "Deadlift (Barbell)": {
+    "video_id": "PLACEHOLDER_deadlift_barbell",
+    "type": "video"
+  },
+  "Bicep Curl (Dumbbell)": {
+    "video_id": "PLACEHOLDER_bicep_curl_dumbbell",
+    "type": "video"
+  },
+  "Triceps Pushdown": {
+    "video_id": "PLACEHOLDER_triceps_pushdown",
+    "type": "video"
+  },
+  "Leg Press": {
+    "video_id": "PLACEHOLDER_leg_press",
+    "type": "video"
+  },
+  "Hip Thrust (Barbell)": {
+    "video_id": "PLACEHOLDER_hip_thrust_barbell",
+    "type": "video"
+  },
+  "Leg Curl": {
+    "video_id": "PLACEHOLDER_leg_curl",
+    "type": "video"
+  },
+  "Chest Fly (Dumbbell)": {
+    "video_id": "PLACEHOLDER_chest_fly_dumbbell",
+    "type": "video"
+  },
+  "Seated Row (Cable)": {
+    "video_id": "PLACEHOLDER_seated_row_cable",
+    "type": "video"
+  },
+  "Overhead Press (Barbell)": {
+    "video_id": "PLACEHOLDER_overhead_press_barbell",
+    "type": "video"
+  },
+  "Cable Crossover": {
+    "video_id": "PLACEHOLDER_cable_crossover",
+    "type": "video"
+  },
+  "Incline Bench Press (Dumbbell)": {
+    "video_id": "PLACEHOLDER_incline_bench_press_dumbbell",
+    "type": "video"
+  },
+  "Face Pull": {
+    "video_id": "PLACEHOLDER_face_pull",
+    "type": "video"
+  },
+  "Romanian Deadlift (Barbell)": {
+    "video_id": "PLACEHOLDER_romanian_deadlift_barbell",
+    "type": "video"
+  },
+  "Dumbbell Row": {
+    "video_id": "PLACEHOLDER_dumbbell_row",
+    "type": "video"
+  },
+  "Plank": {
+    "video_id": "PLACEHOLDER_plank",
+    "type": "video"
+  },
+  "Calf Raise (Machine)": {
+    "video_id": "PLACEHOLDER_calf_raise_machine",
+    "type": "video"
+  },
+  "Incline Bench Press (Barbell)": {
+    "video_id": "PLACEHOLDER_incline_bench_press_barbell",
+    "type": "video"
+  },
+  "Pull-Up": {
+    "video_id": "PLACEHOLDER_pull_up",
+    "type": "video"
+  },
+  "Dip": {
+    "video_id": "PLACEHOLDER_dip",
+    "type": "video"
+  },
+  "Front Raise (Dumbbell)": {
+    "video_id": "PLACEHOLDER_front_raise_dumbbell",
+    "type": "video"
+  },
+  "Hammer Curl (Dumbbell)": {
+    "video_id": "PLACEHOLDER_hammer_curl_dumbbell",
+    "type": "video"
+  },
+  "Preacher Curl": {
+    "video_id": "PLACEHOLDER_preacher_curl",
+    "type": "video"
+  },
+  "Skull Crusher": {
+    "video_id": "PLACEHOLDER_skull_crusher",
+    "type": "video"
+  },
+  "Cable Lateral Raise": {
+    "video_id": "PLACEHOLDER_cable_lateral_raise",
+    "type": "video"
+  },
+  "Bicep Curl (Cable)": {
+    "video_id": "PLACEHOLDER_bicep_curl_cable",
+    "type": "video"
+  }
+}

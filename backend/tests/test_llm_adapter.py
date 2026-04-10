@@ -341,3 +341,67 @@ def test_prompt_exercise_limit(monkeypatch):
     exercise_lines = [l for l in prompt.splitlines() if l.startswith("  -")]
     # Max 8 per day × 3 days = 24
     assert len(exercise_lines) <= 24, f"Too many exercise lines in prompt: {len(exercise_lines)}"
+
+
+# ── Injury awareness tests ───────────────────────────────────────────────────
+
+
+def test_template_fallback_filters_injury_keywords(monkeypatch):
+    """Knee injury → no exercises matching any knee avoid keywords in template."""
+    adapter = _make_adapter(monkeypatch)
+    avoid_kws = adapter._get_avoid_keywords(["knees"])
+    program = adapter._get_program(list(adapter.catalog.keys())[0])
+    result = adapter._build_template_plan(
+        program,
+        {
+            "experience_level": 2,
+            "workout_type": "Strength",
+            "session_duration_hours": 1.0,
+            "workout_frequency": 3,
+            "injuries": ["knees"],
+        },
+    )
+    for day_key, day_data in result["plan"].items():
+        for ex in day_data.get("exercises", []):
+            name_lower = ex["exercise_name"].lower()
+            for kw in avoid_kws:
+                assert kw not in name_lower, (
+                    f"Unsafe exercise '{ex['exercise_name']}' matches "
+                    f"avoid keyword '{kw}' for knees injury"
+                )
+
+
+def test_user_prompt_includes_safety_constraints(monkeypatch):
+    """Lower back injury → SAFETY CONSTRAINTS block in user prompt."""
+    adapter = _make_adapter(monkeypatch)
+    program = adapter._get_program(list(adapter.catalog.keys())[0])
+    prompt = adapter._build_user_prompt(
+        program,
+        {
+            "experience_level": 2,
+            "workout_type": "Strength",
+            "session_duration_hours": 1.0,
+            "workout_frequency": 3,
+            "injuries": ["lower_back"],
+        },
+    )
+    assert "SAFETY CONSTRAINTS" in prompt
+    assert "lower back" in prompt
+    assert "deadlift" in prompt
+
+
+def test_no_safety_block_without_injuries(monkeypatch):
+    """No injuries → no SAFETY CONSTRAINTS block in prompt."""
+    adapter = _make_adapter(monkeypatch)
+    program = adapter._get_program(list(adapter.catalog.keys())[0])
+    prompt = adapter._build_user_prompt(
+        program,
+        {
+            "experience_level": 2,
+            "workout_type": "Strength",
+            "session_duration_hours": 1.0,
+            "workout_frequency": 3,
+            "injuries": [],
+        },
+    )
+    assert "SAFETY CONSTRAINTS" not in prompt

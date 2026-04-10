@@ -69,9 +69,9 @@ _WORKOUT_DESCRIPTIONS = {
 }
 
 
-def _build_system_prompt(workout_type: str) -> str:
+def _build_system_prompt(workout_type: str, injuries: list[str] | None = None) -> str:
     goal = _WORKOUT_DESCRIPTIONS.get(workout_type, workout_type.lower())
-    return f"""You are FitNova's friendly fitness assistant. The user wants to {goal}.
+    base = f"""You are FitNova's friendly fitness assistant. The user wants to {goal}.
 
 Your job is to have a brief, natural conversation to learn three things:
 1. Their fitness experience level (beginner / intermediate / advanced)
@@ -85,6 +85,17 @@ Guidelines:
 - Once you have all three pieces of information, confirm what you learned and let them know you're ready to create their personalised plan.
 - Keep responses concise (2-3 sentences max).
 - Do NOT ask for information you already have."""
+
+    if injuries:
+        nice = ", ".join(i.replace("_", " ") for i in injuries)
+        base += f"""
+
+IMPORTANT: This user has reported the following injuries: {nice}.
+During the conversation, briefly acknowledge these injuries and reassure
+them that their plan will avoid triggering movements for those areas.
+Do this once, naturally — don't dwell on it."""
+
+    return base
 
 
 class ChatService:
@@ -120,7 +131,8 @@ class ChatService:
         and ``extracted`` (dict of gathered fields).
         """
         workout_type = user_context.get("workout_type", "Strength")
-        system_msg = {"role": "system", "content": _build_system_prompt(workout_type)}
+        injuries = user_context.get("injuries", [])
+        system_msg = {"role": "system", "content": _build_system_prompt(workout_type, injuries=injuries)}
         messages = [system_msg] + [
             {"role": m["role"], "content": m["content"]} for m in conversation
         ]

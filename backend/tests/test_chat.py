@@ -165,3 +165,12 @@ def test_chat_service_failure(client, mock_services):
     })
     assert response.status_code == 500
     assert "Chat failed" in response.json()["detail"]
+
+
+def test_chat_system_prompt_includes_injuries():
+    """User context with injuries → system prompt mentions them."""
+    from backend.services.chat_service import _build_system_prompt
+    prompt = _build_system_prompt("Strength", injuries=["knees", "lower_back"])
+    assert "knees" in prompt
+    assert "lower back" in prompt
+    assert "injuries" in prompt.lower()

@@ -50,6 +50,16 @@ class UserProfileRequest(BaseModel):
     age: int = Field(default=30, ge=10, le=100)
     gender: str = Field(default="Male", pattern=r"^(Male|Female)$")
     bmi: float = Field(default=25.0, gt=10, lt=60)
+    injuries: list[str] = Field(
+        default_factory=list,
+        description="Injury area IDs e.g. ['lower_back', 'knees']",
+    )
+    training_focus: str | None = Field(
+        default=None,
+        pattern=r"^(powerbuilding|powerlifting|hypertrophy|general)$",
+    )
+    years_training: int | None = Field(default=None, ge=0, le=50)
+    equipment: list[str] = Field(default_factory=list)
 
 
 class ExerciseDetail(BaseModel):
@@ -58,6 +68,8 @@ class ExerciseDetail(BaseModel):
     reps: str
     rest_seconds: int
     coaching_cue: str
+    media_url: str | None = None
+    media_thumbnail: str | None = None
 
 
 class DayPlan(BaseModel):
@@ -89,6 +101,14 @@ class UserContext(BaseModel):
     age: int = Field(default=30, ge=10, le=100)
     gender: str = Field(default="Male", pattern=r"^(Male|Female)$")
     bmi: float = Field(default=25.0, gt=10, lt=60)
+    injuries: list[str] = Field(
+        default_factory=list,
+        description="Injury area IDs e.g. ['lower_back', 'knees']",
+    )
+    training_focus: str | None = Field(
+        default=None,
+        pattern=r"^(powerbuilding|powerlifting|hypertrophy|general)$",
+    )
 
 
 class ChatRequest(BaseModel):
