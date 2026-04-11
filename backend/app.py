@@ -18,8 +18,11 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
+import os
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend.services.chat_service import ChatService
@@ -69,7 +72,6 @@ class ExerciseDetail(BaseModel):
     rest_seconds: int
     coaching_cue: str
     media_url: str | None = None
-    media_thumbnail: str | None = None
 
 
 class DayPlan(BaseModel):
@@ -160,6 +162,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+os.makedirs(_STATIC_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

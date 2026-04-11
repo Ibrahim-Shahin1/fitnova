@@ -80,6 +80,10 @@ at 3-5 reps, followed by 3-5 hypertrophy accessories at 8-12 reps.
   * "powerlifting" — focus on big-3 + close variants at low reps (3-5), long rest (3-5 min).
   * "hypertrophy" — classic bodybuilding split, 8-15 reps, moderate rest (60-90s).
   * "general" — balanced mix of upper, lower, and core in every session.
+- If available_equipment is listed, you MUST ONLY select exercises that can be performed \
+with that equipment. Do NOT include any exercise requiring unlisted equipment. \
+Cables are a separate equipment type (cable machine) — do not substitute with cables unless \
+"Cables" is in the available equipment list.
 """
 
     def __init__(
@@ -108,14 +112,28 @@ at 3-5 reps, followed by 3-5 hypertrophy accessories at 8-12 reps.
             logger.warning("injury_exercise_blacklist.json not found — injury filtering disabled")
             self.injury_blacklist = {}
 
-        # ── Exercise demonstration media ──────────────────────────────────
-        media_path = os.path.join(_DATA_DIR, "exercise_media.json")
+        # ── Exercise video lookup ─────────────────────────────────────────
+        videos_path = os.path.join(_DATA_DIR, "exercise_videos.json")
         try:
-            with open(media_path, "r", encoding="utf-8") as f:
-                self.media_lookup: dict = json.load(f)
+            from rapidfuzz import process as _fuzz_process, fuzz as _fuzz
+            with open(videos_path, "r", encoding="utf-8") as f:
+                videos_data: dict = json.load(f)
+            self.video_lookup: dict = {k: v for k, v in videos_data.items() if k != "_name_to_slug"}
+            # Build a flat list of (normalised_alias, slug) for fuzzy matching
+            self._video_choices: list[tuple[str, str]] = []
+            for alias, slug in videos_data.get("_name_to_slug", {}).items():
+                self._video_choices.append((alias, slug))
+            # Also add slug display names as choices
+            for slug, info in self.video_lookup.items():
+                self._video_choices.append((slug.replace("_", " "), slug))
+            self._fuzz_process = _fuzz_process
+            self._fuzz = _fuzz
         except FileNotFoundError:
-            logger.warning("exercise_media.json not found — media injection disabled")
-            self.media_lookup = {}
+            logger.warning("exercise_videos.json not found — video demos disabled")
+            self.video_lookup = {}
+            self._video_choices = []
+            self._fuzz_process = None
+            self._fuzz = None
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -191,8 +209,6 @@ at 3-5 reps, followed by 3-5 hypertrophy accessories at 8-12 reps.
             lines.append(f"- training_focus: {user_profile['training_focus']}")
         if user_profile.get("years_training") is not None:
             lines.append(f"- years_training: {user_profile['years_training']}")
-        if user_profile.get("equipment"):
-            lines.append(f"- available_equipment: {', '.join(user_profile['equipment'])}")
 
         lines += [
             "",
@@ -231,6 +247,21 @@ at 3-5 reps, followed by 3-5 hypertrophy accessories at 8-12 reps.
             "Note: Use the exercise list as a reference. "
             "Ensure the split and focus labels match the exercises you assign."
         )
+
+        # ── Equipment constraint (hard rule) ─────────────────────────────
+        equipment = user_profile.get("equipment", [])
+        if equipment:
+            eq_str = ", ".join(equipment)
+            lines.append("")
+            lines.append("## EQUIPMENT CONSTRAINT — STRICTLY ENFORCED")
+            lines.append(f"The user ONLY has access to: {eq_str}")
+            lines.append(
+                "Do NOT include ANY exercise requiring equipment NOT in that list. "
+                "Cables = cable machine (requires Cables). "
+                "Barbell exercises require Barbell. "
+                "Machine exercises require Machines. "
+                "Only substitute exercises using equipment the user actually has."
+            )
 
         # ── Injury safety constraints (appended to prompt) ───────────────
         injuries = user_profile.get("injuries", [])
@@ -480,12 +511,25 @@ at 3-5 reps, followed by 3-5 hypertrophy accessories at 8-12 reps.
             "coaching_cue": coaching_cue,
         }
 
-        # Inject media URL if available for this exercise
-        media = self.media_lookup.get(exercise_name)
-        if media:
-            vid = media.get("video_id", "")
-            result["media_url"] = f"https://www.youtube.com/watch?v={vid}"
-            result["media_thumbnail"] = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+        # Inject exercise demo video if available
+        if self._video_choices and self._fuzz_process:
+            # Normalise: strip leading "(MUSCLE) " and trailing " (qualifier)"
+            norm = re.sub(r'^\([^)]+\)\s*', '', exercise_name)
+            norm = re.sub(r'\s*\([^)]*\)\s*$', '', norm).lower().strip()
+
+            match = self._fuzz_process.extractOne(
+                norm,
+                [alias for alias, _ in self._video_choices],
+                scorer=self._fuzz.token_sort_ratio,
+                score_cutoff=72,
+            )
+            if match:
+                matched_alias = match[0]
+                slug = next(s for a, s in self._video_choices if a == matched_alias)
+                if slug in self.video_lookup:
+                    demo = self.video_lookup[slug].get("demo")
+                    if demo:
+                        result["media_url"] = f"/static/exercise_videos/{slug}/{demo}"
 
         return result
 

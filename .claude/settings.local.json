@@ -3,7 +3,16 @@
     "allow": [
       "Bash(python -c \"print\\(''test''\\)\")",
       "Read(//c/Users/tsh_x/Desktop/FitNova Drafts2/generated_data//**)",
-      "Read(//c/Users/tsh_x/Desktop/FitNova Drafts2//**)"
+      "Read(//c/Users/tsh_x/Desktop/FitNova Drafts2//**)",
+      "Bash(python generate_interactions.py)",
+      "Bash(python -c \":*)",
+      "Bash(du -sh \"C:\\\\Users\\\\tsh_x\\\\Desktop\\\\FitNova Application\\\\backend\\\\data\\\\datasets/\"*)",
+      "Bash(python backend/data/build_catalog.py)",
+      "Bash(python -m pytest backend/tests/ -v)",
+      "Bash(python -m pytest backend/tests/test_chat.py -v)",
+      "Bash(python -m pytest backend/tests -q)",
+      "Bash(adb devices:*)",
+      "Bash(adb shell:*)"
     ]
   }
 }
