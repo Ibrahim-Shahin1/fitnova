@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/chat_models.dart';
 import '../models/fitness_plan.dart';
+import '../models/form_models.dart';
 
 class ApiService {
   static Future<ChatResponse> sendChat({
@@ -43,6 +44,34 @@ class ApiService {
     }
 
     return FitnessPlan.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  static Future<Map<String, dynamic>> fetchExercises() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/exercises');
+    final response = await http.get(url);
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load exercises: ${response.statusCode}');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  static Future<FormSessionSummary> uploadFormVideo({
+    required String filePath,
+    required String exerciseName,
+  }) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/analyze-form-video');
+    final request = http.MultipartRequest('POST', url)
+      ..fields['exercise'] = exerciseName
+      ..files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final streamed = await request.send().timeout(const Duration(minutes: 4));
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode != 200) {
+      throw Exception('Upload failed: ${response.statusCode} ${response.body}');
+    }
+    return FormSessionSummary.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
   }

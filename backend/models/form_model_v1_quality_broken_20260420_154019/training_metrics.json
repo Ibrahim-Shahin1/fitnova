@@ -1,0 +1,13 @@
+{
+  "exercise_accuracy": 0.8317391304347826,
+  "exercise_macro_f1": 0.78415027052782,
+  "quality_mse": 0.03181544318795204,
+  "quality_mae": 0.1478779911994934,
+  "quality_pearson_r": 0.2755338251590729,
+  "quality_acc_d03": 0.9143478260869565,
+  "quality_acc_d05": 0.9969565217391304,
+  "quality_acc_d07": 1.0,
+  "joint_error_f1": 0.6155711923148394,
+  "rep_count_mae": 0.046031754664752796,
+  "rep_count_obo": 0.0
+}

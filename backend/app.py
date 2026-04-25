@@ -1,10 +1,11 @@
 """
 FitNova — FastAPI Server
 ========================
-Single endpoint that chains all 3 pipeline layers:
+Pipeline layers:
   Layer 1: Content-Based Filter  (backend/services/content_filter.py)
   Layer 2: NeuMF Re-ranker       (backend/services/neumf_ranker.py)
   Layer 3: LLM Adaptation        (backend/services/llm_adapter.py)
+  Layer 4: Form Detection        (backend/services/form_analyzer.py)
 
 Run with:
     uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
@@ -15,12 +16,14 @@ Docs:
 
 from __future__ import annotations
 
+import base64
+import io
 import logging
 from contextlib import asynccontextmanager
 
 import os
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -28,6 +31,8 @@ from pydantic import BaseModel, Field
 from backend.services.chat_service import ChatService
 from backend.services.llm_adapter import LLMAdapter
 from backend.services.recommender import Recommender
+from backend.services.form_analyzer import FormAnalyzer
+from backend.services.form_session import FormSession
 
 logger = logging.getLogger("fitnova")
 
@@ -130,6 +135,30 @@ class ChatResponse(BaseModel):
     )
 
 
+# ── Form detection models ──────────────────────────────────────────────────────
+
+class FormFrameResult(BaseModel):
+    timestamp_ms: int
+    landmarks: list[list[float]] | None = None
+    joint_errors: list[float]            # 10 values, 0-1
+    quality_score: float
+    rep_count: int
+    exercise_detected: str
+    confidence: float
+    status: str
+
+
+class FormSessionSummary(BaseModel):
+    exercise: str
+    total_reps: int
+    duration_seconds: int
+    average_quality: float
+    per_rep_scores: list[float]
+    common_errors: dict[str, int]
+    quality_trend: str
+    llm_feedback: str
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # App lifecycle
 # ─────────────────────────────────────────────────────────────────────────────
@@ -143,9 +172,14 @@ async def lifespan(app: FastAPI):
     app.state.llm_adapter = LLMAdapter()
     logger.info("Loading chat service...")
     app.state.chat_service = ChatService()
+    logger.info("Loading form analyzer (Layer 4)...")
+    _model_dir = os.path.join(os.path.dirname(__file__), "models", "form_model")
+    app.state.form_analyzer = FormAnalyzer(model_dir=_model_dir)
     logger.info("FitNova backend ready.")
     yield
     logger.info("Shutting down FitNova backend.")
+    if hasattr(app.state, "form_analyzer") and app.state.form_analyzer.mp_pose:
+        app.state.form_analyzer.mp_pose.close()
 
 
 app = FastAPI(
@@ -177,6 +211,17 @@ app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 async def health_check():
     """Liveness check — returns immediately without touching the services."""
     return {"status": "healthy"}
+
+
+@app.get("/api/exercises", tags=["Form"])
+def list_exercises():
+    """Return the full exercise metadata SSOT.
+
+    Flutter fetches this on app start to render the exercise picker + the
+    per-exercise camera-setup guidelines screen.
+    """
+    from backend.config.exercises import all_exercises
+    return all_exercises()
 
 
 @app.post("/generate-plan", response_model=GeneratePlanResponse, tags=["Plans"])
@@ -248,3 +293,114 @@ async def chat(req: ChatRequest, request: Request):
         )
 
     return ChatResponse(**result)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Form Detection — WebSocket (live streaming)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.websocket("/ws/form-session")
+async def form_session_ws(websocket: WebSocket):
+    """
+    Real-time form analysis via WebSocket.
+
+    Protocol (client → server):
+        {"type": "start_session", "exercise_hint": "squat"}
+        {"type": "frame", "data": "<base64_jpeg>", "timestamp_ms": 12345}
+        {"type": "end_session"}
+
+    Protocol (server → client):
+        per-frame: FormFrameResult JSON
+        on end:    FormSessionSummary JSON
+    """
+    await websocket.accept()
+    session: FormSession | None = None
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type")
+
+            if msg_type == "start_session":
+                # Prefer new key; fall back to legacy exercise_hint
+                selected = data.get("selected_exercise") or data.get("exercise_hint")
+                session = FormSession(
+                    analyzer=websocket.app.state.form_analyzer,
+                    selected_exercise=selected,
+                )
+                await websocket.send_json({"type": "session_started"})
+
+            elif msg_type == "frame":
+                if session is None:
+                    session = FormSession(analyzer=websocket.app.state.form_analyzer)
+                jpeg_bytes   = base64.b64decode(data["data"])
+                timestamp_ms = int(data.get("timestamp_ms", 0))
+                result = session.add_frame(jpeg_bytes, timestamp_ms)
+                await websocket.send_json(result)
+
+            elif msg_type == "end_session":
+                if session is None:
+                    await websocket.send_json({"type": "error", "message": "No active session"})
+                else:
+                    summary = session.end_session()
+                    await websocket.send_json(summary)
+                break
+
+    except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected.")
+    except Exception as exc:
+        logger.exception(f"WebSocket error: {exc}")
+        try:
+            await websocket.send_json({"type": "error", "message": str(exc)})
+        except Exception:
+            pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Form Detection — REST (video upload)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/analyze-form-video", tags=["Form"])
+async def analyze_form_video(
+    request: Request,
+    file: UploadFile = File(...),
+    exercise: str = Form(default="unknown"),
+):
+    """
+    Upload a pre-recorded exercise video for form analysis.
+    Returns the same FormSessionSummary as the WebSocket end_session response.
+    """
+    import tempfile, cv2
+
+    analyzer: FormAnalyzer = request.app.state.form_analyzer
+    session = FormSession(analyzer=analyzer, selected_exercise=exercise)
+
+    # Write uploaded file to temp disk location so OpenCV can read it
+    contents = await file.read()
+    suffix = os.path.splitext(file.filename or ".mp4")[1] or ".mp4"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(contents)
+        tmp_path = tmp.name
+
+    try:
+        cap = cv2.VideoCapture(tmp_path)
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        frame_idx = 0
+        SKIP = max(1, int(fps / 10))  # sample ~10 fps
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            if frame_idx % SKIP == 0:
+                _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                ts_ms = int((frame_idx / fps) * 1000)
+                session.add_frame(jpeg.tobytes(), ts_ms)
+            frame_idx += 1
+
+        cap.release()
+    finally:
+        os.unlink(tmp_path)
+
+    summary = session.end_session()
+    return summary

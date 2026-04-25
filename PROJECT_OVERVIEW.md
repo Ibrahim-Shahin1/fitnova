@@ -2,7 +2,20 @@
 
 **Type:** AI-Powered Fitness Planning Mobile Application  
 **Stack:** Flutter (Android) + FastAPI (Python) + TensorFlow + OpenAI GPT-4o-mini  
-**Status:** Fitness Planning feature complete. Form Detection and Nutrition Guidance in progress.
+**Status:** Fitness Planning ✅ complete. Conversational chat / nutrition ✅ complete. **Form Detection ⚠ in domain-gap recovery** — see HANDOFF.md.
+
+---
+
+## ⚠ Form Analysis — Read This First (2026-04-25)
+
+The form-analysis pipeline is end-to-end functional (camera → MediaPipe → MT-TCN → Flutter UI) and the model passes academic gates on the held-out Fit3D MoCap subject s11. **It does not yet generalise to real phone video** — the synthetic-pretrain-only training distribution leaves a domain gap that surfaces as: classifier collapse on unfamiliar exercises, quality-head saturation near 1.0 regardless of form, and knee/hip joint-error channels flatlining to 0.
+
+**For the next chat session, the canonical handoff documents are:**
+- **`HANDOFF.md`** — full state of the form-analysis system, what's been built across Phases A–F, what failed, the two roads forward (MediaPipe-domain pseudo-supervised retrain vs. real-world fine-tune from v4).
+- **`FIT3D_AIFIT_USAGE.md`** — academic-honesty ledger of what we used and ignored from the Fit3D dataset and the AIFit paper.
+- **`COLAB_RUNBOOK.md`** — exact cell-by-cell procedure to retrain on Colab.
+
+The fitness-planning recommender (NeuMF) and conversational chat layers are **untouched and stable**. Do not modify `backend/services/recommender.py` or its tests when working on form analysis.
 
 ---
 

@@ -1,0 +1,10 @@
+{
+  "target_frames": 64,
+  "n_angular": 22,
+  "n_joints_flat": 45,
+  "n_exercises": 27,
+  "n_joint_groups": 10,
+  "keras_version": "3.13.2",
+  "tf_version": "2.19.0",
+  "source": "fit3d"
+}

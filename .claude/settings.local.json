@@ -12,7 +12,9 @@
       "Bash(python -m pytest backend/tests/test_chat.py -v)",
       "Bash(python -m pytest backend/tests -q)",
       "Bash(adb devices:*)",
-      "Bash(adb shell:*)"
+      "Bash(adb shell:*)",
+      "Bash(powershell -Command \"New-Item -ItemType Directory -Force -Path 'C:\\\\Users\\\\tsh_x\\\\Desktop\\\\FitNova Application\\\\backend\\\\training\\\\preprocessing' | Out-Null; New-Item -ItemType Directory -Force -Path 'C:\\\\Users\\\\tsh_x\\\\Desktop\\\\FitNova Application\\\\backend\\\\training\\\\models' | Out-Null; Write-Host 'Directories created'\")",
+      "Bash(python -c ' *)"
     ]
   }
 }

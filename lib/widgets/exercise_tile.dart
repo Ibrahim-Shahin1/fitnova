@@ -51,6 +51,22 @@ class ExerciseTile extends StatelessWidget {
                 },
               ),
             ],
+            const SizedBox(height: 4),
+            TextButton.icon(
+              icon: const Icon(Icons.videocam_outlined, size: 18,
+                  color: Color(0xFF6C63FF)),
+              label: const Text(
+                'Check My Form',
+                style: TextStyle(color: Color(0xFF6C63FF)),
+              ),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () {
+                Navigator.of(context).pushNamed('/exercise-select');
+              },
+            ),
             if (exercise.coachingCue.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
