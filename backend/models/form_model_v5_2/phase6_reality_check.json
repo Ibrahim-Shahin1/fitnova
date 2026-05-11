@@ -1,0 +1,130 @@
+{
+  "results": {
+    "Good_Squats": {
+      "kind": "good",
+      "n_windows": 41,
+      "duration_s": 12.733333333333333,
+      "quality_mean": 0.36528119444847107,
+      "quality_std": 0.056054938584566116,
+      "action_top1_idx": 0,
+      "action_top1_name": "squat",
+      "action_top1_conf": 0.9982835054397583,
+      "action_squat_conf": 0.9982835054397583,
+      "action_correct": true,
+      "boundary_peak": 1.0,
+      "joint_err_max": [
+        0.6965894103050232,
+        0.9999707341194153,
+        0.9577057361602783,
+        0.8028904795646667,
+        0.7307098507881165
+      ],
+      "joint_err_mean": [
+        0.3310443162918091,
+        0.49046358466148376,
+        0.2585417330265045,
+        0.3829919695854187,
+        0.3499505817890167
+      ],
+      "rep_count_mean": 1.0026237964630127,
+      "elapsed_s": 8.9
+    },
+    "Good_Squats2": {
+      "kind": "good",
+      "n_windows": 57,
+      "duration_s": 16.833333333333332,
+      "quality_mean": 0.4292944669723511,
+      "quality_std": 0.06670122593641281,
+      "action_top1_idx": 0,
+      "action_top1_name": "squat",
+      "action_top1_conf": 0.9998841285705566,
+      "action_squat_conf": 0.9998841285705566,
+      "action_correct": true,
+      "boundary_peak": 1.0,
+      "joint_err_max": [
+        0.7146164178848267,
+        0.9620137214660645,
+        0.5166084170341492,
+        0.8016599416732788,
+        0.7582393884658813
+      ],
+      "joint_err_mean": [
+        0.3489201068878174,
+        0.5575242638587952,
+        0.10146920382976532,
+        0.42865830659866333,
+        0.3904283046722412
+      ],
+      "rep_count_mean": 0.9951964020729065,
+      "elapsed_s": 10.6
+    },
+    "Bad_Squats": {
+      "kind": "bad",
+      "n_windows": 52,
+      "duration_s": 15.566666666666666,
+      "quality_mean": 0.4314541518688202,
+      "quality_std": 0.05064449831843376,
+      "action_top1_idx": 0,
+      "action_top1_name": "squat",
+      "action_top1_conf": 0.9947874546051025,
+      "action_squat_conf": 0.9947874546051025,
+      "action_correct": true,
+      "boundary_peak": 1.0,
+      "joint_err_max": [
+        0.6778401136398315,
+        0.9261527061462402,
+        0.9812418222427368,
+        0.836358904838562,
+        0.7338366508483887
+      ],
+      "joint_err_mean": [
+        0.4563908576965332,
+        0.28188079595565796,
+        0.4763074219226837,
+        0.5727197527885437,
+        0.5048271417617798
+      ],
+      "rep_count_mean": 0.9876359105110168,
+      "elapsed_s": 9.8
+    },
+    "Bad_Squats2": {
+      "kind": "bad",
+      "n_windows": 57,
+      "duration_s": 16.833333333333332,
+      "quality_mean": 0.4591605067253113,
+      "quality_std": 0.05031360313296318,
+      "action_top1_idx": 0,
+      "action_top1_name": "squat",
+      "action_top1_conf": 0.9998926520347595,
+      "action_squat_conf": 0.9998926520347595,
+      "action_correct": true,
+      "boundary_peak": 1.0,
+      "joint_err_max": [
+        0.8087472915649414,
+        0.9958963394165039,
+        0.9355142712593079,
+        0.8072942495346069,
+        0.8149387836456299
+      ],
+      "joint_err_mean": [
+        0.3119330406188965,
+        0.6619817614555359,
+        0.06013122946023941,
+        0.3476729094982147,
+        0.33422067761421204
+      ],
+      "rep_count_mean": 1.0066221952438354,
+      "elapsed_s": 10.8
+    }
+  },
+  "gates": {
+    "all_squat": true,
+    "boundary_ok": true,
+    "quality_gap": -0.04801949858665466,
+    "quality_gap_pass": false,
+    "knee_hip_bad_max": 0.9958963394165039,
+    "knee_hip_good_max": 0.9999707341194153,
+    "knee_hip_pass": false,
+    "overall_pass": false
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "failures": [],
+  "gate_id": "D1_extract_integrity",
+  "metrics": {
+    "clip_id_max": 298089,
+    "clip_id_min": 0,
+    "est_total_hours": 468.4,
+    "labels__n_clips_with_feedback": 43098,
+    "labels__n_clips_with_fine": 298089,
+    "labels__n_clips_with_worker_id": 298070,
+    "labels__n_total_feedbacks": 609970,
+    "labels__n_unique_humans": 2919,
+    "n_label_ids_missing_mp4": 0,
+    "n_missing_clip_ids_in_range": 1,
+    "n_mp4": 298089,
+    "n_unique_clip_ids": 298089,
+    "probe_success_rate": 1.0,
+    "sample_duration_max_s": 8.167,
+    "sample_duration_mean_s": 5.657,
+    "sample_duration_median_s": 5.217,
+    "sample_duration_min_s": 2.933,
+    "sampled_clip_count": 100
+  },
+  "status": "PASS",
+  "timestamp": "2026-05-06T17:12:43.335299+00:00"
+}

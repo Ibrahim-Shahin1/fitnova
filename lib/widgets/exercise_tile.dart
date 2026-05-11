@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+
 import '../config/api_config.dart';
 import '../models/fitness_plan.dart';
+import '../theme/app_spacing.dart';
 
 class ExerciseTile extends StatelessWidget {
   final Exercise exercise;
@@ -10,29 +12,35 @@ class ExerciseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               exercise.exerciseName,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                _chip(Icons.repeat, '${exercise.sets} x ${exercise.reps}'),
-                const SizedBox(width: 12),
-                _chip(Icons.timer, '${exercise.restSeconds}s rest'),
+                _chip(context, Icons.repeat, '${exercise.sets} x ${exercise.reps}'),
+                const SizedBox(width: AppSpacing.md),
+                _chip(context, Icons.timer, '${exercise.restSeconds}s rest'),
               ],
             ),
             if (exercise.mediaUrl != null) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: AppSpacing.xs),
               TextButton.icon(
                 icon: const Icon(Icons.play_circle_outline, size: 18),
                 label: const Text('Watch demo'),
@@ -51,13 +59,12 @@ class ExerciseTile extends StatelessWidget {
                 },
               ),
             ],
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             TextButton.icon(
-              icon: const Icon(Icons.videocam_outlined, size: 18,
-                  color: Color(0xFF6C63FF)),
-              label: const Text(
+              icon: Icon(Icons.videocam_outlined, size: 18, color: cs.secondary),
+              label: Text(
                 'Check My Form',
-                style: TextStyle(color: Color(0xFF6C63FF)),
+                style: TextStyle(color: cs.secondary),
               ),
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
@@ -68,13 +75,13 @@ class ExerciseTile extends StatelessWidget {
               },
             ),
             if (exercise.coachingCue.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 exercise.coachingCue,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontStyle: FontStyle.italic,
-                      color: Colors.grey[600],
-                    ),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: cs.onSurfaceVariant,
+                ),
               ),
             ],
           ],
@@ -83,13 +90,17 @@ class ExerciseTile extends StatelessWidget {
     );
   }
 
-  Widget _chip(IconData icon, String label) {
+  Widget _chip(BuildContext context, IconData icon, String label) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 4),
-        Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+        Icon(icon, size: 16, color: muted),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          label,
+          style: TextStyle(color: muted, fontSize: 13),
+        ),
       ],
     );
   }
@@ -136,22 +147,33 @@ class _VideoDemoDialogState extends State<_VideoDemoDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.rl),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.sm,
+            ),
             child: Text(
               widget.exerciseName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
           ClipRRect(
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(16)),
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(AppRadius.rl),
+            ),
             child: SizedBox(
               height: 260,
               width: double.infinity,
@@ -163,7 +185,7 @@ class _VideoDemoDialogState extends State<_VideoDemoDialog> {
                   : const Center(child: CircularProgressIndicator()),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
         ],
       ),
     );

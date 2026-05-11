@@ -2,7 +2,7 @@
 
 **Type:** AI-Powered Fitness Planning Mobile Application  
 **Stack:** Flutter (Android) + FastAPI (Python) + TensorFlow + OpenAI GPT-4o-mini  
-**Status:** Fitness Planning ✅ complete. Conversational chat / nutrition ✅ complete. **Form Detection ⚠ in domain-gap recovery** — see HANDOFF.md.
+**Status:** Fitness Planning ✅ complete. Conversational chat / ✅ complete. **Form Detection ⚠ in domain-gap recovery** — see HANDOFF.md.
 
 ---
 

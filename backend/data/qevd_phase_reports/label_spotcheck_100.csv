@@ -1,0 +1,101 @@
+clip_id,exercise,fine_class,n_feedbacks,first_feedback,derived_q,derived_groups,quality_source,split
+00058369,dead bugs (legs only),dead bugs (legs only) - moving arms,0,,0.7,,silence_default,train
+00013112,high knees,high knees - speed=3.75 rps,10,Great job you're crushing it!,0.96,"L_knee,R_knee",feedback_only,train
+00144194,uppercut left + hook right (right leg front),uppercut left + hook right (right leg front) - as fast as possible,0,,0.85,,label_only,train
+00128393,shoulder gators,shoulder gators - upper body moving,4,Really try to bring those elbows back behind your ears,1.0,"L_elbow,R_elbow,L_shoulder,R_shoulder,Trunk,Neck",feedback_only,train
+00117026,uppercut left (right leg front),uppercut left (right leg front) - front arm low,0,,0.7,,silence_default,train
+00073158,alternating v ups,alternating v ups - as fast as possible,0,,0.85,,label_only,train
+00053736,uppercut left (right leg front),uppercut left (right leg front) - punching down,0,,0.45,,label_only,train
+00285930,buttkickers,buttkickers - feet disappear behind knees,5,Yes! When the heels are super close and hitting the butt we're getting the burn!,0.88,"L_knee,R_knee",feedback_only,test
+00045580,glute hamstring walkout,glute hamstring walkout - stepping in-place,0,,0.7,,silence_default,train
+00221208,puddle jump,puddle jump - speed=0.75 rps,0,,0.7,Trunk,silence_default,train
+00016663,bunny hops,bunny hops - narrow jumps,0,,0.55,,label_only,train
+00015622,alternating single leg glutes bridge,alternating single leg glutes bridge - knees in,0,,0.7,"L_knee,R_knee",silence_default,train
+00049123,high plank,high plank - average,0,,0.78,,label_only,train
+00114629,hook left (right leg front),hook left (right leg front) - front arm low,0,,0.7,,silence_default,train
+00121981,alternating forward lunges,alternating forward lunges - normal width,20,Make sure to dip that back knee close to the ground and deep lunge in the front.,0.885,"L_knee,R_knee,L_hip,R_hip,Trunk",feedback+label,train
+00264951,quad stretch (left),quad stretch (left) - getting into position,7,"Whoops, careful! You are stretching the right quad!",0.929,,feedback_only,train
+00013912,the hundred (table-top position),the hundred (table-top position) - arms still,0,,0.55,Neck,label_only,train
+00294255,floor touches,floor touches - feet not under knees,3,Keep up the hustle and great form,0.667,"L_knee,R_knee",feedback_only,test
+00104248,opposite arm and leg lifts (on knees),"opposite arm and leg lifts (on knees) - back not straight, arching up",0,,0.7,"L_knee,R_knee,Trunk",silence_default,train
+00285707,spider man,spider man - too slow,0,,0.425,,label_only,test
+00219949,moving plank,moving plank - starting late,0,,0.4,,label_only,train
+00115574,mountain-climbers,mountain-climbers - knees twisting inwards,5,Those mountains don't stand a CHANCE. ,0.52,"L_knee,R_knee",feedback_only,train
+00235514,snowboarders,snowboarders - squat_depth=2,0,,0.7,,silence_default,train
+00145852,reverse crunches,reverse crunches - 90 degrees,0,,0.7,,silence_default,train
+00003407,cat-cow pose,"cat-cow pose - cat posture, back as high as possible",0,,0.7,Trunk,silence_default,train
+00083707,hook left + hook right (right leg front),hook left + hook right (right leg front) - average,0,,0.78,,label_only,train
+00221571,elbow plank,elbow plank - head down,0,,0.55,"L_elbow,R_elbow,Neck",label_only,train
+00178389,hook left (right leg front),"hook left (right leg front) - hips not rotating, hips not facing camera",0,,0.7,"L_hip,R_hip",silence_default,train
+00145684,hook right and hook left (right leg front),hook right and hook left (right leg front) - low range of motion,0,,0.5,,label_only,train
+00081516,front lunge kick (left leg),front lunge kick (left leg) - average,0,,0.78,,label_only,train
+00112886,walking in place,walking in place - average,0,,0.78,,label_only,train
+00176472,mountain-climbers,mountain-climbers - knees twisting inwards,5,Those mountains don't stand a CHANCE. ,0.52,"L_knee,R_knee",feedback_only,train
+00053587,downward dog,downward dog - bent legs,0,,0.7,Neck,silence_default,train
+00048625,snowboarders,snowboarders - not facing the webcam,0,,0.7,,silence_default,train
+00199191,plie squat,plie squat - average,0,,0.78,,label_only,train
+00050707,snowboarders,snowboarders - squat_depth=3,0,,0.7,,silence_default,train
+00188208,uppercut left + hook right (right leg front),uppercut left + hook right (right leg front) - low range of motion,0,,0.5,,label_only,train
+00180331,burpee,burpee - no obvious issue,0,,0.92,,label_only,train
+00138685,dead bugs,dead bugs - moving opposite leg,0,,0.72,,label_only,train
+00022780,dead bugs (legs only),dead bugs (legs only) - start moving opposite leg too early,0,,0.55,,label_only,train
+00240870,burpee,burpee - leaning too far forward,0,,0.7,Trunk,silence_default,train
+00281137,cobra pose,"cobra pose - higher, keeping shoulders away from the ears",0,,0.7,"L_shoulder,R_shoulder",silence_default,train
+00065444,mountain-climbers,mountain-climbers - looking down,10,Try to make the leg motion more of a strong step-switch than running. You got this!,0.498,Trunk,feedback+label,train
+00198461,shoulder gators,shoulder gators - not moving forward,5,"Ok, cool! Let's get moving now.",1.0,"L_elbow,R_elbow,L_shoulder,R_shoulder,Trunk",feedback_only,train
+00041313,hip circles (counterclockwise),hip circles (counterclockwise) - large circles,0,,0.7,"L_hip,R_hip",silence_default,train
+00289429,feet apart,feet apart - average,0,,0.78,,label_only,test
+00153709,cross-legged hamstring stretch,"cross-legged hamstring stretch - left leg front, fold down",0,,0.7,,silence_default,train
+00189600,uppercut left + hook right (right leg front),uppercut left + hook right (right leg front) - lazy,0,,0.4,,label_only,train
+00100814,tuck jump,tuck jump - knees too close,0,,0.7,"L_knee,R_knee",silence_default,train
+00036466,plank taps,plank taps - moving hips,5,"This is looking good, let's up the speed of those taps now.",1.0,"L_hip,R_hip",feedback_only,train
+00024025,elbow plank,elbow plank - head up,0,,0.55,"L_elbow,R_elbow,Neck",label_only,train
+00119484,standing knee-to-elbow (not bouncing),standing knee-to-elbow (not bouncing) - not twisting body,0,,0.7,"L_elbow,R_elbow,L_knee,R_knee",silence_default,train
+00151722,criss-cross,criss-cross - head down,0,,0.55,"Trunk,Neck",label_only,train
+00041833,glute hamstring walkout,glute hamstring walkout - stepping too big,0,,0.85,,label_only,train
+00122049,criss-cross,criss-cross - legs up not moving,3,"Looking good but let's pick up the pace, shall we?",0.867,Trunk,feedback_only,train
+00052953,wrist twists,wrist twists - average,0,,0.78,,label_only,train
+00199295,downward dog (frontal),downward dog (frontal) - starting late,0,,0.4,,label_only,train
+00145738,standing oblique crunches,standing oblique crunches - speed=0.75 rps,0,,0.7,,silence_default,train
+00237717,heel lift,heel lift - wrap left around right,0,,0.7,,silence_default,train
+00191277,yoga pushup,yoga pushup - shallow pushup,0,,0.65,,label_only,train
+00085277,cross (right leg front),"cross (right leg front) - hips not rotating, hips not facing camera",0,,0.7,"L_hip,R_hip",silence_default,train
+00194081,opposite arm and leg lifts (on knees),"opposite arm and leg lifts (on knees) - back not straight, dropping down",0,,0.7,"L_knee,R_knee,Trunk",silence_default,train
+00186264,wide-legged forward fold,wide-legged forward fold - exhale and fold,0,,0.7,,silence_default,train
+00109842,elbow plank,elbow plank - head down,0,,0.55,"L_elbow,R_elbow,Neck",label_only,train
+00139973,alternating lateral lunge,"alternating lateral lunge - knee in line with toe, stepping foot pointing towards the camera",0,,0.92,"L_knee,R_knee",label_only,train
+00037435,reverse crunches,reverse crunches - feet down,0,,0.7,,silence_default,train
+00089725,jab (right leg front),jab (right leg front) - elbow not moving,0,,0.7,"L_elbow,R_elbow",silence_default,train
+00280043,elbow plank,elbow plank - shoulders shrugged up toward the ears,0,,0.7,"L_elbow,R_elbow,L_shoulder,R_shoulder",silence_default,train
+00128351,standing t,"standing t - torso parallel to the ground, thumbs pointed up",0,,0.7,Trunk,silence_default,train
+00085669,floor touches,floor touches - rounded back,0,,0.4,Trunk,label_only,train
+00242357,quick feet,quick feet - leaning forward,0,,0.723,"L_shoulder,R_shoulder",label_only,train
+00198943,buttkickers,buttkickers - not in place,8,"Good work, try to keep the motion underneath you.",0.55,"L_hip,R_hip",feedback_only,train
+00141530,spider man pushup,spider man pushup - shallow pushup,0,,0.5,,label_only,train
+00292003,alternating lateral lunge,alternating lateral lunge - no stepping,0,,0.7,,silence_default,test
+00115141,quad stretch (right),quad stretch (right) - getting into position,0,,0.6,,label_only,train
+00170017,hook right and cross (right leg front),hook right and cross (right leg front) - low range of motion,0,,0.5,,label_only,train
+00029327,inchworm,inchworm - feet too wide,0,,0.45,,label_only,train
+00120087,puddle jump,puddle jump - speed=0.75 rps,0,,0.55,,label_only,train
+00016829,alternating lateral lunge,alternating lateral lunge - too fast,0,,0.65,,label_only,train
+00165388,boxing bounce steps (front to back),boxing bounce steps (front to back) - feet facing sideways,0,,0.7,Trunk,silence_default,train
+00210325,standing ytw,standing ytw - too fast,0,,0.45,,label_only,train
+00140373,mountain-climbers,mountain-climbers - not bringing feet forward,10,Hands at shoulder's width please. You know the drill! haha,0.64,"L_shoulder,R_shoulder",feedback_only,train
+00034701,halfway lift,halfway lift - hands on knees,0,,0.7,"L_knee,R_knee",silence_default,train
+00110615,alternating lateral lunge,"alternating lateral lunge - knee out, toes straight",0,,0.92,"L_knee,R_knee",label_only,train
+00297366,burpee,burpee - as fast as possible,0,,0.85,,label_only,test
+00164981,wiping face sweat on shirt,wiping face sweat on shirt,0,,0.7,,silence_default,train
+00111477,catching your breath (walking around),catching your breath (walking around),0,,0.7,,silence_default,train
+00261740,squat kick,squat kick - not lifting knees,0,,0.7,"L_knee,R_knee",silence_default,train
+00207425,standing kicks (left leg),standing kicks (left leg) - average,0,,0.78,,label_only,train
+00240570,high knees,high knees - not jumping,11,You really challenge your heart rate when you keep it at a moderate pace.,0.891,"L_knee,R_knee,L_hip,R_hip",feedback_only,train
+00074905,upward salute,upward salute - legs together,78,Yeah! This is hoppin',0.988,"L_knee,R_knee,Trunk,Neck",feedback_only,train
+00138873,cross + hook right (right leg front),cross + hook right (right leg front) - lazy,0,,0.4,,label_only,train
+00073206,garland pose,"garland pose - feet together, horizontal arms",0,,0.7,,silence_default,train
+00129303,glute hamstring walkout,glute hamstring walkout - foot flat on the ground,0,,0.85,,label_only,train
+00294319,yawning (covering mouth with hand),yawning (covering mouth with hand),0,,0.7,,silence_default,test
+00282580,glutes bridge,glutes bridge - heels off the ground,0,,0.7,,silence_default,test
+00137752,standing oblique crunches,standing oblique crunches - good rotation,0,,0.7,,silence_default,train
+00224622,uppercut right (right leg front),uppercut right (right leg front) - static legs,0,,0.7,,silence_default,train
+00209400,shoulder gators,shoulder gators - looking down,9,Slow it down...,0.725,"L_elbow,R_elbow,L_shoulder,R_shoulder,Trunk,Neck",feedback+label,train
+00189790,uppercut right + hook left (right leg front),uppercut right + hook left (right leg front) - as fast as possible,0,,0.85,,label_only,train

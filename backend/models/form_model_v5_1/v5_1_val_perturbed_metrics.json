@@ -1,0 +1,11 @@
+{
+  "n": 1140,
+  "quality_pearson": 0.3820108615867561,
+  "quality_mae": 0.26197242736816406,
+  "quality_pred_mean": 0.5227940678596497,
+  "quality_pred_std": 0.15324272215366364,
+  "joint_err_acc": 0.9018037280701754,
+  "joint_err_f1": 0.3861050307750702,
+  "boundary_iou": 1.0,
+  "action_acc": 1.0
+}

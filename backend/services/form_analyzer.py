@@ -122,39 +122,20 @@ class FormAnalyzer:
             return
 
         # ── MediaPipe 0.10.x Tasks API ────────────────────────────────────────
-        import urllib.request
-
-        # Cache the model file next to the other model artefacts
-        model_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "models",
-                         "pose_landmarker_full.task")
+        # All FitNova-specific MediaPipe config (confidences, model asset,
+        # VIDEO running-mode) lives in backend.services.mediapipe_config so
+        # the QEVD training extractor (backend.training.preprocessing.
+        # qevd_extractor) and this inference path produce features under
+        # identical settings.  Drift between training/inference MediaPipe
+        # was the root cause of v4's real-phone failure (HANDOFF.md §5).
+        from backend.services.mediapipe_config import (
+            build_pose_landmarker_options,
         )
-        if not os.path.exists(model_path):
-            url = (
-                "https://storage.googleapis.com/mediapipe-models/"
-                "pose_landmarker/pose_landmarker_full/float16/latest/"
-                "pose_landmarker_full.task"
-            )
-            logger.info("Downloading MediaPipe model (~29 MB) to %s …", model_path)
-            os.makedirs(os.path.dirname(model_path), exist_ok=True)
-            urllib.request.urlretrieve(url, model_path)
-            logger.info("MediaPipe model downloaded.")
 
-        BaseOptions           = mp.tasks.BaseOptions
-        PoseLandmarker        = mp.tasks.vision.PoseLandmarker
-        PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
-        VisionRunningMode     = mp.tasks.vision.RunningMode
+        PoseLandmarker    = mp.tasks.vision.PoseLandmarker
+        VisionRunningMode = mp.tasks.vision.RunningMode
 
-        # VIDEO mode: applies temporal smoothing across frames, matching how
-        # the training .npy files were extracted (see FitNova_Colab.ipynb cell-12).
-        options = PoseLandmarkerOptions(
-            base_options=BaseOptions(model_asset_path=model_path),
-            running_mode=VisionRunningMode.VIDEO,   # ← B6 fix (was IMAGE)
-            num_poses=1,
-            min_pose_detection_confidence=0.5,
-            min_pose_presence_confidence=0.5,
-            min_tracking_confidence=0.5,
-        )
+        options = build_pose_landmarker_options()  # VIDEO mode + B6 fix
         self._mp_options        = options            # stored for reset_video_state re-creation
         self._mp_landmarker     = PoseLandmarker.create_from_options(options)
         self._mp_image_cls      = mp.Image
@@ -169,9 +150,30 @@ class FormAnalyzer:
     # ── Model loading ─────────────────────────────────────────────────────────
 
     def _load_model(self):
-        # Keras 3 requires weights filenames to end in ".weights.h5" (that is what
-        # train_form_model.py writes). We still accept the legacy "mt_tcn_weights.h5"
-        # for backward compatibility with older checkpoints.
+        """Detect model version from model_dir and load accordingly.
+
+        Detection priority (highest first):
+          v6 — QEVD-trained ST-GCN with native 10-channel joint_err and 25-class
+               action head. Detected by ``v6_supervised.weights.h5``.
+          v5.2 — Fit3D-trained ST-GCN with 5-group joint_err (remapped to 10
+                 for UI compat). Detected by ``v5_2_supervised.weights.h5``.
+          v4 — Legacy MT-TCN. Used when neither v6 nor v5.2 weights are present.
+        """
+        v6_weights   = os.path.join(self.model_dir, "v6_supervised.weights.h5")
+        v5_2_weights = os.path.join(self.model_dir, "v5_2_supervised.weights.h5")
+
+        if os.path.exists(v6_weights) and _TF_AVAILABLE:
+            self._model_version = "v6"
+            self._load_v6_model(v6_weights)
+            return
+
+        if os.path.exists(v5_2_weights) and _TF_AVAILABLE:
+            self._model_version = "v5.2"
+            self._load_v5_2_model(v5_2_weights)
+            return
+
+        # ── v4 legacy path ────────────────────────────────────────────────────
+        self._model_version = "v4"
         candidates = [
             os.path.join(self.model_dir, "mt_tcn_weights.weights.h5"),
             os.path.join(self.model_dir, "mt_tcn_best.weights.h5"),
@@ -184,16 +186,15 @@ class FormAnalyzer:
 
         if not os.path.exists(weights_path):
             logger.warning(
-                f"MT-TCN weights not found at {weights_path}. "
-                "Train the model first: python -m backend.training.train_form_model"
+                f"No v5.2 or v4 weights found in {self.model_dir}. "
+                "Train the model first."
             )
             return
 
         if not _TF_AVAILABLE:
-            logger.error("TensorFlow not available — MT-TCN loading skipped.")
+            logger.error("TensorFlow not available — model loading skipped.")
             return
 
-        # Import here to avoid circular import at module level
         import sys
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
         from backend.training.models.mt_tcn import build_mt_tcn
@@ -209,13 +210,8 @@ class FormAnalyzer:
             n_exercises    = cfg["n_exercises"],
             n_joint_groups = cfg["n_joint_groups"],
         )
-        # NOTE: Keras 3's .weights.h5 format uses positional layer matching.
-        # by_name=True is only supported for legacy .h5/.hdf5 files and raises
-        # an error on .weights.h5.  Positional loading is safe here because
-        # build_mt_tcn() always constructs layers in the same order.
         self._model.load_weights(weights_path)
-        logger.info("MT-TCN weights loaded (positional, %.1f MB).",
-                    os.path.getsize(weights_path) / 1e6)
+        logger.info("v4 MT-TCN weights loaded (%.1f MB).", os.path.getsize(weights_path) / 1e6)
 
         self._normalizer = AngleNormalizer.load(stats_path)
         logger.info("Angle normaliser loaded.")
@@ -223,13 +219,127 @@ class FormAnalyzer:
         with open(labels_path) as f:
             self._exercise_labels = json.load(f)
         self._idx_to_exercise = {v: k for k, v in self._exercise_labels.items()}
-        logger.info(f"Exercise labels loaded: {len(self._exercise_labels)} classes.")
+        logger.info(f"v4 exercise labels loaded: {len(self._exercise_labels)} classes.")
+
+    def _load_v5_2_model(self, weights_path: str) -> None:
+        """Load the v5.2 ST-GCN multi-task model.
+
+        v5.2 takes 3 inputs (pose, angles, exercise_id) and produces 5 named
+        outputs (quality, action, rep_count, boundary, joint_err) plus a
+        trunk-features tensor for multi-view consistency loss (unused at
+        inference). The model file ``v5_2_supervised.weights.h5`` contains
+        only the trainable weights (Keras 3 ``.weights.h5`` format), so
+        layers are matched positionally.
+        """
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+        from backend.training.models.st_gcn import build_v5_model
+
+        config_path = os.path.join(self.model_dir, "model_config.json")
+        labels_path = os.path.join(self.model_dir, "exercise_labels.json")
+
+        with open(config_path) as f:
+            cfg = json.load(f)
+
+        self._model = build_v5_model(
+            target_frames    = cfg.get("target_frames", 64),
+            n_joints         = cfg.get("n_canonical_joints", 15),
+            n_pose_channels  = cfg.get("n_pose_channels", 4),
+            n_angular        = cfg.get("n_angular", 22),
+            n_exercises      = cfg.get("n_exercises", 15),
+            n_joint_groups   = cfg.get("n_joint_groups", 5),
+        )
+        self._model.load_weights(weights_path)
+        logger.info("v5.2 ST-GCN weights loaded (%.1f MB, %s params).",
+                    os.path.getsize(weights_path) / 1e6,
+                    f"{self._model.count_params():,}")
+
+        with open(labels_path) as f:
+            self._exercise_labels = json.load(f)
+        self._idx_to_exercise = {v: k for k, v in self._exercise_labels.items()}
+        logger.info(f"v5.2 exercise labels loaded: {len(self._exercise_labels)} classes.")
+        # The angle "normaliser" from v4 (per-feature mean/std) is not used in
+        # v5.2 — angles go in raw. Mark as None so process_frame skips the
+        # transform.
+        self._normalizer = None
+
+    def _load_v6_model(self, weights_path: str) -> None:
+        """Load the v6 QEVD-trained ST-GCN multi-task model.
+
+        v6 takes 3 inputs (pose, angles, exercise_id) — same shape as v5.2 —
+        but produces NATIVE 10-channel joint_err (no remap needed) and a
+        25-class action head trained on QEVD's top-24 named exercises plus
+        '__other__'. Exercise map lives in qevd_exercise_map.json (NOT
+        exercise_labels.json — that's a v4/v5.2 file).
+
+        The known D9 failure mode is documented in
+        backend/data/qevd_phase_reports/D9_reality_check.json. This integration
+        wires v6 in for end-to-end testing; the recovery (Tier 2 GPT-4o-mini
+        relabel + retrain) is tracked separately.
+        """
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+        from backend.training.models.st_gcn_v6 import build_v6_model
+
+        config_path = os.path.join(self.model_dir, "model_config.json")
+        ex_map_path = os.path.join(self.model_dir, "qevd_exercise_map.json")
+
+        if not os.path.isfile(config_path):
+            raise FileNotFoundError(
+                f"v6 missing model_config.json at {config_path}"
+            )
+        if not os.path.isfile(ex_map_path):
+            raise FileNotFoundError(
+                f"v6 missing qevd_exercise_map.json at {ex_map_path}"
+            )
+
+        with open(config_path) as f:
+            cfg = json.load(f)
+
+        self._model = build_v6_model(
+            target_frames    = cfg.get("target_frames", 64),
+            n_joints         = cfg.get("n_canonical_joints", 15),
+            n_pose_channels  = cfg.get("n_pose_channels", 4),
+            n_angular        = cfg.get("n_angular", 22),
+            n_exercises      = cfg.get("n_exercises", 25),
+            n_joint_groups   = cfg.get("n_joint_groups", 10),
+        )
+        self._model.load_weights(weights_path)
+        logger.info("v6 ST-GCN weights loaded (%.1f MB, %s params).",
+                    os.path.getsize(weights_path) / 1e6,
+                    f"{self._model.count_params():,}")
+
+        # Load QEVD exercise map (name → idx). Both directions kept for
+        # convenience: name→idx for conditioning, idx→name for top-1 display.
+        with open(ex_map_path) as f:
+            self._exercise_labels = json.load(f)
+        self._idx_to_exercise = {v: k for k, v in self._exercise_labels.items()}
+        logger.info(
+            f"v6 QEVD exercise map loaded: {len(self._exercise_labels)} classes "
+            f"(includes '__other__'={self._exercise_labels.get('__other__', '?')})."
+        )
+        # v6 uses raw angles (same as v5.2) — no AngleNormalizer.
+        self._normalizer = None
+
+        # ── DEBUG: dump model summary if FITNOVA_DEBUG=1 ─────────────────────
+        if os.environ.get("FITNOVA_DEBUG") == "1":
+            try:
+                summary_lines = []
+                self._model.summary(print_fn=lambda l: summary_lines.append(l))
+                logger.info("v6 model summary:\n%s", "\n".join(summary_lines))
+            except Exception as e:
+                logger.warning("could not produce model summary: %s", e)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
     @property
     def model_ready(self) -> bool:
-        return self._model is not None and self._normalizer is not None
+        if self._model is None:
+            return False
+        # v6 + v5.2 don't use the AngleNormalizer (raw angles in); v4 requires it.
+        if getattr(self, "_model_version", "v4") in ("v6", "v5.2"):
+            return True
+        return self._normalizer is not None
 
     def process_frame(self, jpeg_bytes: bytes,
                       timestamp_ms: Optional[int] = None) -> dict:
@@ -323,10 +433,45 @@ class FormAnalyzer:
         else:
             angles_norm = angles_raw
 
+        # ── v5.2: also build a per-canonical-joint visibility channel (15, 1) ──
+        # Mirrors what dataset_builder_v5_1._slice_canonicalize() does. The
+        # canonical-15 visibility is the average of source-MediaPipe joints
+        # that map to each canonical index (with the B5 neck weighting). Used
+        # only by the v5.2 model's pose input; the v4 model ignores it.
+        from backend.training.preprocessing.joint_mapping import (
+            MEDIAPIPE_JOINTS, MEDIAPIPE_TO_CANONICAL, N_CANONICAL,
+        )
+        mp_vis = np.array(
+            [[float(getattr(lm, "visibility", 0.0))]
+             for lm in result.pose_world_landmarks[0]],
+            dtype=np.float32,
+        )  # (33, 1)
+        canon_vis = np.zeros((N_CANONICAL, 1), dtype=np.float32)
+        for can_idx, mp_idx in MEDIAPIPE_TO_CANONICAL.items():
+            if can_idx == 14:
+                continue
+            if mp_idx is None:
+                continue
+            if mp_idx == "neck_weighted":
+                l = MEDIAPIPE_JOINTS["l_shoulder"]
+                r = MEDIAPIPE_JOINTS["r_shoulder"]
+                le = MEDIAPIPE_JOINTS["l_ear"]
+                re = MEDIAPIPE_JOINTS["r_ear"]
+                canon_vis[can_idx] = 0.25 * (mp_vis[l] + mp_vis[r] + mp_vis[le] + mp_vis[re])
+            elif isinstance(mp_idx, tuple):
+                canon_vis[can_idx] = np.mean([mp_vis[i] for i in mp_idx], axis=0)
+            else:
+                canon_vis[can_idx] = mp_vis[mp_idx]
+        canon_vis[14] = 0.5 * (canon_vis[12] + canon_vis[13])
+
+        # (15, 4) pose tensor — matches v5.2 model input schema
+        pose_canon = np.concatenate([canon_norm, canon_vis], axis=-1).astype(np.float32)
+
         result_dict = {
             "landmarks":        canonical_img.tolist(),    # 15 × [x,y,z] image coords (display)
             "joints_norm":      canon_norm.tolist(),       # 15 × [x,y,z] skeleton-normalised world coords
-            "angles_norm":      angles_norm.tolist(),       # 22 normalised angles
+            "pose_canon":       pose_canon.tolist(),       # 15 × [x,y,z,vis] for v5.2 model input
+            "angles_norm":      angles_norm.tolist(),       # 22 angular features
             "status":           "ok",
         }
         self._prev_result = result_dict          # cache for B7 forward-fill
@@ -336,22 +481,27 @@ class FormAnalyzer:
         self,
         angles_window: np.ndarray,
         joints_window: np.ndarray,
+        pose_window: Optional[np.ndarray] = None,
+        exercise_idx: Optional[int] = None,
     ) -> dict:
         """
-        Run MT-TCN on a 64-frame window.
+        Run multi-task model on a 64-frame window. Dispatches by version:
 
-        Args:
-            angles_window: (64, 22) float32
-            joints_window: (64, 45) float32
+        v5.2 mode (uses ``pose_window`` (64, 15, 4) + ``angles_window`` (64, 22)
+        + ``exercise_idx``): conditions on user-selected exercise; returns
+        5-group joint_err which we expand to 10-group for backward
+        compatibility with the existing FormSession + Flutter UI.
+
+        v4 mode (uses ``angles_window`` (64, 22) + ``joints_window`` (64, 45)):
+        legacy MT-TCN path, returns 10-group joint_err directly.
 
         Returns:
             {
-              "exercise": str,
-              "exercise_confidence": float,
-              "boundary": [float × 64],   per-frame boundary probability
-              "rep_count": float,
+              "exercise": str, "exercise_confidence": float,
+              "boundary": [float × 64], "rep_count": float,
               "quality": float,
-              "joint_errors": [[float × 10] × 64]  per-frame per-joint
+              "joint_errors": [[float × 10] × 64],  # always 10-group, see remap
+              "model_version": "v5.2" | "v4",
             }
         """
         if not self.model_ready:
@@ -359,23 +509,96 @@ class FormAnalyzer:
                 "exercise": "unknown", "exercise_confidence": 0.0,
                 "boundary": [0.0] * 64, "rep_count": 0.0,
                 "quality": 0.5, "joint_errors": [[0.0] * 10] * 64,
+                "model_version": "none",
             }
 
+        version = getattr(self, "_model_version", "v4")
+        if version == "v6":
+            return self._predict_window_v6(
+                angles_window=angles_window,
+                pose_window=pose_window,
+                exercise_idx=exercise_idx if exercise_idx is not None else 0,
+            )
+        if version == "v5.2":
+            return self._predict_window_v5_2(
+                angles_window=angles_window,
+                pose_window=pose_window,
+                exercise_idx=exercise_idx if exercise_idx is not None else 0,
+            )
+        return self._predict_window_v4(angles_window, joints_window)
+
+    def _predict_window_v4(
+        self, angles_window: np.ndarray, joints_window: np.ndarray,
+    ) -> dict:
         inp = {
             "angular_input": angles_window[np.newaxis].astype(np.float32),
             "joints_input":  joints_window[np.newaxis].astype(np.float32),
         }
         preds = self._model.predict(inp, verbose=0)
 
-        ex_probs   = preds["exercise"][0]           # (27,)
-        ex_idx     = int(np.argmax(ex_probs))
-        ex_conf    = float(ex_probs[ex_idx])
-        ex_name    = self._idx_to_exercise.get(ex_idx, "unknown")
+        ex_probs = preds["exercise"][0]
+        ex_idx   = int(np.argmax(ex_probs))
+        ex_conf  = float(ex_probs[ex_idx])
+        ex_name  = self._idx_to_exercise.get(ex_idx, "unknown")
 
-        boundary   = preds["boundary"][0, :, 0].tolist()     # (64,)
-        rep_count  = float(preds["rep_count"][0, 0])
-        quality    = float(preds["quality"][0, 0])
-        joint_err  = preds["joint_errors"][0].tolist()        # (64, 10)
+        return {
+            "exercise":            ex_name,
+            "exercise_confidence": ex_conf,
+            "boundary":            preds["boundary"][0, :, 0].tolist(),
+            "rep_count":           float(preds["rep_count"][0, 0]),
+            "quality":             float(preds["quality"][0, 0]),
+            "joint_errors":        preds["joint_errors"][0].tolist(),  # (64, 10)
+            "model_version":       "v4",
+        }
+
+    def _predict_window_v5_2(
+        self,
+        angles_window: np.ndarray,
+        pose_window: Optional[np.ndarray],
+        exercise_idx: int,
+    ) -> dict:
+        """v5.2 ST-GCN inference. ``pose_window`` is (64, 15, 4)."""
+        if pose_window is None:
+            logger.error("v5.2 predict_window called without pose_window — returning neutral")
+            return {
+                "exercise": "unknown", "exercise_confidence": 0.0,
+                "boundary": [0.0] * 64, "rep_count": 0.0,
+                "quality": 0.5, "joint_errors": [[0.0] * 10] * 64,
+                "model_version": "v5.2",
+            }
+
+        inp = {
+            "pose":        pose_window[np.newaxis].astype(np.float32),
+            "angles":      angles_window[np.newaxis].astype(np.float32),
+            "exercise_id": np.array([int(exercise_idx)], dtype=np.int32),
+        }
+        preds = self._model.predict(inp, verbose=0)
+
+        ex_probs = preds["action"][0]                             # (15,)
+        ex_idx   = int(np.argmax(ex_probs))
+        ex_conf  = float(ex_probs[ex_idx])
+        ex_name  = self._idx_to_exercise.get(ex_idx, "unknown")
+        boundary  = preds["boundary"][0, :, 0].tolist()           # (64,)
+        rep_count = float(preds["rep_count"][0, 0])
+        quality   = float(preds["quality"][0, 0])
+        je_v5     = preds["joint_err"][0]                         # (64, 5)
+
+        # ── v5 → v4 joint-group remapping for Flutter UI compatibility ──────
+        # v5 order: [knee, hip, back, shoulder, elbow]
+        # v4 order: [L_elbow, R_elbow, L_shoulder, R_shoulder,
+        #            L_knee,  R_knee,  L_hip,      R_hip,      trunk, neck]
+        # Bilateral groups duplicated; back maps to both trunk + neck.
+        je_v4 = np.zeros((je_v5.shape[0], 10), dtype=np.float32)
+        je_v4[:, 0] = je_v5[:, 4]   # L_elbow    ← elbow
+        je_v4[:, 1] = je_v5[:, 4]   # R_elbow    ← elbow
+        je_v4[:, 2] = je_v5[:, 3]   # L_shoulder ← shoulder
+        je_v4[:, 3] = je_v5[:, 3]   # R_shoulder ← shoulder
+        je_v4[:, 4] = je_v5[:, 0]   # L_knee     ← knee
+        je_v4[:, 5] = je_v5[:, 0]   # R_knee     ← knee
+        je_v4[:, 6] = je_v5[:, 1]   # L_hip      ← hip
+        je_v4[:, 7] = je_v5[:, 1]   # R_hip      ← hip
+        je_v4[:, 8] = je_v5[:, 2]   # trunk      ← back
+        je_v4[:, 9] = je_v5[:, 2]   # neck       ← back
 
         return {
             "exercise":            ex_name,
@@ -383,5 +606,109 @@ class FormAnalyzer:
             "boundary":            boundary,
             "rep_count":           rep_count,
             "quality":             quality,
-            "joint_errors":        joint_err,
+            "joint_errors":        je_v4.tolist(),
+            "joint_errors_v5":     je_v5.tolist(),  # also expose raw 5-group
+            "model_version":       "v5.2",
+        }
+
+    def _predict_window_v6(
+        self,
+        angles_window: np.ndarray,
+        pose_window: Optional[np.ndarray],
+        exercise_idx: int,
+    ) -> dict:
+        """v6 ST-GCN inference (QEVD-trained).
+
+        v6's joint_err head is NATIVE 10-channel — same order as
+        ``form_session.JOINT_GROUP_NAMES``. No remap step needed.
+
+        Heavy debug logging when ``FITNOVA_DEBUG=1`` env var is set: every
+        prediction logs per-head distribution stats so we can correlate
+        Flutter UI behaviour with raw model outputs.
+        """
+        debug = os.environ.get("FITNOVA_DEBUG") == "1"
+
+        if pose_window is None:
+            logger.error(
+                "v6 predict_window called without pose_window — returning neutral"
+            )
+            return {
+                "exercise": "unknown", "exercise_confidence": 0.0,
+                "boundary": [0.0] * 64, "rep_count": 0.0,
+                "quality": 0.5, "joint_errors": [[0.0] * 10] * 64,
+                "model_version": "v6",
+            }
+
+        # ── Validate input shapes (catch silent contract drift early) ────────
+        T = pose_window.shape[0]
+        if pose_window.shape != (T, 15, 4):
+            logger.error(
+                "v6 pose_window has wrong shape %s, expected (T, 15, 4); "
+                "returning neutral", pose_window.shape,
+            )
+            return {
+                "exercise": "unknown", "exercise_confidence": 0.0,
+                "boundary": [0.0] * 64, "rep_count": 0.0,
+                "quality": 0.5, "joint_errors": [[0.0] * 10] * 64,
+                "model_version": "v6",
+            }
+        if angles_window.shape != (T, 22):
+            logger.error(
+                "v6 angles_window has wrong shape %s, expected (T, 22); "
+                "returning neutral", angles_window.shape,
+            )
+            return {
+                "exercise": "unknown", "exercise_confidence": 0.0,
+                "boundary": [0.0] * 64, "rep_count": 0.0,
+                "quality": 0.5, "joint_errors": [[0.0] * 10] * 64,
+                "model_version": "v6",
+            }
+
+        if debug:
+            logger.info(
+                "v6 input: pose %s [%.3f..%.3f], angles %s [%.3f..%.3f], "
+                "exercise_idx=%d (%s)",
+                pose_window.shape, float(pose_window.min()), float(pose_window.max()),
+                angles_window.shape, float(angles_window.min()), float(angles_window.max()),
+                int(exercise_idx),
+                self._idx_to_exercise.get(int(exercise_idx), "?"),
+            )
+
+        inp = {
+            "pose":        pose_window[np.newaxis].astype(np.float32),
+            "angles":      angles_window[np.newaxis].astype(np.float32),
+            "exercise_id": np.array([int(exercise_idx)], dtype=np.int32),
+        }
+        preds = self._model.predict(inp, verbose=0)
+
+        # ── Action head (25 classes incl. __other__) ─────────────────────────
+        action_probs = preds["action"][0]                   # (25,)
+        action_idx   = int(np.argmax(action_probs))
+        action_conf  = float(action_probs[action_idx])
+        action_name  = self._idx_to_exercise.get(action_idx, "unknown")
+
+        # ── Other heads ──────────────────────────────────────────────────────
+        boundary  = preds["boundary"][0, :, 0].tolist()     # (64,)
+        rep_count = float(preds["rep_count"][0, 0])
+        quality   = float(preds["quality"][0, 0])
+        je        = preds["joint_err"][0]                    # (64, 10) NATIVE
+
+        if debug:
+            logger.info(
+                "v6 output: action top1=%d conf=%.3f (%s)  q=%.3f  rep=%.3f  "
+                "bnd_max=%.3f  je_max=%.3f  je_per_group_max=%s",
+                action_idx, action_conf, action_name,
+                quality, rep_count, max(boundary, default=0.0),
+                float(je.max()),
+                ["%.2f" % x for x in je.max(axis=0).tolist()],
+            )
+
+        return {
+            "exercise":            action_name,
+            "exercise_confidence": action_conf,
+            "boundary":            boundary,
+            "rep_count":           rep_count,
+            "quality":             quality,
+            "joint_errors":        je.tolist(),     # native (64, 10)
+            "model_version":       "v6",
         }

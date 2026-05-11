@@ -6,6 +6,20 @@ Normalization utilities for Fit3D skeleton data.
 3. resample_sequence          — linear interpolation to fixed T frames
 4. build_angle_stats          — compute mean/std over training set
 5. normalize_angles           — standardize using pre-computed stats
+
+AXIS CONVENTION
+---------------
+v5.0 trained without any axis remap; v5.1 keeps that convention to maintain
+SSL-encoder compatibility (the SSL pretrain weights are reused). A
+``Y-up axis remap`` was tested and reverted: it didn't fix the underlying
+angular-feature variance issue, and it would have caused a distribution
+mismatch between the SSL pretrain and the supervised fine-tune. The
+underlying issue (``thigh_vert`` having ~zero motion energy on real squats)
+was traced not to the axis but to the joint indices in ``joint_mapping.py``
+not matching the actual Fit3D 25-joint layout. v5.1 sidesteps the joint-
+indexing problem entirely by replacing the AIFit-signature-derived labels
+with synthetic-perturbation severity labels (see
+``dataset_builder_v5_1.py``).
 """
 
 import numpy as np
@@ -29,6 +43,13 @@ def extract_canonical_from_fit3d(joints25: np.ndarray) -> np.ndarray:
 
     Entries that are tuples in FIT3D_TO_CANONICAL are averaged.
     Spine_mid (index 14) is computed as midpoint(pelvis, neck).
+
+    NOTE on axis convention: this function passes raw Fit3D coordinates
+    through unchanged. An earlier "Y-up remap" attempt was reverted because
+    (a) it didn't actually fix the angular-feature variance issue (root cause
+    was the joint indexing in joint_mapping.py, not the axis), and (b) it
+    would have created a distribution mismatch with the v5.0 SSL encoder
+    weights which we reuse.
     """
     T = joints25.shape[0]
     canonical = np.zeros((T, N_CANONICAL, 3), dtype=np.float32)

@@ -1,14 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/user_provider.dart';
+import '../theme/app_spacing.dart';
 import '../widgets/goal_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  // Curated bold-fitness palette — distinct, vibrant on both light and dark
+  // surfaces. Cyan stays reserved for the brand primary, so none of these
+  // collide with app chrome.
+  static const _cBuildMuscle = Color(0xFFEF4444); // red
+  static const _cGetStronger = Color(0xFF7C3AED); // purple
+  static const _cPowerbuilding = Color(0xFFFF6B35); // electric orange
+  static const _cLoseWeight = Color(0xFFF59E0B); // amber
+  static const _cGetFlexible = Color(0xFF10B981); // emerald
+  static const _cGetFitFast = Color(0xFFEC4899); // pink
+
   @override
   Widget build(BuildContext context) {
     final user = context.read<UserProvider>();
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -16,71 +30,71 @@ class HomeScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'What do you want to achieve?',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'Pick a goal and our AI will create a plan just for you.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
+                mainAxisSpacing: AppSpacing.md,
+                crossAxisSpacing: AppSpacing.md,
                 childAspectRatio: 0.9,
                 children: [
                   GoalCard(
                     icon: Icons.fitness_center,
                     title: 'Build Muscle',
                     subtitle: 'Hypertrophy & size',
-                    color: Colors.deepOrange,
+                    color: _cBuildMuscle,
                     onTap: () => _selectGoal(context, 'Strength', focus: 'hypertrophy'),
                   ),
                   GoalCard(
                     icon: Icons.shield,
                     title: 'Get Stronger',
                     subtitle: 'Powerlifting focus',
-                    color: Colors.indigo,
+                    color: _cGetStronger,
                     onTap: () => _selectGoal(context, 'Strength', focus: 'powerlifting'),
                   ),
                   GoalCard(
                     icon: Icons.bolt,
                     title: 'Powerbuilding',
                     subtitle: 'Strength + size',
-                    color: Colors.deepPurple,
+                    color: _cPowerbuilding,
                     onTap: () => _selectGoal(context, 'Strength', focus: 'powerbuilding'),
                   ),
                   GoalCard(
                     icon: Icons.local_fire_department,
                     title: 'Lose Weight',
                     subtitle: 'Cardio & fat burn',
-                    color: Colors.red,
+                    color: _cLoseWeight,
                     onTap: () => _selectGoal(context, 'Cardio'),
                   ),
                   GoalCard(
                     icon: Icons.self_improvement,
                     title: 'Get Flexible',
                     subtitle: 'Yoga & mobility',
-                    color: Colors.teal,
+                    color: _cGetFlexible,
                     onTap: () => _selectGoal(context, 'Yoga'),
                   ),
                   GoalCard(
                     icon: Icons.flash_on,
                     title: 'Get Fit Fast',
                     subtitle: 'High-intensity',
-                    color: Colors.amber.shade700,
+                    color: _cGetFitFast,
                     onTap: () => _selectGoal(context, 'HIIT'),
                   ),
                 ],

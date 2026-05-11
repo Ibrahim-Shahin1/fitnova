@@ -54,18 +54,27 @@ class SkeletonPainter extends CustomPainter {
   /// Per-joint error probabilities (15 values after buildJointErrorMap).
   final List<double> jointErrors;
 
+  /// Whether to mirror the X axis. Front-camera previews are displayed
+  /// mirrored to the user (selfie convention) but MediaPipe processes the
+  /// raw frame, so the landmarks come back in the un-mirrored frame's
+  /// coordinate space. Set this to true for the front camera so the
+  /// overlay tracks the user's body, not their reflection.
+  final bool mirror;
+
   const SkeletonPainter({
     required this.landmarks,
     required this.jointErrors,
+    this.mirror = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (landmarks == null || landmarks!.length < 15) return;
 
-    final pts = landmarks!
-        .map((j) => Offset(j[0] * size.width, j[1] * size.height))
-        .toList();
+    final pts = landmarks!.map((j) {
+      final nx = mirror ? (1.0 - j[0]) : j[0];
+      return Offset(nx * size.width, j[1] * size.height);
+    }).toList();
 
     final bonePaint = Paint()
       ..strokeWidth = 2.5
@@ -100,5 +109,7 @@ class SkeletonPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(SkeletonPainter old) =>
-      old.landmarks != landmarks || old.jointErrors != jointErrors;
+      old.landmarks != landmarks ||
+      old.jointErrors != jointErrors ||
+      old.mirror != mirror;
 }

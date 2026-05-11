@@ -16,10 +16,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _heightCtrl = TextEditingController(text: '170');
   final _weightCtrl = TextEditingController(text: '70');
   String _gender = 'Male';
-  List<String> _selectedInjuries = [];
+  final List<String> _selectedInjuries = [];
   double _yearsTraining = 1;
   bool _yearsSet = false;
-  List<String> _selectedEquipment = [];
+  final List<String> _selectedEquipment = [];
 
   static const List<String> _equipmentOptions = [
     'Barbell',
@@ -74,7 +74,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       provider.equipment = _selectedEquipment;
     }
 
-    Navigator.pushReplacementNamed(context, '/home');
+    Navigator.pushReplacementNamed(context, '/mode-select');
   }
 
   @override
@@ -178,7 +178,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               Text(
                 'Your plan will avoid triggering movements for selected areas.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: 12),

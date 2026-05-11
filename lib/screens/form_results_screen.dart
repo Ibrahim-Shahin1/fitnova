@@ -34,7 +34,13 @@ class FormResultsScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           // ── Per-rep breakdown ──────────────────────────────────────────
-          if (summary.perRepScores.isNotEmpty) ...[
+          if (summary.perRepDetails.isNotEmpty) ...[
+            _SectionHeader('Per-Rep Breakdown'),
+            const SizedBox(height: 10),
+            ...summary.perRepDetails.map((rep) => _RepDetailCard(rep: rep)),
+            const SizedBox(height: 20),
+          ] else if (summary.perRepScores.isNotEmpty) ...[
+            // Legacy fallback: just a row of bars without per-rep error names
             _SectionHeader('Per-Rep Breakdown'),
             const SizedBox(height: 10),
             ...List.generate(summary.perRepScores.length, (i) {
@@ -70,7 +76,7 @@ class FormResultsScreen extends StatelessWidget {
             icon: const Icon(Icons.arrow_back),
             label: const Text('Back to Plan'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6C63FF),
+              backgroundColor: const Color(0xFF38BDF8),
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
@@ -230,6 +236,101 @@ class _RepBar extends StatelessWidget {
   }
 }
 
+class _RepDetailCard extends StatelessWidget {
+  final RepResult rep;
+  const _RepDetailCard({required this.rep});
+
+  Color get _color {
+    if (rep.quality >= 0.7) return Colors.green;
+    if (rep.quality >= 0.4) return Colors.amber;
+    return Colors.red;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top row — rep number + quality bar + percentage
+          Row(
+            children: [
+              SizedBox(
+                width: 50,
+                child: Text(
+                  'Rep ${rep.repIdx}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: rep.quality,
+                    backgroundColor: Colors.white12,
+                    valueColor: AlwaysStoppedAnimation<Color>(_color),
+                    minHeight: 8,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 38,
+                child: Text(
+                  rep.qualityPercent,
+                  style: TextStyle(
+                    color: _color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ],
+          ),
+          // Top errors row
+          if (rep.topErrors.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: rep.topErrors.map((e) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    '${e.name} ${(e.value * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+
 class _ErrorChip extends StatelessWidget {
   final String joint;
   final int repCount;
@@ -275,13 +376,13 @@ class _FeedbackCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF6C63FF).withValues(alpha:0.4)),
+        border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha:0.4)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.fitness_center,
-              color: Color(0xFF6C63FF), size: 20),
+              color: Color(0xFF38BDF8), size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

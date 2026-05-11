@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+
 import '../models/exercise_meta.dart';
 import '../providers/form_session_provider.dart';
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 
 class VideoUploadScreen extends StatefulWidget {
   final ExerciseMeta meta;
@@ -48,7 +51,20 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
       );
       provider.setSummary(summary);
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed('/form-results');
+      // Replay screen plays the user's video back with skeleton + joint
+      // overlays synced to playback. Falls back to the static results
+      // screen if the backend didn't return a per-frame timeline.
+      if (summary.timeline.isNotEmpty) {
+        Navigator.of(context).pushReplacementNamed(
+          '/form-replay',
+          arguments: {
+            'videoPath': _videoPath!,
+            'summary':   summary,
+          },
+        );
+      } else {
+        Navigator.of(context).pushReplacementNamed('/form-results');
+      }
     } catch (e) {
       provider.setError(e.toString());
       if (!mounted) return;
@@ -62,115 +78,152 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ext = theme.extension<AppColors>()!;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Upload ${widget.meta.displayName}'),
-        backgroundColor: const Color(0xFF1A1A2E),
-        foregroundColor: Colors.white,
       ),
-      backgroundColor: const Color(0xFF0F0F1E),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: _uploading
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Color(0xFF6C63FF),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Uploading and analyzing',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'This may take a minute',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[400],
-                          ),
-                    ),
-                  ],
-                )
+              ? _UploadingView(theme: theme)
               : _videoPath == null
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.video_library_outlined,
-                          size: 80,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Pick a video from your gallery',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white,
-                              ),
-                        ),
-                        const SizedBox(height: 32),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.add),
-                          label: const Text('Select Video'),
-                          onPressed: _pickVideo,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF6C63FF),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 64,
-                          color: Colors.green[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _videoPath!.split('/').last,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${(_videoSizeBytes! / (1024 * 1024)).toStringAsFixed(1)} MB',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[400],
-                              ),
-                        ),
-                        const SizedBox(height: 32),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.cloud_upload),
-                          label: const Text('Analyze Form'),
-                          onPressed: _analyze,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF6C63FF),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _videoPath = null;
-                              _videoSizeBytes = null;
-                            });
-                          },
-                          child: const Text('Choose different video'),
-                        ),
-                      ],
+                  ? _PickerView(onPick: _pickVideo, theme: theme, cs: cs)
+                  : _SelectedView(
+                      videoPath: _videoPath!,
+                      videoSizeBytes: _videoSizeBytes!,
+                      onAnalyze: _analyze,
+                      onReset: () {
+                        setState(() {
+                          _videoPath = null;
+                          _videoSizeBytes = null;
+                        });
+                      },
+                      theme: theme,
+                      success: ext.success,
                     ),
         ),
       ),
+    );
+  }
+}
+
+class _UploadingView extends StatelessWidget {
+  final ThemeData theme;
+  const _UploadingView({required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = theme.colorScheme;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          'Uploading and analyzing',
+          style: theme.textTheme.bodyLarge,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          'This may take a minute',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PickerView extends StatelessWidget {
+  final VoidCallback onPick;
+  final ThemeData theme;
+  final ColorScheme cs;
+  const _PickerView({required this.onPick, required this.theme, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.video_library_outlined,
+          size: 80,
+          color: cs.onSurfaceVariant,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          'Pick a video from your gallery',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyLarge,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        FilledButton.icon(
+          icon: const Icon(Icons.add),
+          label: const Text('Select Video'),
+          onPressed: onPick,
+        ),
+      ],
+    );
+  }
+}
+
+class _SelectedView extends StatelessWidget {
+  final String videoPath;
+  final int videoSizeBytes;
+  final VoidCallback onAnalyze;
+  final VoidCallback onReset;
+  final ThemeData theme;
+  final Color success;
+
+  const _SelectedView({
+    required this.videoPath,
+    required this.videoSizeBytes,
+    required this.onAnalyze,
+    required this.onReset,
+    required this.theme,
+    required this.success,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = theme.colorScheme;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.check_circle, size: 64, color: success),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          videoPath.split(Platform.pathSeparator).last,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyLarge,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '${(videoSizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        FilledButton.icon(
+          icon: const Icon(Icons.cloud_upload),
+          label: const Text('Analyze Form'),
+          onPressed: onAnalyze,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextButton(
+          onPressed: onReset,
+          child: const Text('Choose different video'),
+        ),
+      ],
     );
   }
 }

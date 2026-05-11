@@ -41,7 +41,6 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
       appBar: AppBar(
         title: const Text('Choose Exercise'),
       ),
-      backgroundColor: Colors.grey[50],
       body: FutureBuilder<List<ExerciseMeta>>(
         future: _exercisesFuture,
         builder: (context, snapshot) {
@@ -171,7 +170,7 @@ class _ExerciseCard extends StatelessWidget {
               Icon(
                 _iconForView(meta.cameraView),
                 size: 32,
-                color: const Color(0xFF6C63FF),
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 8),
               Text(

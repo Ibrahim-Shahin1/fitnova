@@ -98,3 +98,66 @@ def test_no_selected_exercise_never_fires(tmp_model_dir):
     det = ExerciseMismatchDetector(None, tmp_model_dir)
     for _ in range(20):
         assert det.update("pushup", 0.95) is None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# v6 (QEVD) compatibility — loads from qevd_exercise_map.json
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def tmp_v6_model_dir():
+    """Directory with v6's qevd_exercise_map.json (no v5.2 exercise_labels.json)."""
+    with tempfile.TemporaryDirectory() as d:
+        ex_map = {
+            "__other__": 24, "squats": 3, "pushups": 4, "yoga pushup": 2,
+            "elbow plank": 0, "high knees": 8,
+        }
+        with open(os.path.join(d, "qevd_exercise_map.json"), "w") as f:
+            json.dump(ex_map, f)
+        # Reset singleton state
+        ExerciseMismatchDetector._class_index = None
+        ExerciseMismatchDetector._neighbours  = None
+        ExerciseMismatchDetector._mode        = "uninitialised"
+        yield d
+
+
+def test_v6_loads_labels_from_qevd_map(tmp_v6_model_dir):
+    """v6 model dir has qevd_exercise_map.json instead of exercise_labels.json.
+    The detector must detect this and not log 'detector disabled'."""
+    det = ExerciseMismatchDetector("squats", tmp_v6_model_dir)
+    assert det.mode != "disabled"
+    # Class index must be populated with QEVD names
+    assert ExerciseMismatchDetector._class_index is not None
+    assert "squats" in ExerciseMismatchDetector._class_index
+    assert "__other__" in ExerciseMismatchDetector._class_index
+
+
+def test_v6_disabled_when_no_label_file(tmp_path):
+    """If neither qevd_exercise_map.json nor exercise_labels.json exist,
+    detector falls back to disabled mode (graceful degradation)."""
+    ExerciseMismatchDetector._class_index = None
+    ExerciseMismatchDetector._neighbours  = None
+    ExerciseMismatchDetector._mode        = "uninitialised"
+    det = ExerciseMismatchDetector("squat", str(tmp_path))
+    assert det.mode == "disabled"
+    # update() must early-return None even with mismatching predictions
+    for _ in range(20):
+        assert det.update("pushup", 0.95) is None
+
+
+def test_v6_prefers_qevd_map_over_exercise_labels(tmp_path):
+    """If both files exist (unlikely but possible mid-migration), prefer v6."""
+    qevd_map = {"squats": 3, "__other__": 24}
+    v52_map  = {"squat": 0, "pushup": 1}
+    with open(os.path.join(str(tmp_path), "qevd_exercise_map.json"), "w") as f:
+        json.dump(qevd_map, f)
+    with open(os.path.join(str(tmp_path), "exercise_labels.json"), "w") as f:
+        json.dump(v52_map, f)
+    ExerciseMismatchDetector._class_index = None
+    ExerciseMismatchDetector._neighbours  = None
+    ExerciseMismatchDetector._mode        = "uninitialised"
+    det = ExerciseMismatchDetector("squats", str(tmp_path))
+    # Must have loaded the QEVD names, not v5.2 names
+    assert "squats" in ExerciseMismatchDetector._class_index
+    assert "squat" not in ExerciseMismatchDetector._class_index   # v5.2 ignored

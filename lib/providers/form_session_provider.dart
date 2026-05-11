@@ -13,10 +13,14 @@ class FormSessionProvider extends ChangeNotifier {
 
   // Live metrics (updated each frame)
   double _liveQuality  = 0.5;
+  String? _liveQualityLabel;
   int    _liveRepCount = 0;
   String _liveExercise = 'detecting…';
   List<double> _liveJointErrors = List.filled(10, 0.0);
   List<List<double>>? _liveLandmarks;
+  List<ActiveFlag> _liveActiveFlags = const [];
+  String? _livePhase;
+  bool _liveGeometricReady = false;
 
   // Mismatch warning state
   String? _mismatchPredicted;
@@ -32,10 +36,14 @@ class FormSessionProvider extends ChangeNotifier {
   String?            get errorMessage    => _errorMessage;
 
   double             get liveQuality     => _liveQuality;
+  String?            get liveQualityLabel => _liveQualityLabel;
   int                get liveRepCount    => _liveRepCount;
   String             get liveExercise    => _liveExercise;
   List<double>       get liveJointErrors => _liveJointErrors;
   List<List<double>>? get liveLandmarks  => _liveLandmarks;
+  List<ActiveFlag>   get liveActiveFlags => _liveActiveFlags;
+  String?            get livePhase       => _livePhase;
+  bool               get liveGeometricReady => _liveGeometricReady;
 
   bool get isActive => _state == FormSessionState.active;
   bool get isDone   => _state == FormSessionState.done;
@@ -54,10 +62,14 @@ class FormSessionProvider extends ChangeNotifier {
     _summary        = null;
     _errorMessage   = null;
     _liveQuality    = 0.5;
+    _liveQualityLabel = null;
     _liveRepCount   = 0;
     _liveExercise   = 'detecting…';
     _liveJointErrors = List.filled(10, 0.0);
     _liveLandmarks  = null;
+    _liveActiveFlags = const [];
+    _livePhase      = null;
+    _liveGeometricReady = false;
     _mismatchPredicted   = null;
     _mismatchSelected    = null;
     _mismatchConfidence  = null;
@@ -68,10 +80,14 @@ class FormSessionProvider extends ChangeNotifier {
   void updateFrame(FormFrameResult frame) {
     _latestFrame     = frame;
     _liveQuality     = frame.qualityScore;
+    _liveQualityLabel = frame.qualityLabel;
     _liveRepCount    = frame.repCount;
     _liveExercise    = frame.exerciseDetected;
     _liveJointErrors = frame.jointErrors;
     _liveLandmarks   = frame.landmarks;
+    _liveActiveFlags = frame.activeFlags;
+    _livePhase       = frame.phase;
+    _liveGeometricReady = frame.geometricReady;
     notifyListeners();
   }
 

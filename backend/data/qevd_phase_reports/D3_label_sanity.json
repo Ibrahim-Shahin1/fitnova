@@ -1,0 +1,33 @@
+{
+  "failures": [],
+  "gate_id": "D3_label_sanity",
+  "metrics": {
+    "group_hit_rate__L_elbow": 0.09,
+    "group_hit_rate__L_hip": 0.07,
+    "group_hit_rate__L_knee": 0.17,
+    "group_hit_rate__L_shoulder": 0.07,
+    "group_hit_rate__Neck": 0.09,
+    "group_hit_rate__R_elbow": 0.09,
+    "group_hit_rate__R_hip": 0.07,
+    "group_hit_rate__R_knee": 0.17,
+    "group_hit_rate__R_shoulder": 0.07,
+    "group_hit_rate__Trunk": 0.16,
+    "manifest__n_clips_with_feedback": 43098,
+    "manifest__n_clips_with_fine": 298089,
+    "manifest__n_total_feedbacks": 609970,
+    "manifest__n_unique_humans": 0,
+    "n_exact_silence_default": 40,
+    "n_sampled": 100,
+    "quality_histogram_path": "C:\\Users\\tsh_x\\Desktop\\FitNova Application\\backend\\data\\qevd_phase_reports\\D3_quality_histogram.json",
+    "quality_mean": 0.6914,
+    "quality_median": 0.7,
+    "quality_source__feedback+label": 3,
+    "quality_source__feedback_only": 14,
+    "quality_source__label_only": 43,
+    "quality_source__silence_default": 40,
+    "quality_std": 0.146,
+    "spotcheck_csv_path": "C:\\Users\\tsh_x\\Desktop\\FitNova Application\\backend\\data\\qevd_phase_reports\\label_spotcheck_100.csv"
+  },
+  "status": "PASS",
+  "timestamp": "2026-05-06T00:21:39.400987+00:00"
+}

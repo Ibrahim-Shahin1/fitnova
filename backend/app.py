@@ -173,7 +173,33 @@ async def lifespan(app: FastAPI):
     logger.info("Loading chat service...")
     app.state.chat_service = ChatService()
     logger.info("Loading form analyzer (Layer 4)...")
-    _model_dir = os.path.join(os.path.dirname(__file__), "models", "form_model")
+    # Auto-detection priority: v6 -> v5.2 -> v4. Override with FITNOVA_MODEL_DIR
+    # env var. The form_analyzer itself does file-presence detection inside the
+    # chosen dir; this just picks WHICH dir to scan.
+    _override = os.environ.get("FITNOVA_MODEL_DIR")
+    if _override:
+        _model_dir = _override
+        logger.info("FITNOVA_MODEL_DIR override -> %s", _model_dir)
+    else:
+        _v6_dir   = os.path.join(os.path.dirname(__file__), "models", "form_model_v6")
+        _v5_2_dir = os.path.join(os.path.dirname(__file__), "models", "form_model_v5_2")
+        _v4_dir   = os.path.join(os.path.dirname(__file__), "models", "form_model")
+        if os.path.isfile(os.path.join(_v6_dir, "v6_supervised.weights.h5")):
+            _model_dir = _v6_dir
+            logger.info("v6 weights detected -> using %s", _model_dir)
+        elif os.path.isfile(os.path.join(_v5_2_dir, "v5_2_supervised.weights.h5")):
+            _model_dir = _v5_2_dir
+            logger.info("v5.2 weights detected -> using %s", _model_dir)
+        else:
+            _model_dir = _v4_dir
+            logger.info("falling back to v4 -> using %s", _model_dir)
+
+    if not os.path.isdir(_model_dir):
+        logger.warning(
+            "model_dir=%s does not exist; falling back to legacy v4 form_model/",
+            _model_dir,
+        )
+        _model_dir = os.path.join(os.path.dirname(__file__), "models", "form_model")
     app.state.form_analyzer = FormAnalyzer(model_dir=_model_dir)
     logger.info("FitNova backend ready.")
     yield
@@ -208,9 +234,17 @@ app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 
 @app.get("/health", tags=["Health"])
-async def health_check():
-    """Liveness check — returns immediately without touching the services."""
-    return {"status": "healthy"}
+async def health_check(request: Request):
+    """Liveness check — also exposes the loaded model version so callers can
+    verify v6/v5.2/v4 detection without parsing boot logs."""
+    analyzer = getattr(request.app.state, "form_analyzer", None)
+    model_info = {
+        "model_version": getattr(analyzer, "_model_version", None) if analyzer else None,
+        "model_ready":   bool(analyzer.model_ready) if analyzer else False,
+        "model_dir":     getattr(analyzer, "model_dir", None) if analyzer else None,
+        "n_exercises":   len(getattr(analyzer, "_exercise_labels", {})) if analyzer else 0,
+    }
+    return {"status": "healthy", **model_info}
 
 
 @app.get("/api/exercises", tags=["Form"])
@@ -382,6 +416,7 @@ async def analyze_form_video(
         tmp.write(contents)
         tmp_path = tmp.name
 
+    timeline: list[dict] = []
     try:
         cap = cv2.VideoCapture(tmp_path)
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
@@ -395,7 +430,19 @@ async def analyze_form_video(
             if frame_idx % SKIP == 0:
                 _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 ts_ms = int((frame_idx / fps) * 1000)
-                session.add_frame(jpeg.tobytes(), ts_ms)
+                out = session.add_frame(jpeg.tobytes(), ts_ms)
+                # Capture per-frame state so the Flutter replay screen can
+                # overlay the skeleton + joint errors at each video timestamp.
+                # Only record frames where MediaPipe got a pose (raw or
+                # interpolated); skip "no_pose" frames to keep payload tight.
+                if out.get("status") in ("ok", "pose_interpolated"):
+                    timeline.append({
+                        "timestamp_ms":  ts_ms,
+                        "landmarks":     out.get("landmarks"),
+                        "joint_errors":  out.get("joint_errors"),
+                        "quality_score": out.get("quality_score"),
+                        "rep_count":     out.get("rep_count"),
+                    })
             frame_idx += 1
 
         cap.release()
@@ -403,4 +450,5 @@ async def analyze_form_video(
         os.unlink(tmp_path)
 
     summary = session.end_session()
+    summary["timeline"] = timeline
     return summary

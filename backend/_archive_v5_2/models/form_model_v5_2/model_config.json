@@ -1,0 +1,29 @@
+{
+    "version": "v5.2",
+    "label_strategy": "synthetic_perturbation_severity",
+    "weights_file": "v5_2_supervised.weights.h5",
+    "target_frames": 64,
+    "n_canonical_joints": 15,
+    "n_pose_channels": 4,
+    "n_angular": 22,
+    "n_exercises": 15,
+    "n_joint_groups": 5,
+    "exercise_labels": {
+        "squat": 0, "deadlift": 1, "pushup": 2, "diamond_pushup": 3,
+        "barbell_row": 4, "barbell_dead_row": 5,
+        "dumbbell_overhead_shoulder_press": 6,
+        "dumbbell_biceps_curls": 7, "dumbbell_hammer_curls": 8,
+        "side_lateral_raise": 9, "dumbbell_reverse_lunge": 10,
+        "burpees": 11, "clean_and_press": 12, "mule_kick": 13,
+        "standing_ab_twists": 14
+    },
+    "joint_groups": ["knee", "hip", "back", "shoulder", "elbow"],
+    "v5_to_v4_joint_mapping": {
+        "comment": "for backward-compat with Flutter UI expecting 10 groups",
+        "L_elbow_idx": 4, "R_elbow_idx": 4,
+        "L_shoulder_idx": 3, "R_shoulder_idx": 3,
+        "L_knee_idx": 0, "R_knee_idx": 0,
+        "L_hip_idx": 1, "R_hip_idx": 1,
+        "trunk_idx": 2, "neck_idx": 2
+    }
+}

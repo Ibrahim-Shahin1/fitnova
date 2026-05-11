@@ -35,7 +35,7 @@ from backend.services.form_session  import FormSession, JOINT_GROUP_NAMES  # noq
 from backend.config.exercises       import relevant_joint_indices  # noqa: E402
 
 
-MODEL_DIR = str(REPO_ROOT / "backend" / "models" / "form_model")
+MODEL_DIR = str(REPO_ROOT / "backend" / "models" / "form_model_v5_2")
 VIDEOS = {
     "good_side":   r"C:\Users\tsh_x\Downloads\Good_Squats.mp4",
     "bad_side":    r"C:\Users\tsh_x\Downloads\Bad_Squats.mp4",

@@ -51,6 +51,7 @@ class PlanScreen extends StatelessWidget {
                     return const Center(child: Text('No data'));
                   }
                   if (day.isRestDay) {
+                    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
                     return Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -58,7 +59,7 @@ class PlanScreen extends StatelessWidget {
                           Icon(
                             Icons.self_improvement,
                             size: 64,
-                            color: Colors.grey[400],
+                            color: muted,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -66,12 +67,15 @@ class PlanScreen extends StatelessWidget {
                             style: Theme.of(context)
                                 .textTheme
                                 .headlineSmall
-                                ?.copyWith(color: Colors.grey[600]),
+                                ?.copyWith(color: muted),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             day.focus,
-                            style: TextStyle(color: Colors.grey[500]),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: muted),
                           ),
                         ],
                       ),

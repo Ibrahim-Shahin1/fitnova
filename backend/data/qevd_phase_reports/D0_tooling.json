@@ -1,0 +1,27 @@
+{
+  "failures": [],
+  "gate_id": "D0_tooling",
+  "metrics": {
+    "7zip_on_system_path": false,
+    "7zip_path": "C:\\Program Files\\7-Zip\\7z.exe",
+    "7zip_version": "26.01 (x64)",
+    "archived_files_count": 19,
+    "backend_boots": true,
+    "fastapi_routes": 11,
+    "mediapipe_config_detection_conf": 0.5,
+    "mediapipe_config_running_mode": "VIDEO",
+    "next_action": "D1 extract integrity, gated on QEVD downloads completing. Use full path \"C:/Program Files/7-Zip/7z.exe\" or add 7-Zip to PATH first.",
+    "unit_test_results": {
+      "phase_gates": "11/11 PASS",
+      "qevd_dataset": "7/7 PASS",
+      "qevd_extractor": "4/4 PASS (2 fast + 2 slow with RUN_SLOW_TESTS=1)",
+      "qevd_label_builder": "42/42 PASS",
+      "total": "64/64 PASS (62 fast + 2 slow)"
+    },
+    "v5_2_reality_delta_angled": -0.0173,
+    "v5_2_reality_delta_side": -0.0382,
+    "v5_2_rollback_proof_path": "backend\\models\\form_model\\reality_check\\user_squat_validation.json"
+  },
+  "status": "PASS",
+  "timestamp": "2026-05-05T23:00:30.016283+00:00"
+}

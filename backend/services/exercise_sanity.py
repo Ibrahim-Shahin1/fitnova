@@ -60,12 +60,24 @@ class ExerciseMismatchDetector:
     def _bootstrap(cls, model_dir: str) -> None:
         """Load labels + confusion matrix once per process.
 
-        Accepts any of the filenames written by ``train_form_model.evaluate_model``:
-        prefers ``confusion_matrix_test.npy`` (s11 held-out — closest to real-world
-        generalisation), then ``confusion_matrix.npy`` (manual rename), then
-        ``confusion_matrix_val.npy`` as a fallback.
+        Label-file detection priority:
+          1. ``qevd_exercise_map.json``   (v6 — QEVD class names)
+          2. ``exercise_labels.json``     (v5.2 / v4 — FitNova names)
+
+        Confusion matrix priority (any match wins):
+          ``confusion_matrix_test.npy`` (s11 held-out — closest to real-world
+          generalisation), then ``confusion_matrix.npy`` (manual rename), then
+          ``confusion_matrix_val.npy`` as a fallback.
         """
-        labels_path = os.path.join(model_dir, "exercise_labels.json")
+        v6_labels_path  = os.path.join(model_dir, "qevd_exercise_map.json")
+        v52_labels_path = os.path.join(model_dir, "exercise_labels.json")
+        if os.path.isfile(v6_labels_path):
+            labels_path = v6_labels_path
+            label_source = "v6"
+        else:
+            labels_path = v52_labels_path
+            label_source = "v5.2/v4"
+
         cm_path = None
         for candidate in ("confusion_matrix_test.npy",
                           "confusion_matrix.npy",
@@ -79,8 +91,16 @@ class ExerciseMismatchDetector:
         try:
             with open(labels_path, "r", encoding="utf-8") as f:
                 labels = json.load(f)  # {name: idx}
+            logger.info(
+                "ExerciseMismatchDetector: loaded %d labels from %s (source=%s)",
+                len(labels), os.path.basename(labels_path), label_source,
+            )
         except Exception as e:
-            logger.warning(f"ExerciseMismatchDetector: cannot load labels ({e}); detector disabled")
+            logger.warning(
+                "ExerciseMismatchDetector: cannot load labels from %s or %s "
+                "(%s); detector disabled",
+                v6_labels_path, v52_labels_path, e,
+            )
             cls._class_index = {}
             cls._neighbours  = {}
             cls._mode        = "disabled"

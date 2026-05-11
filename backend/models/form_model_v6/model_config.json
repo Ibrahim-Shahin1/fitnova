@@ -1,0 +1,10 @@
+{
+  "target_frames": 64,
+  "n_canonical_joints": 15,
+  "n_pose_channels": 4,
+  "n_angular": 22,
+  "n_exercises": 25,
+  "n_joint_groups": 10,
+  "version": "v6",
+  "source": "qevd_v6"
+}

@@ -1,0 +1,17 @@
+{
+  "squat": 0,
+  "deadlift": 1,
+  "pushup": 2,
+  "diamond_pushup": 3,
+  "barbell_row": 4,
+  "barbell_dead_row": 5,
+  "dumbbell_overhead_shoulder_press": 6,
+  "dumbbell_biceps_curls": 7,
+  "dumbbell_hammer_curls": 8,
+  "side_lateral_raise": 9,
+  "dumbbell_reverse_lunge": 10,
+  "burpees": 11,
+  "clean_and_press": 12,
+  "mule_kick": 13,
+  "standing_ab_twists": 14
+}
