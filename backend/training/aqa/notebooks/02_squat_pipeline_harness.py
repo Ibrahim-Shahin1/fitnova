@@ -24,6 +24,19 @@ from backend.training.aqa.harness import _envinit  # F8: sets CUBLAS_WORKSPACE_C
 
 import os
 import sys
+
+# torchvision.io.read_video requires PyAV as its FFmpeg backend on Colab. Some Colab
+# runtimes ship without it. Idempotent install — pip is a no-op if already present.
+import subprocess
+try:
+    import av  # noqa: F401
+    _pyav_status = "already installed"
+except ImportError:
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "av"], check=True)
+    import av  # noqa: F401
+    _pyav_status = "installed by Step 0"
+print(f"PyAV {av.__version__} ({_pyav_status})")
+
 import torch
 import torchvision
 
