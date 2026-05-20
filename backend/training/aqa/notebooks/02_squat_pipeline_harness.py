@@ -724,6 +724,123 @@ for f in sorted(os.listdir(RUN_DIR)):
 print(f"latest.txt content : {Path(RUN_DIR, 'latest.txt').read_text().strip()!r}")
 
 # %% [markdown]
+# ## Step 8c — bitwise-equivalence assertion + overlay plot (Task 14)
+#
+# **F1 part (c) — the proof.** Compare baseline epoch-1 to resumed-from-epoch-0
+# epoch-1, byte-for-byte. The two trajectories MUST be Python-`==` identical (same
+# float64 bytes from the same dtype path). If they diverge, this cell raises
+# `AssertionError` with the first diverging batch index + both values + a pointer
+# to `<determinism_checklist>` in PLAN.md.
+#
+# What bitwise equality actually proves:
+# - `restore_rng_state(load_latest_checkpoint(...))` restored all 4 RNGs to exactly
+#   the state captured at end-of-epoch-0.
+# - The DataLoader shuffle iterator at epoch-1 start consumed identical torch random
+#   ops in both runs (fresh and resumed).
+# - The dataset's uniform jitter + spatial random-crop pulled identical values.
+# - The atomic_save_checkpoint round-trip didn't introduce float drift via
+#   serialization.
+#
+# A regression in `capture_rng_state` (e.g., forgetting numpy state, restoring CPU
+# before CUDA) would manifest here as diverging losses at the first random consumer
+# — typically batch 0 of the resumed epoch.
+
+# %%
+# F1 acceptance proof: fresh-2-epoch vs. resumed-from-epoch-0-into-epoch-1 —
+# bitwise equality proves RNG capture/restore is functionally correct.
+import json
+from pathlib import Path
+import matplotlib.pyplot as plt
+
+baseline_path = Path("/content/fitnova/.planning/phases/02-squat-data-pipeline-colab-harness/figures/tiny_baseline_2epoch_losses.json")
+resumed_path = Path("/content/fitnova/.planning/phases/02-squat-data-pipeline-colab-harness/figures/tiny_resumed_epoch1_losses.json")
+
+with open(baseline_path) as fh:
+    baseline = json.load(fh)
+with open(resumed_path) as fh:
+    resumed_epoch1 = json.load(fh)
+
+baseline_epoch1 = baseline["epoch_1"]
+
+print(f"baseline epoch_1 ({len(baseline_epoch1)} batches):")
+for i, v in enumerate(baseline_epoch1):
+    print(f"  batch {i}: {v!r}")
+print(f"\nresumed  epoch_1 ({len(resumed_epoch1)} batches):")
+for i, v in enumerate(resumed_epoch1):
+    print(f"  batch {i}: {v!r}")
+
+# Byte-equality check.
+if baseline_epoch1 == resumed_epoch1:
+    print(f"\n{'=' * 60}")
+    print(f"BITWISE EQUAL: epoch-1 losses match across {len(baseline_epoch1)} batches")
+    print(f"{'=' * 60}")
+else:
+    # Walk index-by-index to surface the first divergence.
+    diff_idx = None
+    for i, (b, r) in enumerate(zip(baseline_epoch1, resumed_epoch1)):
+        if b != r:
+            diff_idx = i
+            break
+    msg = (
+        f"BITWISE INEQUALITY at batch index {diff_idx}: "
+        f"baseline={baseline_epoch1[diff_idx]!r} resumed={resumed_epoch1[diff_idx]!r}. "
+        f"Walk the <determinism_checklist> in PLAN.md — likely a missing RNG source "
+        f"in capture_rng_state, or a restore-order bug, or a non-deterministic op."
+    )
+    raise AssertionError(msg)
+
+# Overlay plot — two coincident curves. Save BEFORE plt.show() per the working
+# agreement's disconnect-by-default rule.
+out_png = Path("/content/fitnova/.planning/phases/02-squat-data-pipeline-colab-harness/figures/tiny_train_loss.png")
+out_png.parent.mkdir(parents=True, exist_ok=True)  # F9
+
+fig, ax = plt.subplots(figsize=(10, 5), dpi=120)
+ax.plot(baseline_epoch1, marker="o", linewidth=2, alpha=0.7, label="baseline (epoch 1)")
+ax.plot(resumed_epoch1, marker="x", linewidth=1, alpha=0.9, label="resumed-from-epoch-0 (epoch 1)")
+ax.set_xlabel("batch index")
+ax.set_ylabel("BCE loss")
+ax.set_title(
+    "Tiny run — fresh-2-epoch vs. resumed-from-epoch-0-into-epoch-1\n"
+    "Bitwise equality proves RNG capture/restore is functionally correct"
+)
+ax.legend()
+ax.grid(alpha=0.3)
+fig.tight_layout()
+fig.savefig(out_png)
+print(f"\nsaved : {out_png}")
+print(f"size  : {out_png.stat().st_size / 1024:.1f} KB")
+plt.show()
+
+# %% [markdown]
+# ### Negative-test recipe (commented out by default)
+#
+# This is the "is the test rigged?" guard. If you ever suspect the byte-equality
+# assertion above is a tautology (e.g., comparing a JSON file against itself, or
+# both runs sharing the same RNG-corruption bug), uncomment the cell below and run
+# it once. The assertion in Task 14's cell above MUST fire when re-evaluated
+# afterwards. Then re-comment and re-run Task 13 + Task 14 to restore the green
+# state.
+
+# %%
+# # --- NEGATIVE-TEST RECIPE (uncomment ONLY to confirm the test isn't a tautology) ---
+# import os, json
+# from pathlib import Path
+# from backend.training.aqa.harness.tiny_train import run_tiny_epoch
+#
+# # Force a DIFFERENT trajectory by re-running with seed=43 (not 42).
+# os.remove(RUN_DIR + "epoch_000.pt") if os.path.exists(RUN_DIR + "epoch_000.pt") else None
+# os.remove(RUN_DIR + "epoch_001.pt") if os.path.exists(RUN_DIR + "epoch_001.pt") else None
+# result_neg = run_tiny_epoch(run_name=RUN_NAME, seed=43, resume=False, max_epochs=2)
+#
+# # Overwrite the resumed JSON with the seed=43 epoch_1 losses
+# resumed_path = Path("/content/fitnova/.planning/phases/02-squat-data-pipeline-colab-harness/figures/tiny_resumed_epoch1_losses.json")
+# with open(resumed_path, "w") as fh:
+#     json.dump(result_neg["train_loss_per_batch"], fh)
+# print("Negative test written. Re-run the assertion cell above — it MUST raise AssertionError.")
+# # When done, re-comment this cell, then re-run Step 8a-cleanup + Step 8a-baseline +
+# # Step 8b-1/2/3 to restore the green state.
+
+# %% [markdown]
 # ## Step 9 — closeout (Task 15 human-verify + Task 16 SUMMARY)
 #
 # Open both figures, confirm five visual criteria for `decoded_batch.png` (clip variation,
