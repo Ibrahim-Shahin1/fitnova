@@ -26,6 +26,7 @@ import os
 import random
 import shutil
 import time
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -33,6 +34,17 @@ import numpy as np
 import torch
 
 logger = logging.getLogger("aqa.phase02")
+
+# Suppress the torchvision 0.22+ "video decoding deprecated" UserWarning. We KNOW
+# read_video is deprecated; the swap to TorchCodec is documented in D6 and runs when
+# Colab's torchvision passes 0.24 (`read_video` removal). Until then the warning is
+# noise — it fires once per `read_video_timestamps` + `read_video` call, polluting
+# stdout during the tiny training run.
+warnings.filterwarnings(
+    "ignore",
+    message=r".*video decoding and encoding capabilities of torchvision are deprecated.*",
+    category=UserWarning,
+)
 
 # F8 audit: by the time this module loads, _envinit.py has already set
 # CUBLAS_WORKSPACE_CONFIG. So `torch.use_deterministic_algorithms(True)` will not raise

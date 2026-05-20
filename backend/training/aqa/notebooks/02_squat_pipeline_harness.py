@@ -561,14 +561,78 @@ assert "epoch_000.pt" not in after, "expected oldest epoch_000.pt to be pruned"
 print(f"\nTask 10 atomic checkpoint primitives: ALL PASSED")
 
 # %% [markdown]
-# ## Step 8 — tiny end-to-end run + bitwise-resume proof (Tasks 11–14)
+# ## Step 8a — baseline 2-epoch fresh trajectory (Task 12)
 #
-# Fills in once `harness/tiny_train.py` is implemented. Three cells:
-# - 8a: baseline 2-epoch fresh run → `tiny_baseline_2epoch_losses.json`
-# - 8b: simulated restart (delete epoch_001.pt, rewind `latest.txt`, `sys.modules` purge,
-#   resume into epoch 1) → `tiny_resumed_epoch1_losses.json`
-# - 8c: assert byte-exact equality between baseline epoch-1 and resumed epoch-1 losses;
-#   save overlay plot `figures/tiny_train_loss.png`.
+# Establishes the ground-truth loss trajectory for Task 14's bitwise assertion.
+# `run_tiny_epoch(resume=False, max_epochs=2)` runs 2 epochs from a clean state with
+# `seed=42`. Both `epoch_000.pt` and `epoch_001.pt` land atomically on Drive;
+# `latest.txt` ends pointing at `epoch_001.pt`. We extract `metrics_history` from
+# `epoch_001.pt` and serialize both epochs' per-batch losses to
+# `figures/tiny_baseline_2epoch_losses.json` for Task 14 to read back.
+#
+# Cleanup cell first — destructive, only intended for this acceptance test.
+
+# %%
+# Step 8a-cleanup — destructive, idempotent. Wipes the Phase-2-acceptance run dir
+# so the baseline starts cold. Only intended for the bitwise-resume test.
+import shutil
+RUN_NAME = "squat_tiny_2026-05-20_a1b2c3d"
+RUN_DIR = f"/content/drive/MyDrive/FitNova/checkpoints/phase02/{RUN_NAME}/"
+shutil.rmtree(RUN_DIR, ignore_errors=True)
+print(f"cleaned : {RUN_DIR}")
+
+# %%
+# Step 8a-baseline — fresh 2-epoch run. F1 baseline trajectory.
+from backend.training.aqa.harness.tiny_train import run_tiny_epoch
+
+result_baseline = run_tiny_epoch(
+    run_name=RUN_NAME,
+    seed=42,
+    resume=False,
+    max_epochs=2,
+)
+print("\nresult_baseline:")
+for k, v in result_baseline.items():
+    if k == "train_loss_per_batch":
+        print(f"  {k:22s}: {v}  ({len(v)} batches in LAST epoch)")
+    else:
+        print(f"  {k:22s}: {v}")
+
+# %%
+# Step 8a-save — extract both epochs' per-batch losses from epoch_001.pt and write
+# JSON for Task 14's byte-equality assertion to read back.
+import json
+from pathlib import Path
+import torch
+
+ckpt_path = RUN_DIR + "epoch_001.pt"
+ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+
+losses = {
+    f"epoch_{m['epoch']}": m["train_loss_per_batch"]
+    for m in ckpt["metrics_history"]
+}
+assert set(losses.keys()) == {"epoch_0", "epoch_1"}, losses.keys()
+assert len(losses["epoch_0"]) == 8 and len(losses["epoch_1"]) == 8, {
+    "epoch_0_len": len(losses["epoch_0"]),
+    "epoch_1_len": len(losses["epoch_1"]),
+}
+
+out_path = Path("/content/fitnova/.planning/phases/02-squat-data-pipeline-colab-harness/figures/tiny_baseline_2epoch_losses.json")
+out_path.parent.mkdir(parents=True, exist_ok=True)  # F9 defense
+with open(out_path, "w") as fh:
+    json.dump(losses, fh)
+print(f"saved : {out_path}")
+print(f"  epoch_0: {losses['epoch_0']}")
+print(f"  epoch_1: {losses['epoch_1']}")
+
+import os
+print(f"\nrun_dir state:")
+for f in sorted(os.listdir(RUN_DIR)):
+    full = RUN_DIR + f
+    if os.path.isfile(full):
+        print(f"  {f:18s}  {os.path.getsize(full)} bytes")
+print(f"latest.txt content : {Path(RUN_DIR, 'latest.txt').read_text().strip()!r}")
 
 # %% [markdown]
 # ## Step 9 — closeout (Task 15 human-verify + Task 16 SUMMARY)
