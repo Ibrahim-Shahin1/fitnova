@@ -66,11 +66,16 @@ class SquatKIEKFEDataset(Dataset):
       4. `spatial_train` (train) or `spatial_val` (val/test) applies resize + crop + Kinetics norm.
       5. Returns `(clip[3, T, crop_size, crop_size] float32, labels[2] float32)`.
 
-    Determinism: `self._generator` is a torch.Generator seeded with `seed` at construction.
-    Jitter (in `uniform_sample_indices`) and random-crop offsets (in `spatial_train`) both
-    pull from this single generator. With `num_workers=0` (Phase 2 constraint), the
-    generator state advances deterministically, which is required for the Task 14
-    bitwise-resume assertion.
+    Determinism: jitter (in `uniform_sample_indices`) and random-crop offsets (in
+    `spatial_train`) pull from **torch's default RNG** (`generator=None`). Torch's
+    default RNG is captured/restored by `harness.colab.capture_rng_state` /
+    `restore_rng_state`, which is what makes Task 14's bitwise-resume assertion work
+    — the resumed run restores torch's default RNG to end-of-epoch-0 state, so the
+    dataset's subsequent sampling matches the fresh-run baseline exactly.
+
+    **The `seed` kwarg is reserved (Phase 3+ may bind it to a per-instance generator
+    when num_workers > 0).** In Phase 2 it's a no-op — the trainer's
+    `_set_global_seed(seed)` is what actually controls determinism.
     """
 
     def __init__(
@@ -110,10 +115,10 @@ class SquatKIEKFEDataset(Dataset):
             )
         self.pos_weight: torch.Tensor = _compute_pos_weight(train_records)
 
-        # One generator drives both index-jitter and spatial random-crop. Seed identical
-        # across instances means the train and val loaders draw from the same RNG stream
-        # within their own __getitem__ calls — fine because they don't share calls.
-        self._generator = torch.Generator().manual_seed(seed)
+        # Phase 2: NO per-instance generator (reserved for Phase 3+ with num_workers > 0).
+        # __getitem__ uses torch's default RNG (generator=None) so harness.colab's
+        # capture_rng_state / restore_rng_state can snapshot and replay sampling state
+        # across resume boundaries — load-bearing for Task 14's bitwise assertion.
 
         # Cache the spatial pipeline choice so __getitem__ stays tight.
         self._spatial_fn: Callable[..., torch.Tensor] = (
@@ -132,25 +137,20 @@ class SquatKIEKFEDataset(Dataset):
         )
         num_frames = len(pts_list)
 
-        # Index sampling — jitter only on train.
+        # Index sampling — jitter only on train. generator=None so torch's default
+        # RNG drives jitter; harness capture/restore covers it across resume.
         jitter = self.train_jitter_frames if self.train_aug else 0
         indices = uniform_sample_indices(
             num_frames,
             target=self.num_frames,
             jitter=jitter,
-            generator=self._generator if self.train_aug else None,
+            generator=None,
         )
 
-        # Window-bounded decode (F11) then spatial pipeline.
+        # Window-bounded decode (F11) then spatial pipeline. spatial_train's random
+        # crop also uses torch's default RNG (generator=None).
         clip_tchw = decode_clip(rec.video_path, indices)
-        if self.train_aug:
-            clip = self._spatial_fn(
-                clip_tchw,
-                crop_size=self.crop_size,
-                generator=self._generator,
-            )
-        else:
-            clip = self._spatial_fn(clip_tchw, crop_size=self.crop_size)
+        clip = self._spatial_fn(clip_tchw, crop_size=self.crop_size)
 
         label = torch.tensor([rec.label_kie, rec.label_kfe], dtype=torch.float32)
         return clip, label
