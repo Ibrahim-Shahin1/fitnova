@@ -23,12 +23,24 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import shutil
 import time
 import zipfile
 from pathlib import Path
 
+import numpy as np
+import torch
+
 logger = logging.getLogger("aqa.phase02")
+
+# F8 audit: by the time this module loads, _envinit.py has already set
+# CUBLAS_WORKSPACE_CONFIG. So `torch.use_deterministic_algorithms(True)` will not raise
+# because of missing workspace config. `warn_only=True` keeps any genuinely non-
+# deterministic op from crashing the run — they'll log a warning instead.
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+torch.use_deterministic_algorithms(True, warn_only=True)
 
 # Phase 1 verified — videos.zip ships 1739 mp4s for the Squat labeled set (116 extra
 # beyond the 1623 official-split ids, intentionally excluded by the split JSONs).
@@ -420,16 +432,48 @@ def stage_squat_videos(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Task 9 placeholders — implementation lands with RNG capture/restore + cudnn.
+# Task 9 — RNG capture/restore. Required for Task 14's bitwise-resume assertion
+# (fresh-2-epoch vs. resumed-from-epoch-0-into-epoch-1 must produce byte-identical
+# epoch-1 loss trajectories). All 4 RNG sources captured so seed-restoration
+# is exhaustive: any one missing would let post-resume sampling drift.
 # ──────────────────────────────────────────────────────────────────────────────
 
 
 def capture_rng_state() -> dict:
-    raise NotImplementedError("capture_rng_state lands in Task 9 (colab.py slice 2)")
+    """Snapshot all 4 RNG sources used by the pipeline. Returns dict with keys:
+
+    - `python`         : `random.getstate()` — Python's `random` module
+    - `numpy`          : `np.random.get_state()` — NumPy's global RNG
+    - `torch_cpu`      : `torch.get_rng_state()` — torch CPU RNG (ByteTensor)
+    - `torch_cuda_all` : `torch.cuda.get_rng_state_all()` if CUDA available, else `[]`
+
+    The 4-key contract is asserted by Task 9's verification cell and D14's
+    `<determinism_checklist>` precondition 2.
+    """
+    return {
+        "python": random.getstate(),
+        "numpy": np.random.get_state(),
+        "torch_cpu": torch.get_rng_state(),
+        "torch_cuda_all": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
+    }
 
 
 def restore_rng_state(state: dict) -> None:
-    raise NotImplementedError("restore_rng_state lands in Task 9 (colab.py slice 2)")
+    """Restore all 4 RNG sources from a `capture_rng_state` snapshot.
+
+    Order: **CUDA first, then CPU**. The plan calls this "to avoid drift" — by
+    setting CUDA before any CPU op that might internally allocate or seed a CUDA
+    tensor, we keep CUDA's seed exactly at the captured value. The CPU/numpy/python
+    restores can then happen in any order since they're independent streams.
+
+    CUDA restore is gated on `torch.cuda.is_available()` so a CPU-only host
+    (e.g., the local Windows machine) doesn't fail.
+    """
+    if torch.cuda.is_available() and state.get("torch_cuda_all"):
+        torch.cuda.set_rng_state_all(state["torch_cuda_all"])
+    torch.set_rng_state(state["torch_cpu"])
+    np.random.set_state(state["numpy"])
+    random.setstate(state["python"])
 
 
 # ──────────────────────────────────────────────────────────────────────────────

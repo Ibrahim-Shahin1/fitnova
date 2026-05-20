@@ -412,8 +412,65 @@ plt.show()
 # %% [markdown]
 # ## Step 6 — RNG capture/restore + cudnn determinism (Task 9)
 #
-# Fills in once `harness/colab.py` slice 2 is implemented. Round-trip identity test:
-# `restore_rng_state(capture_rng_state())` is bitwise-identity on the RNG state.
+# Verifies the four RNG sources (Python `random`, NumPy, torch CPU, torch CUDA-all)
+# can be snapshotted and restored such that consuming the same sequence twice produces
+# bitwise-identical outputs. This is the foundation of Task 14's resume assertion —
+# without correct RNG capture/restore, a resumed training run produces a different
+# stochastic trajectory than the fresh run we're comparing it to.
+#
+# F8 audit: also asserts `CUBLAS_WORKSPACE_CONFIG=:4096:8` is set, because
+# `torch.use_deterministic_algorithms(True)` (which `colab.py` calls on import) would
+# have raised otherwise. If this cell reaches the import without crashing, F8 held.
+
+# %%
+import os, random
+import numpy as np
+import torch
+from backend.training.aqa.harness.colab import capture_rng_state, restore_rng_state
+
+# (b) F8 ordering audit — CUBLAS_WORKSPACE_CONFIG must already be set.
+cubcfg = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+assert cubcfg == ":4096:8", f"CUBLAS_WORKSPACE_CONFIG={cubcfg!r}, expected ':4096:8'"
+print(f"F8 audit                    : CUBLAS_WORKSPACE_CONFIG = {cubcfg}")
+
+# (c) capture returns dict with exactly the 4 expected keys
+s1 = capture_rng_state()
+expected_keys = {"python", "numpy", "torch_cpu", "torch_cuda_all"}
+assert set(s1.keys()) == expected_keys, f"keys={sorted(s1.keys())}, expected {sorted(expected_keys)}"
+print(f"capture_rng_state keys      : {sorted(s1.keys())}")
+print(f"  python state type         : {type(s1['python']).__name__}")
+print(f"  numpy state type          : {type(s1['numpy']).__name__}")
+print(f"  torch_cpu state           : Tensor[{tuple(s1['torch_cpu'].shape)}] dtype={s1['torch_cpu'].dtype}")
+print(f"  torch_cuda_all            : {len(s1['torch_cuda_all'])} device state(s)")
+
+# (d) drift the RNG state by consuming some random ops.
+_ = random.random()
+_ = np.random.rand(8)
+_ = torch.randn(8)
+if torch.cuda.is_available():
+    _ = torch.randn(8, device="cuda")
+
+# (e + f) restore TWICE, consume the same sequence each time, compare.
+def _consume() -> dict:
+    return {
+        "py": random.random(),
+        "np": np.random.rand(5).tolist(),
+        "cpu": torch.randn(5).tolist(),
+        "cuda": torch.randn(5, device="cuda").tolist() if torch.cuda.is_available() else None,
+    }
+
+restore_rng_state(s1)
+seq_a = _consume()
+restore_rng_state(s1)
+seq_b = _consume()
+
+print("\n=== bitwise identity check (consume-twice after restore-twice) ===")
+for k in seq_a:
+    same = seq_a[k] == seq_b[k]
+    status = "OK" if same else "DRIFT"
+    print(f"  {k:5s}: {status}")
+    assert same, f"{k} drifted: {seq_a[k]} vs {seq_b[k]}"
+print("\nRNG capture/restore bitwise-identical: PASSED")
 
 # %% [markdown]
 # ## Step 7 — atomic checkpoint primitives (Task 10)
