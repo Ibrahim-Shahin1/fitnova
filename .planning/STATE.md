@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 2 of 8 (Squat Data Pipeline & Colab Harness) — planned, ready to execute
-Plan: 0 of 1 in current phase (16 tasks)
-Status: Phase 2 planned (02-CONTEXT, 02-RESEARCH, 02-01-PLAN, 02-01-PLAN-REVIEW all in place; PLAN-CHECKER verdict PASS on iteration 2)
-Last activity: 2026-05-20 — Phase 2 planning complete; 16-task plan covering PyTorch loaders + resumable Colab harness + 2-epoch tiny smoke + bitwise-resume proof; full subagent loop used (researcher → planner → plan-checker × 2). Execution is interactive cell-by-cell per the working agreement.
+Phase: 3 of 8 (Squat Supervised Baseline) — ready to plan
+Plan: 1 of 1 complete in Phase 2 (16 tasks all green)
+Status: Phase 2 closed; Phase 3 ready
+Last activity: 2026-05-20 — Phase 2 closed. PyTorch loader stack + resumable Colab harness + decoded-batch supervisor viz + bitwise-resume proof all shipped. Tasks 1–14 each got an atomic commit (feat/fix/chore(02)). Tasks 15–16 closed Phase 2 via human-verify gate + summary. Resumed-epoch-1 batch losses are byte-identical to baseline-epoch-1 batch losses → RNG capture/restore is functionally correct, not just structurally present. Phase 3 starts heavy training (hours per run) → fresh Colab notebook + L4 GPU before kickoff (see memory: feedback_heavy_training_new_notebook).
 
-Progress: [██░░░░░░░░] 18%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - Phase 2 (research override): horizontal flip default OFF (paper line 576 lists augmentations without flip; CVCSPC has it commented out)
 - Phase 2 (research override): multi-label imbalance handled via `BCEWithLogitsLoss(pos_weight=Tensor([w_KIE, w_KFE]))`, not `WeightedRandomSampler`; dataset exposes `pos_weight`, Phase 3 consumes
 - Phase 2: atomic Drive checkpoint write (tmp + torch.load round-trip verify + os.replace + latest.txt last) — Drive FUSE rename is not atomic
+- Phase 2 (deviation): dataset uses torch's default RNG (not per-instance generator) so capture_rng_state/restore_rng_state cover sampling state across resume; per-instance generator would have broken Task 14's bitwise assertion
+- Phase 2 (deviation): IPython kept at google.colab's pinned 7.34.0; autoreload enabled via a 4-line `imp` shim (`types.ModuleType` with `importlib.reload`) on Python 3.12
+- Phase 2 (deviation): F11 windowing test corrected to clustered indices `[100, 102, 104]` (full-span indices defeat windowing — original plan had `[0, 200, 403]`)
 
 ### Pending Todos
 
@@ -75,5 +78,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-20
-Stopped at: Phase 2 planned. 16-task plan ready for cell-by-cell interactive execution. Next runnable unit = Task 1 (clone github.com/ParitoshParmar/Fitness-AQA + add to .gitignore).
-Resume file: .planning/phases/02-squat-data-pipeline-colab-harness/02-01-PLAN.md
+Stopped at: Phase 2 closed. Bitwise-resume proof landed (Tasks 12-14); both supervisor figures human-verified (Task 15); summary committed (Task 16). Recommend fresh chat + fresh Colab notebook on L4 GPU for Phase 3 — clean GSD boundary and heavy-training-fresh-notebook rule.
+Resume file: .planning/phases/02-squat-data-pipeline-colab-harness/02-01-SUMMARY.md

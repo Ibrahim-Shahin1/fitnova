@@ -7,7 +7,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 ## Phases
 
 - [x] **Phase 1: Dataset Consolidation & EDA** - Extract, merge and verify the dataset; full exploratory analysis  *(complete 2026-05-20)*
-- [ ] **Phase 2: Squat Data Pipeline & Colab Harness** - PyTorch loaders + a resumable Colab training harness
+- [x] **Phase 2: Squat Data Pipeline & Colab Harness** - PyTorch loaders + a resumable Colab training harness  *(complete 2026-05-20)*
 - [ ] **Phase 3: Squat Supervised Baseline** - R(2+1)D-18 baseline for KIE/KFE, F1 on the official split
 - [ ] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison
 - [ ] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API
@@ -30,18 +30,18 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 Plans:
 - [x] 01-01: Dataset audit, label/split reconciliation, EDA & dataset report
 
-### Phase 2: Squat Data Pipeline & Colab Harness
+### Phase 2: Squat Data Pipeline & Colab Harness  *(Complete — 2026-05-20)*
 **Goal**: A tested PyTorch data pipeline for Squat KIE/KFE and a Colab training harness that survives disconnects.
 **Depends on**: Phase 1
 **Requirements**: SQUAT-01, SQUAT-02
 **Success Criteria** (what must be TRUE):
-  1. Squat clips load as (video tensor, KIE/KFE label) batches using the official splits
-  2. Decoded and augmented sample frames are visualized and confirmed correct
-  3. The Colab harness checkpoints to Google Drive and resumes from the latest checkpoint after a restart
+  1. Squat clips load as (video tensor, KIE/KFE label) batches using the official splits ✓
+  2. Decoded and augmented sample frames are visualized and confirmed correct ✓
+  3. The Colab harness checkpoints to Google Drive and resumes from the latest checkpoint after a restart ✓ (bitwise-equivalence of baseline-epoch-1 vs resumed-from-epoch-0-epoch-1 batch losses)
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: Squat PyTorch pipeline + resumable Colab harness + 2-epoch tiny smoke + bitwise-resume proof (16 tasks)
+- [x] 02-01: Squat PyTorch pipeline + resumable Colab harness + 2-epoch tiny smoke + bitwise-resume proof (16 tasks)
 
 ### Phase 3: Squat Supervised Baseline
 **Goal**: A working supervised baseline detector for Squat KIE and KFE with F1 on the official test split.
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Dataset Consolidation & EDA | 1/1 | Complete | 2026-05-20 |
-| 2. Squat Data Pipeline & Colab Harness | 0/1 | Planned | - |
+| 2. Squat Data Pipeline & Colab Harness | 1/1 | Complete | 2026-05-20 |
 | 3. Squat Supervised Baseline | 0/TBD | Not started | - |
 | 4. Squat Motion-Disentangling SSL | 0/TBD | Not started | - |
 | 5. Backend Inference Integration (Squat) | 0/TBD | Not started | - |
