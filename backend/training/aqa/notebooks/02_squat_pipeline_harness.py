@@ -475,9 +475,90 @@ print("\nRNG capture/restore bitwise-identical: PASSED")
 # %% [markdown]
 # ## Step 7 — atomic checkpoint primitives (Task 10)
 #
-# Fills in once `harness/colab.py` slice 3 is implemented. Round-trips a fake checkpoint
-# through atomic save → load → verify; confirms `CheckpointConfigMismatchError` fires on
-# intentional config drift; verifies prune keeps last-3 + best.
+# Exercises the full atomic-save / load-with-hash-check / prune cycle against a
+# scratch directory (`/tmp/test_run/`). Four sub-checks:
+# (a) `hash_config` is key-order-insensitive (sort_keys at work).
+# (b) Round-trip: atomic_save_checkpoint -> load_latest_checkpoint returns the same payload.
+# (c) Drift: feeding a different `expected_config_hash` to load raises CheckpointConfigMismatchError.
+# (d) Prune: with 4 epoch_*.pt files + best.pt and `keep_last=3 keep_best=True`,
+#     exactly 3 epoch_*.pt + best.pt survive (4 files total).
+
+# %%
+import os, shutil, time
+from pathlib import Path
+import torch
+from backend.training.aqa.harness.colab import (
+    hash_config,
+    atomic_save_checkpoint,
+    load_latest_checkpoint,
+    prune_checkpoints,
+    CheckpointConfigMismatchError,
+)
+
+RUN_DIR = "/tmp/test_run"
+# Clean slate each run.
+if os.path.isdir(RUN_DIR):
+    shutil.rmtree(RUN_DIR)
+os.makedirs(RUN_DIR, exist_ok=True)
+
+# (a) hash_config — key-order invariance.
+cfg1 = {"seed": 42, "crop_size": 112, "lr": 1e-4}
+cfg2 = {"lr": 1e-4, "crop_size": 112, "seed": 42}  # same content, different key order
+h1, h2 = hash_config(cfg1), hash_config(cfg2)
+assert h1 == h2, f"hash mismatch on key order: {h1} vs {h2}"
+print(f"(a) hash_config key-order invariant : {h1}  (16-char sha256)")
+
+# (b) Round-trip atomic save + load.
+payload_e0 = {
+    "epoch": 0,
+    "model_state_dict": {"dummy.weight": torch.zeros(3)},
+    "optimizer_state_dict": {},
+    "scheduler_state_dict": None,
+    "rng_state": {},
+    "metrics_history": [{"epoch": 0, "train_loss_mean": 0.5}],
+    "config_hash": h1,
+    "config_repr": cfg1,
+    "code_version": "test",
+}
+atomic_save_checkpoint(payload_e0, os.path.join(RUN_DIR, "epoch_000.pt"))
+loaded = load_latest_checkpoint(RUN_DIR, expected_config_hash=h1)
+assert loaded is not None, "expected payload, got None"
+assert loaded["epoch"] == 0, f"epoch={loaded['epoch']!r}, expected 0"
+assert loaded["config_hash"] == h1
+print(f"(b) round-trip                      : epoch={loaded['epoch']}, latest.txt -> "
+      f"{Path(RUN_DIR, 'latest.txt').read_text().strip()}")
+
+# (c) Config drift → CheckpointConfigMismatchError.
+drifted_h = hash_config({**cfg1, "seed": 43})  # different seed → different hash
+try:
+    _ = load_latest_checkpoint(RUN_DIR, expected_config_hash=drifted_h)
+    raise AssertionError("expected CheckpointConfigMismatchError, got no exception")
+except CheckpointConfigMismatchError as exc:
+    msg = str(exc)
+    assert h1 in msg and drifted_h in msg, f"both hashes should appear in message: {msg}"
+    print(f"(c) config drift -> error raised    : OK  (message contains both hashes + config_repr)")
+
+# (d) Prune — write 3 more epoch files + best.pt, then prune keep_last=3 keep_best=True.
+# (Use small sleeps so mtimes are distinct.)
+for ep in (1, 2, 3):
+    payload = {**payload_e0, "epoch": ep}
+    atomic_save_checkpoint(payload, os.path.join(RUN_DIR, f"epoch_{ep:03d}.pt"))
+    time.sleep(0.01)
+# Drop a best.pt
+torch.save(payload_e0, os.path.join(RUN_DIR, "best.pt"))
+
+before = sorted(f for f in os.listdir(RUN_DIR) if f.endswith(".pt"))
+print(f"(d) before prune (5 .pt files)      : {before}")
+prune_checkpoints(RUN_DIR, keep_last=3, keep_best=True)
+after = sorted(f for f in os.listdir(RUN_DIR) if f.endswith(".pt"))
+print(f"(d) after prune  (keep_last=3+best) : {after}")
+
+epoch_pts = [f for f in after if f.startswith("epoch_") and f.endswith(".pt")]
+assert len(epoch_pts) == 3, f"expected 3 epoch_*.pt after prune, got {len(epoch_pts)}: {epoch_pts}"
+assert "best.pt" in after, "best.pt was pruned despite keep_best=True"
+# Confirm we kept the 3 newest (epoch_001, 002, 003) and dropped the oldest (epoch_000)
+assert "epoch_000.pt" not in after, "expected oldest epoch_000.pt to be pruned"
+print(f"\nTask 10 atomic checkpoint primitives: ALL PASSED")
 
 # %% [markdown]
 # ## Step 8 — tiny end-to-end run + bitwise-resume proof (Tasks 11–14)

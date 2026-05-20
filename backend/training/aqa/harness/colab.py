@@ -477,20 +477,107 @@ def restore_rng_state(state: dict) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Task 10 placeholders — implementation lands with checkpoint primitives.
+# Task 10 — atomic checkpoint primitives. Drive FUSE rename is NOT atomic
+# (RESEARCH §6); these primitives defend against partial writes with:
+#   tmp write → torch.load round-trip verify → os.replace → latest.txt LAST.
+# A crash at any step leaves the prior good `latest.txt` pointer untouched.
 # ──────────────────────────────────────────────────────────────────────────────
+
+import hashlib
+import json
+import re
 
 
 class CheckpointConfigMismatchError(RuntimeError):
-    """Raised when load_latest_checkpoint detects a config hash drift (Task 10)."""
+    """Raised by `load_latest_checkpoint` when a checkpoint's `config_hash` doesn't match the caller's `expected_config_hash`.
+
+    Carries both hashes + the `config_repr` (the JSON-safe mirror of the config) in
+    the message so the user can see *what* drifted at-a-glance. Recovery: start a
+    new run name, or reconcile the config back to the checkpointed values.
+    """
 
 
 def hash_config(config: dict) -> str:
-    raise NotImplementedError("hash_config lands in Task 10 (colab.py slice 3)")
+    """SHA-256 of `json.dumps(config, sort_keys=True, default=str)`, truncated to 16 hex chars (D12).
+
+    `sort_keys=True` means `{"a":1, "b":2}` and `{"b":2, "a":1}` produce identical
+    hashes — the caller doesn't have to enforce ordering. `default=str` lets the
+    config contain non-JSON-serializable objects (e.g., `torch.dtype`); they're
+    stringified before hashing.
+
+    The caller is responsible for passing only the hash-relevant keys (seed,
+    crop_size, num_frames, learning_rate, model arch, etc.). Things like
+    `run_name` or `start_time` should NOT be in the hashed config or every run
+    would mismatch trivially.
+    """
+    payload = json.dumps(config, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()[:16]
+
+
+def _atomic_write_text(path: str, content: str) -> None:
+    """Atomic-ish text write via tmp + os.replace. Used for `latest.txt`."""
+    dir_ = os.path.dirname(path) or "."
+    tmp = os.path.join(dir_, f".tmp_{os.path.basename(path)}.{os.getpid()}")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write(content)
+    os.replace(tmp, path)
 
 
 def atomic_save_checkpoint(payload: dict, target_path: str) -> None:
-    raise NotImplementedError("atomic_save_checkpoint lands in Task 10 (colab.py slice 3)")
+    """Atomically save `payload` to `target_path` and update `latest.txt` in the same dir (D11).
+
+    Contract (in order — D11):
+      1. `torch.save(payload, tmp)` where `tmp = .tmp_{basename}.{pid}` next to target.
+      2. `torch.load(tmp, map_location='cpu')` — round-trip verify the write is readable.
+      3. `os.replace(tmp, target_path)` — POSIX rename, the closest thing to atomic we
+         have on the platform. On most filesystems this is atomic for same-FS ops;
+         Drive FUSE doesn't guarantee atomicity but does guarantee the destination
+         isn't visible until the source is unlinked, which is good enough.
+      4. Write `latest.txt` LAST, using the same tmp+replace pattern. A crash before
+         this step leaves the **prior** good `latest.txt` untouched — so a subsequent
+         `load_latest_checkpoint` reads the previous epoch, not a partial one.
+
+    On any verify failure, the tmp file is removed and the exception propagates;
+    `target_path` and `latest.txt` are NEVER touched if the save was bad.
+    """
+    target_dir = os.path.dirname(target_path) or "."
+    target_name = os.path.basename(target_path)
+    os.makedirs(target_dir, exist_ok=True)
+
+    tmp = os.path.join(target_dir, f".tmp_{target_name}.{os.getpid()}")
+
+    # Step 1: torch.save to tmp.
+    try:
+        torch.save(payload, tmp)
+    except Exception:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        raise
+
+    # Step 2: round-trip verify.
+    try:
+        _ = torch.load(tmp, map_location="cpu", weights_only=False)
+    except Exception:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        raise
+
+    # Step 3: atomic rename into place.
+    os.replace(tmp, target_path)
+
+    # Step 4: latest.txt LAST. Crash here leaves prior latest.txt pointing to the
+    # last successful checkpoint — `target_path` is now also on disk but unreferenced
+    # until a subsequent successful save rewrites latest.txt.
+    latest_path = os.path.join(target_dir, "latest.txt")
+    _atomic_write_text(latest_path, target_name + "\n")
+
+    logger.info("atomic_save_checkpoint: %s (+ latest.txt -> %s)", target_path, target_name)
 
 
 def load_latest_checkpoint(
@@ -499,7 +586,54 @@ def load_latest_checkpoint(
     expected_config_hash: str,
     map_location: str = "cpu",
 ) -> dict | None:
-    raise NotImplementedError("load_latest_checkpoint lands in Task 10 (colab.py slice 3)")
+    """Read `{run_dir}/latest.txt`, load the pointed-at checkpoint, verify config hash.
+
+    Returns:
+        The torch-loaded payload dict on success, or `None` if no `latest.txt`
+        exists (fresh run) or the pointed-at file is missing (recoverable — caller
+        treats as "no prior epoch").
+
+    Raises:
+        CheckpointConfigMismatchError: the checkpoint's `config_hash` doesn't match
+            `expected_config_hash`. Message includes both hashes + the
+            stored `config_repr` for diagnosis. Recovery: rename the run or
+            reconcile the config.
+    """
+    latest_path = os.path.join(run_dir, "latest.txt")
+    if not os.path.isfile(latest_path):
+        logger.info("load_latest_checkpoint: no %s (fresh run)", latest_path)
+        return None
+
+    with open(latest_path, "r", encoding="utf-8") as fh:
+        ckpt_name = fh.read().strip()
+
+    ckpt_path = os.path.join(run_dir, ckpt_name)
+    if not os.path.isfile(ckpt_path):
+        logger.warning(
+            "load_latest_checkpoint: latest.txt points to %s but file is missing — "
+            "treating as no prior epoch (recoverable)",
+            ckpt_path,
+        )
+        return None
+
+    payload = torch.load(ckpt_path, map_location=map_location, weights_only=False)
+
+    actual_hash = payload.get("config_hash")
+    if actual_hash != expected_config_hash:
+        raise CheckpointConfigMismatchError(
+            f"checkpoint {ckpt_path} hash {actual_hash!r} != expected {expected_config_hash!r} — "
+            f"start a new run name or reconcile config; "
+            f"checkpoint config_repr={payload.get('config_repr')!r}"
+        )
+
+    logger.info(
+        "load_latest_checkpoint: loaded %s (epoch=%s, config_hash matches)",
+        ckpt_path, payload.get("epoch"),
+    )
+    return payload
+
+
+_EPOCH_PT_RE = re.compile(r"^epoch_\d+\.pt$")
 
 
 def prune_checkpoints(
@@ -508,4 +642,46 @@ def prune_checkpoints(
     keep_last: int = 3,
     keep_best: bool = True,
 ) -> None:
-    raise NotImplementedError("prune_checkpoints lands in Task 10 (colab.py slice 3)")
+    """Keep the `keep_last` most-recent `epoch_*.pt` (by mtime) + optionally `best.pt`; delete the rest (D17).
+
+    Sort by mtime descending — newer first. Top `keep_last` are kept. Anything else
+    named `epoch_*.pt` is deleted. If `keep_best=True` and `best.pt` exists, it's
+    always kept regardless of position in the sorted list.
+
+    Other files in `run_dir` (e.g., `latest.txt`, JSON metric sidecars, tmp files
+    from in-progress writes) are NOT touched — this only manages `epoch_*.pt`.
+    """
+    if not os.path.isdir(run_dir):
+        return
+
+    epochs = [
+        os.path.join(run_dir, name)
+        for name in os.listdir(run_dir)
+        if _EPOCH_PT_RE.match(name)
+    ]
+    # Sort by mtime descending — most-recent first.
+    epochs.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+
+    keep_set = set(epochs[:keep_last])
+    if keep_best:
+        best_path = os.path.join(run_dir, "best.pt")
+        if os.path.isfile(best_path):
+            keep_set.add(best_path)  # idempotent (set), best.pt isn't an epoch_*.pt anyway
+
+    deleted = 0
+    for p in epochs:
+        if p in keep_set:
+            continue
+        try:
+            os.remove(p)
+            deleted += 1
+        except OSError as exc:
+            logger.warning("prune_checkpoints: could not remove %s: %s", p, exc)
+
+    logger.info(
+        "prune_checkpoints: %s — kept %d epoch_*.pt%s, deleted %d",
+        run_dir,
+        min(len(epochs), keep_last),
+        " + best.pt" if keep_best and os.path.isfile(os.path.join(run_dir, "best.pt")) else "",
+        deleted,
+    )
