@@ -51,7 +51,10 @@ Plans:
   1. An R(2+1)D-18 (Kinetics-init) model trains to convergence on the labeled Squat set
   2. F1 per error is reported on the official test split, in the range of the paper's supervised baseline
   3. Training curves, confusion matrices and PR curves are produced
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 03-01: Squat supervised baseline — R(2+1)D-18 Kinetics-V1 fine-tune + threshold sweep + test eval + 6 supervisor figures (16 tasks)
 
 ### Phase 4: Squat Motion-Disentangling SSL
 **Goal**: Domain-knowledge self-supervised pretraining that improves Squat error detection over the baseline.
@@ -112,7 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. Dataset Consolidation & EDA | 1/1 | Complete | 2026-05-20 |
 | 2. Squat Data Pipeline & Colab Harness | 1/1 | Complete | 2026-05-20 |
-| 3. Squat Supervised Baseline | 0/TBD | Not started | - |
+| 3. Squat Supervised Baseline | 0/1 | Planned | - |
 | 4. Squat Motion-Disentangling SSL | 0/TBD | Not started | - |
 | 5. Backend Inference Integration (Squat) | 0/TBD | Not started | - |
 | 6. Overhead Press | 0/TBD | Not started | - |
