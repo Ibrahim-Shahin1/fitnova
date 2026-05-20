@@ -38,7 +38,10 @@ Plans:
   1. Squat clips load as (video tensor, KIE/KFE label) batches using the official splits
   2. Decoded and augmented sample frames are visualized and confirmed correct
   3. The Colab harness checkpoints to Google Drive and resumes from the latest checkpoint after a restart
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 02-01: Squat PyTorch pipeline + resumable Colab harness + 2-epoch tiny smoke + bitwise-resume proof (16 tasks)
 
 ### Phase 3: Squat Supervised Baseline
 **Goal**: A working supervised baseline detector for Squat KIE and KFE with F1 on the official test split.
@@ -108,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Dataset Consolidation & EDA | 1/1 | Complete | 2026-05-20 |
-| 2. Squat Data Pipeline & Colab Harness | 0/TBD | Not started | - |
+| 2. Squat Data Pipeline & Colab Harness | 0/1 | Planned | - |
 | 3. Squat Supervised Baseline | 0/TBD | Not started | - |
 | 4. Squat Motion-Disentangling SSL | 0/TBD | Not started | - |
 | 5. Backend Inference Integration (Squat) | 0/TBD | Not started | - |
