@@ -635,6 +635,95 @@ for f in sorted(os.listdir(RUN_DIR)):
 print(f"latest.txt content : {Path(RUN_DIR, 'latest.txt').read_text().strip()!r}")
 
 # %% [markdown]
+# ## Step 8b — resume-after-simulated-restart (Task 13)
+#
+# Three cells, each a separate runnable unit:
+#
+# 1. **Rewind**: delete `epoch_001.pt` and overwrite `latest.txt` to point at
+#    `epoch_000.pt` — simulates "the system died right after we saved epoch 0."
+# 2. **Purge `sys.modules` + re-import**: drops in-memory state for
+#    `backend.training.aqa.*` modules. Closest a single notebook session gets to a
+#    kernel restart while keeping `/content/`, `/content/drive`, and the cell session
+#    intact. A true kernel restart would also drop GPU memory + driver context — but
+#    a true restart loses cell history too, which would break the comparison flow.
+# 3. **Resume**: `run_tiny_epoch(resume=True, max_epochs=2)` — `load_latest_checkpoint`
+#    finds `epoch_000.pt`, restores model + optim + RNG, `start_epoch=1` advances
+#    into the F1 loop, epoch 1 trains with the restored RNG state, new `epoch_001.pt`
+#    + `latest.txt` written. The 8 per-batch losses from this resumed epoch 1 are
+#    Task 14's other side of the byte-equality assertion.
+
+# %%
+# Step 8b-1 — rewind. Idempotent (guarded on file existence).
+import os
+from pathlib import Path
+
+# F1: this exercises the resume code path with a real training epoch —
+# load epoch_0, restore RNG, train epoch 1.
+
+epoch_001 = RUN_DIR + "epoch_001.pt"
+if os.path.exists(epoch_001):
+    os.remove(epoch_001)
+    print(f"removed   : {epoch_001}")
+else:
+    print(f"already gone: {epoch_001}")
+
+with open(RUN_DIR + "latest.txt", "w", encoding="utf-8") as fh:
+    fh.write("epoch_000.pt\n")
+print(f"latest.txt rewound to: {Path(RUN_DIR, 'latest.txt').read_text().strip()!r}")
+
+print(f"\nfiles on Drive now:")
+for f in sorted(os.listdir(RUN_DIR)):
+    full = RUN_DIR + f
+    if os.path.isfile(full):
+        print(f"  {f:18s}  {os.path.getsize(full)} bytes")
+
+# %%
+# Step 8b-2 — purge backend.training.aqa.* from sys.modules and re-import. Simulates
+# kernel-restart-equivalent module state reset. Drops in-memory closures, fresh
+# tiny_train re-imports from the latest disk version.
+import sys
+
+mods = [k for k in sys.modules if k.startswith("backend.training.aqa")]
+for k in mods:
+    sys.modules.pop(k)
+print(f"purged {len(mods)} modules: {sorted(mods)}")
+
+from backend.training.aqa.harness.tiny_train import run_tiny_epoch  # re-import after purge — fresh module state
+print(f"run_tiny_epoch re-loaded from: {run_tiny_epoch.__code__.co_filename}")
+
+# %%
+# Step 8b-3 — resume. Loads epoch_000.pt, restores RNG, trains epoch 1, writes new
+# epoch_001.pt. The 8 per-batch losses produced here are Task 14's resumed side of
+# the bitwise assertion.
+result_resumed = run_tiny_epoch(
+    run_name=RUN_NAME,
+    seed=42,
+    resume=True,
+    max_epochs=2,
+)
+print("\nresult_resumed:")
+for k, v in result_resumed.items():
+    if k == "train_loss_per_batch":
+        print(f"  {k:22s}: {v}  ({len(v)} batches in LAST epoch)")
+    else:
+        print(f"  {k:22s}: {v}")
+
+# Save the resumed epoch-1 per-batch losses for Task 14's byte-equality assert.
+import json
+resumed_path = Path("/content/fitnova/.planning/phases/02-squat-data-pipeline-colab-harness/figures/tiny_resumed_epoch1_losses.json")
+resumed_path.parent.mkdir(parents=True, exist_ok=True)
+with open(resumed_path, "w") as fh:
+    json.dump(result_resumed["train_loss_per_batch"], fh)
+print(f"\nsaved : {resumed_path}")
+
+print(f"\nrun_dir state after resume:")
+for f in sorted(os.listdir(RUN_DIR)):
+    full = RUN_DIR + f
+    if os.path.isfile(full):
+        print(f"  {f:18s}  {os.path.getsize(full)} bytes")
+print(f"latest.txt content : {Path(RUN_DIR, 'latest.txt').read_text().strip()!r}")
+
+# %% [markdown]
 # ## Step 9 — closeout (Task 15 human-verify + Task 16 SUMMARY)
 #
 # Open both figures, confirm five visual criteria for `decoded_batch.png` (clip variation,
