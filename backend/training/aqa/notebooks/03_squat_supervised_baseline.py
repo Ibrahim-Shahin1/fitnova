@@ -597,7 +597,173 @@ print("\nGPU freed; ready for Step 6 test evaluation.")
 #
 # Apply val-tuned per-error thresholds to the 244-clip test split. Compute F1 +
 # PR-AUC + confusion matrices per error. Save `results.pkl` to `figures/`
-# BEFORE any `plt.show()` per `[[feedback_notebook_disconnect_safe]]`.
+# BEFORE any `plt.show()` per `[[feedback_notebook_disconnect_safe]]`. Also
+# back up `results.pkl` to Drive (the figures/ tree lives on `/content/` which
+# gets wiped on runtime restart; Drive backup survives).
+#
+# This produces the **headline Phase 3 numbers** — test F1 per error at
+# val-tuned thresholds, comparable to the paper's Table 2 row.
+
+# %%
+import os
+import pickle
+from pathlib import Path
+
+import numpy as np
+import torch
+
+from backend.training.aqa.eval.metrics import (
+    confusion_matrix_per_error,
+    f1_per_error,
+    pr_auc_per_error,
+)
+from backend.training.aqa.harness.supervised_train import (
+    SupervisedConfig,
+    _build_dataloaders,
+    _val_pass,
+    build_model,
+)
+
+config = SupervisedConfig()
+RUN_NAME = "r2plus1d18_squat_supervised_v1"
+run_dir = os.path.join(MYDRIVE, "FitNova/checkpoints/phase03", RUN_NAME)
+best_path = os.path.join(run_dir, "best.pt")
+
+# 1. Load best.pt (with best_thresholds from Step 5).
+payload = torch.load(best_path, map_location="cpu", weights_only=False)
+best_thresholds = payload["best_thresholds"]
+assert best_thresholds is not None, "Step 5 must run first to populate best_thresholds"
+print(f"Loaded best.pt: epoch={payload['epoch']}, best_thresholds={best_thresholds}")
+
+# 2. Rebuild model + loaders.
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = build_model().to(device)
+model.load_state_dict(payload["model_state_dict"])
+model.eval()
+
+loaders = _build_dataloaders(
+    seed=42, config=config, drive_root=MYDRIVE, videos_root=VIDEOS_ROOT,
+)
+
+# 3. Val pass at SWEPT thresholds — these are the "internal" val numbers used
+#    for best.pt selection; refresh them here so results.pkl is self-contained.
+val_loader = loaders["val"]
+val_ds = val_loader.dataset
+criterion = torch.nn.BCEWithLogitsLoss(pos_weight=val_ds.pos_weight.to(device))
+val_loss_mean, val_scores, val_labels = _val_pass(model, val_loader, criterion, device)
+val_pred_kie = (val_scores[:, 0] >= best_thresholds["kie"]).astype(int)
+val_pred_kfe = (val_scores[:, 1] >= best_thresholds["kfe"]).astype(int)
+val_f1_kie = f1_per_error(val_labels[:, 0], val_pred_kie)
+val_f1_kfe = f1_per_error(val_labels[:, 1], val_pred_kfe)
+val_macro_f1 = (val_f1_kie + val_f1_kfe) / 2.0
+print(f"\nVal @ swept thresholds: kie={val_f1_kie:.4f} kfe={val_f1_kfe:.4f} macro={val_macro_f1:.4f}")
+
+# 4. TEST pass at val-tuned thresholds — the HEADLINE PHASE 3 NUMBERS.
+test_loader = loaders["test"]
+test_ds = test_loader.dataset
+test_loss_mean, test_scores, test_labels = _val_pass(model, test_loader, criterion, device)
+test_pred_kie = (test_scores[:, 0] >= best_thresholds["kie"]).astype(int)
+test_pred_kfe = (test_scores[:, 1] >= best_thresholds["kfe"]).astype(int)
+
+test_f1_kie = f1_per_error(test_labels[:, 0], test_pred_kie)
+test_f1_kfe = f1_per_error(test_labels[:, 1], test_pred_kfe)
+test_macro_f1 = (test_f1_kie + test_f1_kfe) / 2.0
+test_pr_auc_kie = pr_auc_per_error(test_labels[:, 0], test_scores[:, 0])
+test_pr_auc_kfe = pr_auc_per_error(test_labels[:, 1], test_scores[:, 1])
+test_confusion_kie = confusion_matrix_per_error(test_labels[:, 0], test_pred_kie)
+test_confusion_kfe = confusion_matrix_per_error(test_labels[:, 1], test_pred_kfe)
+
+# 5. Clip IDs (in dataset order — matches scores/labels indices since loader
+#    has shuffle=False). Needed by Step 7's sample-prediction grid.
+test_clip_ids = [rec.clip_id for rec in test_ds.records]
+val_clip_ids = [rec.clip_id for rec in val_ds.records]
+
+# 6. Headline table.
+print("\n" + "=" * 72)
+print("PHASE 3 TEST RESULTS (val-tuned thresholds, 244 test clips)")
+print("=" * 72)
+print(f"  test_f1_kie     : {test_f1_kie:.4f}")
+print(f"  test_f1_kfe     : {test_f1_kfe:.4f}")
+print(f"  test_macro_f1   : {test_macro_f1:.4f}")
+print(f"  test_pr_auc_kie : {test_pr_auc_kie:.4f}")
+print(f"  test_pr_auc_kfe : {test_pr_auc_kfe:.4f}")
+print(f"  test_loss_mean  : {test_loss_mean:.4f}")
+print()
+print(f"  KIE confusion matrix (rows=true [0,1], cols=pred [0,1]):")
+print(f"    {test_confusion_kie[0].tolist()}")
+print(f"    {test_confusion_kie[1].tolist()}")
+print(f"  KFE confusion matrix:")
+print(f"    {test_confusion_kfe[0].tolist()}")
+print(f"    {test_confusion_kfe[1].tolist()}")
+print()
+print("Paper Kinetics row : kie=0.297, kfe=0.818, macro≈0.557")
+print(f"  Δ vs us           : kie={test_f1_kie - 0.297:+.4f}, kfe={test_f1_kfe - 0.818:+.4f}, macro={test_macro_f1 - 0.557:+.4f}")
+print()
+print("Paper MD row       : kie=0.419, kfe=0.834, macro≈0.626")
+print(f"  Δ vs us           : kie={test_f1_kie - 0.419:+.4f}, kfe={test_f1_kfe - 0.834:+.4f}, macro={test_macro_f1 - 0.626:+.4f}")
+print("=" * 72)
+
+# 7. Save results.pkl to figures/ BEFORE any plt.show (CONTEXT D11 / D9).
+#    `Path(out).parent.mkdir(parents=True, exist_ok=True)` defensive.
+FIG_DIR = Path("/content/fitnova/.planning/phases/03-squat-supervised-baseline/figures")
+FIG_DIR.mkdir(parents=True, exist_ok=True)
+results_path = FIG_DIR / "results.pkl"
+
+results = {
+    # Val numbers at swept thresholds (matches Step 5 sweep output).
+    "val_f1_kie": val_f1_kie,
+    "val_f1_kfe": val_f1_kfe,
+    "val_macro_f1": val_macro_f1,
+    "val_thresholds": best_thresholds,
+    "val_scores": val_scores,
+    "val_labels": val_labels,
+    "val_clip_ids": val_clip_ids,
+    "val_loss_mean": val_loss_mean,
+    # Test numbers at val-tuned thresholds (HEADLINE).
+    "test_f1_kie": test_f1_kie,
+    "test_f1_kfe": test_f1_kfe,
+    "test_macro_f1": test_macro_f1,
+    "test_pr_auc_kie": test_pr_auc_kie,
+    "test_pr_auc_kfe": test_pr_auc_kfe,
+    "test_confusion_kie": test_confusion_kie,
+    "test_confusion_kfe": test_confusion_kfe,
+    "test_scores": test_scores,
+    "test_labels": test_labels,
+    "test_clip_ids": test_clip_ids,
+    "test_loss_mean": test_loss_mean,
+    # Run provenance.
+    "run_name": RUN_NAME,
+    "best_epoch": payload["epoch"],
+    "config_hash": payload["config_hash"],
+    "config_repr": payload["config_repr"],
+    "code_version": payload["code_version"],
+    "metrics_history": payload["metrics_history"],
+}
+
+with results_path.open("wb") as f:
+    pickle.dump(results, f)
+print(f"\nresults.pkl saved to git tree: {results_path}")
+print(f"  size: {results_path.stat().st_size / 1024:.1f} KB")
+
+# 8. Drive backup — /content/ gets wiped on runtime restart; Drive survives.
+import shutil
+drive_results_path = os.path.join(run_dir, "results.pkl")
+shutil.copy2(str(results_path), drive_results_path)
+print(f"results.pkl backed up to Drive: {drive_results_path}")
+
+# 9. Round-trip verify.
+with results_path.open("rb") as f:
+    reloaded = pickle.load(f)
+assert reloaded["test_f1_kie"] == test_f1_kie
+assert reloaded["test_macro_f1"] == test_macro_f1
+assert reloaded["test_confusion_kie"].tolist() == test_confusion_kie.tolist()
+print("results.pkl round-trip verified.")
+
+# 10. Free GPU before Step 7 visualization (which also constructs the model
+#     for the sample-prediction grid).
+del model
+torch.cuda.empty_cache()
+print("\nGPU freed; ready for Step 7 visualization production.")
 
 
 # %% [markdown]
