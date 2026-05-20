@@ -629,11 +629,26 @@ RUN_NAME = "r2plus1d18_squat_supervised_v1"
 run_dir = os.path.join(MYDRIVE, "FitNova/checkpoints/phase03", RUN_NAME)
 best_path = os.path.join(run_dir, "best.pt")
 
-# 1. Load best.pt (with best_thresholds from Step 5).
+# 1a. Load best.pt for `best_thresholds` + `model_state_dict` + best_f1_val.
 payload = torch.load(best_path, map_location="cpu", weights_only=False)
 best_thresholds = payload["best_thresholds"]
 assert best_thresholds is not None, "Step 5 must run first to populate best_thresholds"
 print(f"Loaded best.pt: epoch={payload['epoch']}, best_thresholds={best_thresholds}")
+
+# 1b. Load the LATEST checkpoint for FULL `metrics_history` (best.pt's
+#     metrics_history is frozen at the last best epoch — see
+#     [[reference_best_pt_metrics_history_is_stale]]). Use latest.txt pointer.
+latest_txt_path = os.path.join(run_dir, "latest.txt")
+with open(latest_txt_path, "r", encoding="utf-8") as f:
+    latest_name = f.read().strip()
+latest_payload = torch.load(
+    os.path.join(run_dir, latest_name), map_location="cpu", weights_only=False,
+)
+full_metrics_history = latest_payload["metrics_history"]
+print(
+    f"Loaded {latest_name} for full metrics_history: "
+    f"{len(full_metrics_history)} epochs (best.pt had {len(payload['metrics_history'])})"
+)
 
 # 2. Rebuild model + loaders.
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -737,7 +752,12 @@ results = {
     "config_hash": payload["config_hash"],
     "config_repr": payload["config_repr"],
     "code_version": payload["code_version"],
-    "metrics_history": payload["metrics_history"],
+    # FULL metrics_history from latest checkpoint (NOT best.pt — see
+    # [[reference_best_pt_metrics_history_is_stale]] memory). Phase 3 ran 12
+    # epochs (0-11), best was epoch 3, early-stop at 11; best.pt frozen at 4
+    # entries, latest checkpoint has all 12.
+    "metrics_history": full_metrics_history,
+    "final_epoch": latest_payload["epoch"],
 }
 
 with results_path.open("wb") as f:
