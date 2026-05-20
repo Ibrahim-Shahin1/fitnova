@@ -274,7 +274,87 @@ print("\nGPU freed; ready for Step 3 timing probe.")
 # run_name="..._timing")`. Measures wall time + writes a ~360 MB checkpoint to
 # Drive + round-trips `torch.load`. Paste back `epoch_0_time_s` and
 # `estimated_total_h = epoch_0_time_s * 50 / 3600`. Pick option-a / -b / -c per
-# Task 10 of the PLAN.
+# Task 10 of the PLAN:
+#
+# - **option-a:** `estimated_total_h <= 8` — proceed with locked defaults (50 epochs).
+# - **option-b:** `estimated_total_h > 8` — reduce epoch_budget to 15 + early_stop_patience=5.
+# - **option-c:** override RESEARCH §11 and enable AMP (NOT recommended — determinism conflict).
+
+# %%
+import time
+import os
+
+from backend.training.aqa.harness.supervised_train import (
+    SupervisedConfig,
+    run_supervised_epoch,
+)
+
+timing_config = SupervisedConfig()  # locked defaults (D6)
+
+# T-03-02: write to a `_timing` run dir so this probe doesn't collide with the
+# production training dir. The probe checkpoint can be deleted manually after.
+TIMING_RUN_NAME = "r2plus1d18_squat_supervised_v1_timing"
+
+t0 = time.perf_counter()
+result = run_supervised_epoch(
+    run_name=TIMING_RUN_NAME,
+    drive_root=MYDRIVE,
+    videos_root=VIDEOS_ROOT,
+    seed=42,
+    config=timing_config,
+    resume=False,           # fresh run — don't pick up a stale timing checkpoint
+    max_epochs=1,
+)
+wall_time_s = time.perf_counter() - t0
+
+# Trainer's own per-epoch wall-time (includes train pass + val pass + atomic write).
+epoch_0_time_s = result["metrics_history"][0]["epoch_wall_time_s"]
+estimated_total_h = epoch_0_time_s * timing_config.max_epochs / 3600.0
+val_macro_f1_after_1_epoch = result["metrics_history"][0]["val_macro_f1"]
+
+print(f"epoch_0_time_s        = {epoch_0_time_s:.1f} s")
+print(f"wall_time_s (outer)   = {wall_time_s:.1f} s")
+print(f"max_epochs (config)   = {timing_config.max_epochs}")
+print(f"estimated_total_h     = {estimated_total_h:.2f}  ({timing_config.max_epochs} × epoch_0 / 3600)")
+print(f"val_macro_f1 (1 epoch)= {val_macro_f1_after_1_epoch:.4f}  (sanity: > 0.3 expected — pos_weight + Kinetics init give a strong KFE prior)")
+
+# Per-batch wall-time printout (RESEARCH §13 Q2).
+loss_per_batch = result["metrics_history"][0]["train_loss_per_batch"]
+n_train_batches = len(loss_per_batch)
+n_val_batches = (243 + timing_config.batch_size - 1) // timing_config.batch_size  # ~15-16 batches
+print(f"\nTrain batches      : {n_train_batches}  (expected ≈{(1136 + timing_config.batch_size - 1) // timing_config.batch_size})")
+print(f"Val batches        : {n_val_batches}")
+print(f"Mean per-batch time: {epoch_0_time_s / (n_train_batches + n_val_batches) * 1000:.0f} ms  (incl. data load + I/O)")
+
+# T-03-02: Drive checkpoint timing + size audit (RESEARCH §7 — ~360 MB).
+ckpt_path = result["checkpoint_path"]
+ckpt_size_mb = os.path.getsize(ckpt_path) / (1024 ** 2)
+print(f"\nepoch_000.pt path = {ckpt_path}")
+print(f"epoch_000.pt size = {ckpt_size_mb:.0f} MB  (expected 300–500 MB per RESEARCH §7)")
+assert 300 < ckpt_size_mb < 500, (
+    f"Checkpoint size {ckpt_size_mb:.0f} MB outside expected 300–500 MB range "
+    "(T-03-02). Investigate before authorising the full run."
+)
+
+# T-03-02: Round-trip torch.load smoke — verify the checkpoint reads back and
+# has every Phase 3 D8 key (SQUAT-03-e at runtime, not just unit-test).
+payload = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+_required = {
+    "epoch", "model_state_dict", "optimizer_state_dict", "scheduler_state_dict",
+    "rng_state", "metrics_history", "best_f1_val", "best_thresholds",
+    "config_hash", "config_repr", "code_version",
+}
+_missing = _required - payload.keys()
+assert not _missing, f"Checkpoint missing keys: {_missing} — D8 schema broken"
+assert payload["code_version"] == "phase03-supervised-baseline", payload["code_version"]
+print(f"\nCheckpoint schema OK (all 11 D8 keys present; code_version='{payload['code_version']}')")
+
+print("\n" + "=" * 72)
+print("DECISION GATE — paste back the numbers above and select option-a / -b / -c:")
+print("  option-a: estimated_total_h ≤ 8  → proceed with locked defaults (50 epochs)")
+print("  option-b: estimated_total_h > 8  → drop to 15 epochs + early_stop_patience=5")
+print("  option-c: enable AMP (NOT recommended — RESEARCH §11 determinism conflict)")
+print("=" * 72)
 
 
 # %% [markdown]
