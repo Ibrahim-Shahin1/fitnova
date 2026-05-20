@@ -769,7 +769,265 @@ print("\nGPU freed; ready for Step 7 visualization production.")
 # %% [markdown]
 # ## Step 7 — visualization production (Task 14)
 #
-# Produce all six supervisor figures (training_curves, confusion_{kie,kfe},
+# Produce all seven supervisor figures (training_curves, confusion_{kie,kfe},
 # pr_{kie,kfe}, sample_predictions_{kie,kfe}) per CONTEXT D11 / D14 +
 # [[project_supervisor_visualizations]]. Save PNG to `figures/` BEFORE
 # `plt.show()` so a Colab disconnect mid-display still leaves the file.
+# All figures also back up to Drive.
+
+# %%
+import os
+import pickle
+import shutil
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torchvision.io
+from sklearn.metrics import precision_recall_curve
+
+from backend.training.aqa.datasets import splits as splits_mod
+from backend.training.aqa.datasets.transforms import (
+    KINETICS_MEAN,
+    KINETICS_STD,
+    decode_clip,
+    spatial_val,
+    uniform_sample_indices,
+)
+
+FIG_DIR = Path("/content/fitnova/.planning/phases/03-squat-supervised-baseline/figures")
+FIG_DIR.mkdir(parents=True, exist_ok=True)
+RESULTS_PATH = FIG_DIR / "results.pkl"
+with RESULTS_PATH.open("rb") as f:
+    R = pickle.load(f)
+print(f"Loaded results.pkl: best_epoch={R['best_epoch']}, run={R['run_name']}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Helper: save BEFORE plt.show (disconnect-safe per [[feedback_notebook_disconnect_safe]])
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def save_show(fig: plt.Figure, name: str) -> None:
+    out = FIG_DIR / name
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=150, bbox_inches="tight")
+    print(f"  saved: {out.name}  ({out.stat().st_size / 1024:.1f} KB)")
+    plt.show()
+    plt.close(fig)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Figure 1: training curves (train + val loss, val F1 KIE/KFE/macro, best-epoch marker)
+# ──────────────────────────────────────────────────────────────────────────────
+
+mh = R["metrics_history"]
+epochs = [e["epoch"] for e in mh]
+best_idx = max(range(len(mh)), key=lambda i: mh[i]["val_macro_f1"])
+best_epoch = epochs[best_idx]
+
+fig, ax1 = plt.subplots(figsize=(12, 5), dpi=150)
+ax1.plot(epochs, [e["train_loss_mean"] for e in mh], "-o", color="tab:blue", label="train loss", linewidth=2)
+ax1.plot(epochs, [e["val_loss_mean"] for e in mh], "-o", color="tab:orange", label="val loss", linewidth=2)
+ax1.set_xlabel("epoch")
+ax1.set_ylabel("BCE loss")
+ax1.grid(alpha=0.3)
+ax1.legend(loc="upper left")
+ax2 = ax1.twinx()
+ax2.plot(epochs, [e["val_f1_kie"] for e in mh], "--^", color="tab:green", label="val F1 KIE @0.5")
+ax2.plot(epochs, [e["val_f1_kfe"] for e in mh], "--^", color="tab:red", label="val F1 KFE @0.5")
+ax2.plot(epochs, [e["val_macro_f1"] for e in mh], "--^", color="tab:purple", label="val macro F1 @0.5", linewidth=2)
+ax2.axvline(x=best_epoch, color="purple", linestyle=":", alpha=0.7)
+ax2.set_ylabel("F1 @ threshold 0.5")
+ax2.set_ylim(0, 1)
+ax2.legend(loc="upper right")
+fig.suptitle(
+    f"Phase 3 Training Curves — {R['run_name']}\n"
+    f"Best val macro-F1 = {mh[best_idx]['val_macro_f1']:.4f} at epoch {best_epoch}; "
+    f"early-stop fired at epoch {epochs[-1]} (8-epoch val-macro-F1 patience)"
+)
+fig.tight_layout()
+save_show(fig, "training_curves.png")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Figures 2 + 3: confusion matrices (KIE, KFE) on test split at val-tuned thresholds
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def plot_confusion(cm: np.ndarray, err_name: str, f1: float, pr_auc: float, thresh: float, name: str) -> None:
+    fig, ax = plt.subplots(figsize=(4.5, 4.5), dpi=150)
+    im = ax.imshow(cm, cmap="Blues", aspect="equal")
+    for i in range(2):
+        for j in range(2):
+            ax.text(
+                j, i, f"{int(cm[i, j])}",
+                ha="center", va="center", fontsize=16, fontweight="bold",
+                color="white" if cm[i, j] > cm.max() / 2 else "black",
+            )
+    ax.set_xticks([0, 1])
+    ax.set_yticks([0, 1])
+    ax.set_xticklabels(["pred 0", "pred 1"])
+    ax.set_yticklabels(["true 0", "true 1"])
+    ax.set_title(
+        f"Phase 3 Test Confusion ({err_name})\n"
+        f"F1 = {f1:.4f}   PR-AUC = {pr_auc:.4f}   threshold = {thresh:.3f}",
+        fontsize=10,
+    )
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    fig.tight_layout()
+    save_show(fig, name)
+
+
+plot_confusion(
+    R["test_confusion_kie"], "KIE", R["test_f1_kie"], R["test_pr_auc_kie"],
+    R["val_thresholds"]["kie"], "confusion_kie.png",
+)
+plot_confusion(
+    R["test_confusion_kfe"], "KFE", R["test_f1_kfe"], R["test_pr_auc_kfe"],
+    R["val_thresholds"]["kfe"], "confusion_kfe.png",
+)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Figures 4 + 5: PR curves (KIE, KFE) on test with val-tuned threshold marked
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def plot_pr(y_true: np.ndarray, y_score: np.ndarray, err_name: str, ap: float, thresh: float, name: str) -> None:
+    p, r, thresholds = precision_recall_curve(y_true, y_score)
+    fig, ax = plt.subplots(figsize=(6, 6), dpi=150)
+    ax.plot(r, p, "-", color="tab:blue", linewidth=2, label="PR curve (test)")
+    if len(thresholds) > 0:
+        idx = int(np.argmin(np.abs(thresholds - thresh)))
+        ax.plot(r[idx], p[idx], "ro", markersize=10,
+                label=f"val-tuned threshold = {thresh:.3f}")
+    pos_rate = float(np.mean(y_true))
+    ax.axhline(y=pos_rate, color="gray", linestyle="--", alpha=0.6,
+               label=f"random baseline (pos_rate = {pos_rate:.3f})")
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.legend(loc="best")
+    ax.grid(alpha=0.3)
+    ax.set_title(f"Phase 3 Test PR Curve ({err_name})\nPR-AUC (AP) = {ap:.4f}", fontsize=11)
+    fig.tight_layout()
+    save_show(fig, name)
+
+
+plot_pr(R["test_labels"][:, 0], R["test_scores"][:, 0], "KIE",
+        R["test_pr_auc_kie"], R["val_thresholds"]["kie"], "pr_kie.png")
+plot_pr(R["test_labels"][:, 1], R["test_scores"][:, 1], "KFE",
+        R["test_pr_auc_kfe"], R["val_thresholds"]["kfe"], "pr_kfe.png")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Figures 6 + 7: sample-prediction grids per error (D14)
+# 3 rows (top-K TP / FP / FN) × 4 clips per row, each clip = 8 frames concatenated
+# ──────────────────────────────────────────────────────────────────────────────
+
+test_records = splits_mod.index("test", drive_root=MYDRIVE, videos_root=VIDEOS_ROOT)
+clip_id_to_path = {r.clip_id: r.video_path for r in test_records}
+print(f"\nMapped {len(clip_id_to_path)} test clip_ids to video paths.")
+
+_MEAN_T = torch.tensor(KINETICS_MEAN).view(1, 3, 1, 1)
+_STD_T = torch.tensor(KINETICS_STD).view(1, 3, 1, 1)
+
+
+def render_clip_strip(clip_id: str, n_frames: int = 8) -> np.ndarray:
+    """Decode 8 evenly-spaced frames, denormalize, concatenate horizontally.
+
+    Returns float ndarray shape (112, 8*112=896, 3) in [0, 1] for imshow.
+    """
+    path = clip_id_to_path[clip_id]
+    pts_list, _ = torchvision.io.read_video_timestamps(path, pts_unit="sec")
+    nf = len(pts_list)
+    indices = uniform_sample_indices(nf, target=n_frames)
+    clip_tchw = decode_clip(path, indices)              # uint8 (n_frames, 3, H, W)
+    clip_cthw = spatial_val(clip_tchw, crop_size=112)   # float32 (3, n_frames, 112, 112) Kinetics-normed
+    clip_tchw_f = clip_cthw.permute(1, 0, 2, 3).contiguous()  # (n_frames, 3, 112, 112)
+    clip_tchw_f = clip_tchw_f * _STD_T + _MEAN_T        # denormalize
+    clip_tchw_f = clip_tchw_f.clamp(0, 1)
+    frames_hwc = clip_tchw_f.permute(0, 2, 3, 1).numpy()  # (n_frames, 112, 112, 3)
+    return np.concatenate(frames_hwc, axis=1)             # (112, n_frames*112, 3)
+
+
+def plot_sample_predictions(err_idx: int, err_name: str, top_k: int = 4, name: str = "") -> None:
+    scores = R["test_scores"][:, err_idx]
+    labels = R["test_labels"][:, err_idx]
+    clip_ids = R["test_clip_ids"]
+    threshold = R["val_thresholds"][err_name.lower()]
+
+    pos_idx = np.where(labels == 1)[0]
+    neg_idx = np.where(labels == 0)[0]
+
+    # TP = label=1, predicted positive (highest scores)
+    tp_top = pos_idx[np.argsort(-scores[pos_idx])[:top_k]]
+    # FP = label=0, predicted positive (highest scores among label=0)
+    fp_top = neg_idx[np.argsort(-scores[neg_idx])[:top_k]]
+    # FN = label=1, predicted negative (lowest scores among label=1)
+    fn_top = pos_idx[np.argsort(scores[pos_idx])[:top_k]]
+
+    groups = [("TP (label=1, high score)", tp_top),
+              ("FP (label=0, high score)", fp_top),
+              ("FN (label=1, low score)", fn_top)]
+
+    fig, axes = plt.subplots(3, top_k, figsize=(16, 6.5), dpi=150)
+    for row_idx, (gname, indices) in enumerate(groups):
+        for col_idx in range(top_k):
+            ax = axes[row_idx, col_idx]
+            if col_idx >= len(indices):
+                ax.axis("off")
+                continue
+            i = int(indices[col_idx])
+            clip_id = clip_ids[i]
+            score = float(scores[i])
+            label = int(labels[i])
+            try:
+                strip = render_clip_strip(clip_id)
+                ax.imshow(strip)
+            except Exception as exc:  # noqa: BLE001
+                ax.text(0.5, 0.5, f"unavailable\n{clip_id}\n{type(exc).__name__}",
+                        ha="center", va="center", transform=ax.transAxes,
+                        fontsize=8, color="red")
+            ax.set_title(f"{gname.split()[0]}  id={clip_id}\nscore={score:.2f}  label={label}",
+                         fontsize=9)
+            ax.axis("off")
+
+    fig.suptitle(
+        f"Phase 3 Test Sample Predictions — {err_name}\n"
+        f"val-tuned threshold = {threshold:.3f}; "
+        f"K={top_k} top TP / FP / FN by score; each clip = 8 evenly-spaced frames",
+        fontsize=11,
+    )
+    fig.tight_layout()
+    save_show(fig, name)
+
+
+plot_sample_predictions(0, "KIE", top_k=4, name="sample_predictions_kie.png")
+plot_sample_predictions(1, "KFE", top_k=4, name="sample_predictions_kfe.png")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Drive backup of all 7 figures
+# ──────────────────────────────────────────────────────────────────────────────
+
+drive_fig_dir = os.path.join(MYDRIVE, "FitNova/checkpoints/phase03/r2plus1d18_squat_supervised_v1/figures")
+os.makedirs(drive_fig_dir, exist_ok=True)
+fig_names = [
+    "training_curves.png",
+    "confusion_kie.png", "confusion_kfe.png",
+    "pr_kie.png", "pr_kfe.png",
+    "sample_predictions_kie.png", "sample_predictions_kfe.png",
+]
+for fn in fig_names:
+    src = FIG_DIR / fn
+    dst = os.path.join(drive_fig_dir, fn)
+    shutil.copy2(str(src), dst)
+print(f"\n{len(fig_names)} figures backed up to Drive: {drive_fig_dir}")
+print("\nStep 7 complete — all 7 supervisor figures saved (figures/ + Drive backup).")
+print("Phase 3 deliverables on disk: results.pkl + 7 PNGs + best.pt on Drive.")
+print("Next: Task 15 (human-verify checkpoint — you inspect the figures) + Task 16 (SUMMARY.md closeout).")
+
