@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 import time
 import zipfile
 from pathlib import Path
@@ -141,20 +142,26 @@ def _copy_with_resume_and_progress(
 
 
 def _extract_with_resume_and_progress(zip_path: Path, dest: Path) -> float:
-    """Per-member-resumable `zipfile` extract with tqdm progress. Returns wall time in seconds.
+    """Per-member-resumable extract with **flat mp4 layout**. Returns wall time in seconds.
 
-    Resume semantics: iterate `zf.infolist()` rather than `extractall`. For each member,
-    if the target file already exists at `dest / m.filename` with size matching
-    `m.file_size` (the uncompressed size from the zip header), skip the extract. Files
-    that are missing or have wrong size are (re-)extracted; existing-matching files are
-    a no-op.
+    Strips the zip's internal directory prefix — every `.mp4` member lands at
+    `dest / basename(member)` directly. The Fitness-AQA `videos.zip` is structured as
+    `videos/12345.mp4`; `splits.py` (D7) builds `video_path = videos_root + "/" + clip_id +
+    ".mp4"` and expects mp4s at the **top** of videos_root. Extracting flat avoids a
+    separate flatten step that would temporarily double disk usage.
 
-    A kernel-interrupt mid-extract leaves a partial set; re-running the cell skips the
-    already-extracted members and continues from where it stopped. The post-extract
-    count check in `stage_squat_videos` is the integrity gate.
+    Resume semantics: for each `.mp4` member, if `dest / basename(member)` already exists
+    at the correct uncompressed size, skip. Otherwise stream the member content via
+    `shutil.copyfileobj` to the target. Non-mp4 members and directory entries are logged
+    and skipped.
 
-    Tqdm postfix shows `extracted=` and `skipped=` counters so progress reflects both
-    new work and resume reuse.
+    A kernel-interrupt mid-extract survives because already-finished mp4s stay in place
+    and skip-on-next-run. Tqdm postfix shows `extracted=` vs `skipped=` counts.
+
+    Raises:
+        RuntimeError: zip contains two .mp4 members with the same basename in different
+                      subdirs (would collide on flat layout). Defensive — the Squat
+                      videos.zip is single-directory so this shouldn't fire.
     """
     try:
         from tqdm.auto import tqdm  # type: ignore[import-not-found]
@@ -163,36 +170,124 @@ def _extract_with_resume_and_progress(zip_path: Path, dest: Path) -> float:
 
     t0 = time.perf_counter()
     with zipfile.ZipFile(str(zip_path), "r") as zf:
-        members = zf.infolist()
+        all_members = zf.infolist()
+        mp4_members = [m for m in all_members if not m.is_dir() and m.filename.lower().endswith(".mp4")]
+
+        # Collision check — if two zip members would flatten to the same basename, refuse.
+        basenames = [Path(m.filename).name for m in mp4_members]
+        if len(set(basenames)) != len(basenames):
+            from collections import Counter
+            dupes = [n for n, c in Counter(basenames).items() if c > 1]
+            raise RuntimeError(
+                f"zip {zip_path.name} has duplicate .mp4 basenames across subdirs "
+                f"(would collide on flat layout): {dupes[:5]}{'...' if len(dupes) > 5 else ''}"
+            )
+
+        non_mp4_files = sum(1 for m in all_members if not m.is_dir() and not m.filename.lower().endswith(".mp4"))
+        if non_mp4_files:
+            logger.info("zip has %d non-mp4 files (skipping — flat layout is mp4-only)", non_mp4_files)
+
+        dest.mkdir(parents=True, exist_ok=True)
+
+        extracted = skipped = 0
+
+        def _do_one(m: zipfile.ZipInfo) -> None:
+            nonlocal extracted, skipped
+            target = dest / Path(m.filename).name
+            if target.exists() and target.stat().st_size == m.file_size:
+                skipped += 1
+                return
+            with zf.open(m) as src_f, target.open("wb") as dst_f:
+                shutil.copyfileobj(src_f, dst_f)
+            extracted += 1
 
         if tqdm is None:
-            extracted = skipped = 0
-            for m in members:
-                target = dest / m.filename
-                if target.exists() and target.stat().st_size == m.file_size:
-                    skipped += 1
-                else:
-                    zf.extract(m, path=str(dest))
-                    extracted += 1
-            logger.info("unzip resume: extracted=%d skipped=%d", extracted, skipped)
+            for m in mp4_members:
+                _do_one(m)
+            logger.info("unzip resume: extracted=%d skipped=%d (flat layout)", extracted, skipped)
         else:
             with tqdm(
-                total=len(members),
+                total=len(mp4_members),
                 desc=f"unzip {zip_path.name}",
                 unit="file",
                 leave=True,
             ) as pbar:
-                extracted = skipped = 0
-                for m in members:
-                    target = dest / m.filename
-                    if target.exists() and target.stat().st_size == m.file_size:
-                        skipped += 1
-                    else:
-                        zf.extract(m, path=str(dest))
-                        extracted += 1
+                for m in mp4_members:
+                    _do_one(m)
                     pbar.update(1)
                     pbar.set_postfix(extracted=extracted, skipped=skipped)
+
     return time.perf_counter() - t0
+
+
+def _migrate_nested_mp4s_to_top(local_root: Path) -> int:
+    """Migration helper: move any nested `.mp4` files up to `local_root` itself.
+
+    Returns:
+        Number of files actually moved.
+
+    Idempotent: if all mp4s are already at the top, this is a no-op. If a target
+    already exists at the top, the nested duplicate is deleted (we know it came from
+    the same source zip and is identical content). Empty subdirectories are removed
+    after the move loop.
+
+    Used for one-time migration of a session whose `videos.zip` was extracted with the
+    old behavior (preserving the `videos/` subdir prefix) so we don't have to re-download
+    1+ GB from Drive on the upgrade. Tqdm bar makes the move visible.
+    """
+    try:
+        from tqdm.auto import tqdm  # type: ignore[import-not-found]
+    except ImportError:
+        tqdm = None
+
+    nested = [p for p in local_root.rglob("*.mp4") if p.parent != local_root]
+    if not nested:
+        return 0
+
+    moved = 0
+    deduped = 0
+
+    def _do_one(src_p: Path) -> None:
+        nonlocal moved, deduped
+        target = local_root / src_p.name
+        if target.exists():
+            if target.stat().st_size == src_p.stat().st_size:
+                # Same content — drop the nested duplicate.
+                src_p.unlink()
+                deduped += 1
+            else:
+                logger.warning(
+                    "migrate: target %s already exists with DIFFERENT size; not overwriting",
+                    target,
+                )
+            return
+        src_p.rename(target)
+        moved += 1
+
+    if tqdm is None:
+        for p in nested:
+            _do_one(p)
+    else:
+        with tqdm(total=len(nested), desc="flatten nested mp4s", unit="file", leave=True) as pbar:
+            for p in nested:
+                _do_one(p)
+                pbar.update(1)
+                pbar.set_postfix(moved=moved, deduped=deduped)
+
+    # Remove now-empty subdirectories under local_root (sorted deepest-first).
+    for d in sorted(
+        (p for p in local_root.rglob("*") if p.is_dir()),
+        key=lambda p: -len(p.parts),
+    ):
+        try:
+            d.rmdir()
+        except OSError:
+            pass  # not empty — leave it
+
+    logger.info(
+        "migrate: moved=%d deduped=%d to top of %s", moved, deduped, local_root,
+    )
+    return moved + deduped
 
 
 def stage_squat_videos(
@@ -243,19 +338,44 @@ def stage_squat_videos(
     """
     local_root_p = Path(local_root)
 
-    # D15 idempotence — cache hit short-circuits before any I/O.
+    # D15 idempotence — three checks before falling through to copy + extract:
+    #   (a) cache hit (flat layout): mp4s at the top of local_root, count matches.
+    #   (b) migration: mp4s nested in a subdir (legacy/buggy state) — flatten them up
+    #       to avoid re-downloading 1+ GB just to fix the layout. Re-check (a) after.
+    #   (c) cache miss: partial or no extraction — fall through to full copy + extract.
     if local_root_p.is_dir():
-        existing = list(local_root_p.rglob("*.mp4"))
-        if len(existing) == expect_count:
+        flat_existing = list(local_root_p.glob("*.mp4"))
+        if len(flat_existing) == expect_count:
             logger.info(
-                "stage cache hit: %s already has %d .mp4 files; skipping copy + unzip",
-                local_root, expect_count,
+                "stage cache hit (flat): %d mp4s already at top of %s",
+                expect_count, local_root,
             )
             return str(local_root_p)
-        logger.info(
-            "stage cache miss: %s has %d mp4s (expected %d); re-staging",
-            local_root, len(existing), expect_count,
-        )
+
+        nested = [p for p in local_root_p.rglob("*.mp4") if p.parent != local_root_p]
+        if nested:
+            logger.info(
+                "stage migrate: %d mp4s found nested under %s — flattening to top",
+                len(nested), local_root,
+            )
+            _migrate_nested_mp4s_to_top(local_root_p)
+            flat_existing = list(local_root_p.glob("*.mp4"))
+            if len(flat_existing) == expect_count:
+                logger.info(
+                    "stage cache hit (post-migration): %d mp4s now flat at top of %s",
+                    expect_count, local_root,
+                )
+                return str(local_root_p)
+            logger.info(
+                "stage post-migration: %d at top + %d still nested — proceeding to copy + extract",
+                len(flat_existing),
+                sum(1 for _ in local_root_p.rglob("*.mp4")) - len(flat_existing),
+            )
+        else:
+            logger.info(
+                "stage cache miss: %s has %d top-level mp4s (expected %d); proceeding",
+                local_root, len(flat_existing), expect_count,
+            )
 
     src_zip = (
         Path(drive_root)
@@ -274,11 +394,15 @@ def stage_squat_videos(
     t_unzip = _extract_with_resume_and_progress(local_zip, local_root_p)
     logger.info("unzip %s -> %s in %.2fs", local_zip.name, local_root, t_unzip)
 
-    mp4s = list(local_root_p.rglob("*.mp4"))
+    # Flat-layout check — extract should have produced exactly `expect_count` mp4s at
+    # the TOP of local_root (the splits.py D7 contract).
+    mp4s = list(local_root_p.glob("*.mp4"))
     if len(mp4s) != expect_count:
+        nested_count = sum(1 for _ in local_root_p.rglob("*.mp4")) - len(mp4s)
         raise RuntimeError(
-            f"stage_squat_videos: expected {expect_count} mp4s after unzip, got {len(mp4s)} "
-            f"(check Drive zip integrity: {src_zip})"
+            f"stage_squat_videos: expected {expect_count} mp4s at top of {local_root}, "
+            f"got {len(mp4s)} flat + {nested_count} nested. "
+            f"Check Drive zip integrity: {src_zip}"
         )
 
     # Reclaim ~1+ GB by removing the local zip — extraction already succeeded.
