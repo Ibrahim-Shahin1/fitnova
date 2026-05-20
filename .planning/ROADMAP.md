@@ -8,7 +8,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 
 - [x] **Phase 1: Dataset Consolidation & EDA** - Extract, merge and verify the dataset; full exploratory analysis  *(complete 2026-05-20)*
 - [x] **Phase 2: Squat Data Pipeline & Colab Harness** - PyTorch loaders + a resumable Colab training harness  *(complete 2026-05-20)*
-- [ ] **Phase 3: Squat Supervised Baseline** - R(2+1)D-18 baseline for KIE/KFE, F1 on the official split
+- [x] **Phase 3: Squat Supervised Baseline** - R(2+1)D-18 baseline for KIE/KFE, F1 on the official split  *(complete 2026-05-20)*
 - [ ] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison
 - [ ] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API
 - [ ] **Phase 6: Overhead Press** - Extend the video pipeline to OHP Elbow/Knees errors
@@ -43,18 +43,18 @@ Plans:
 Plans:
 - [x] 02-01: Squat PyTorch pipeline + resumable Colab harness + 2-epoch tiny smoke + bitwise-resume proof (16 tasks)
 
-### Phase 3: Squat Supervised Baseline
+### Phase 3: Squat Supervised Baseline  *(Complete — 2026-05-20)*
 **Goal**: A working supervised baseline detector for Squat KIE and KFE with F1 on the official test split.
 **Depends on**: Phase 2
 **Requirements**: SQUAT-03
 **Success Criteria** (what must be TRUE):
-  1. An R(2+1)D-18 (Kinetics-init) model trains to convergence on the labeled Squat set
-  2. F1 per error is reported on the official test split, in the range of the paper's supervised baseline
-  3. Training curves, confusion matrices and PR curves are produced
+  1. ✓ An R(2+1)D-18 (Kinetics-init) model trains to convergence on the labeled Squat set
+  2. ✓ F1 per error is reported on the official test split, in the range of the paper's supervised baseline
+  3. ✓ Training curves, confusion matrices and PR curves are produced
 **Plans**: 1 plan
 
 Plans:
-- [ ] 03-01: Squat supervised baseline — R(2+1)D-18 Kinetics-V1 fine-tune + threshold sweep + test eval + 6 supervisor figures (16 tasks)
+- [x] 03-01: Squat supervised baseline — R(2+1)D-18 Kinetics-V1 fine-tune + threshold sweep + test eval + 7 supervisor figures (16 tasks; test KIE 0.286 / KFE 0.800 / macro 0.543 at val-tuned thresholds; matches paper Kinetics row within 2%)
 
 ### Phase 4: Squat Motion-Disentangling SSL
 **Goal**: Domain-knowledge self-supervised pretraining that improves Squat error detection over the baseline.
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. Dataset Consolidation & EDA | 1/1 | Complete | 2026-05-20 |
 | 2. Squat Data Pipeline & Colab Harness | 1/1 | Complete | 2026-05-20 |
-| 3. Squat Supervised Baseline | 0/1 | Planned | - |
+| 3. Squat Supervised Baseline | 1/1 | Complete | 2026-05-20 |
 | 4. Squat Motion-Disentangling SSL | 0/TBD | Not started | - |
 | 5. Backend Inference Integration (Squat) | 0/TBD | Not started | - |
 | 6. Overhead Press | 0/TBD | Not started | - |

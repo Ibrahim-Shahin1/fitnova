@@ -17,7 +17,7 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 - [ ] **SQUAT-01**: PyTorch data pipeline for Squat KIE/KFE — decode, 32-frame sampling, transforms, official-split loaders
 - [ ] **SQUAT-02**: Resumable Colab training harness — checkpoints to Google Drive each epoch, auto-resumes after a disconnect
-- [ ] **SQUAT-03**: Supervised baseline (R(2+1)D-18, Kinetics-init) trained; F1 per error on the official Squat test split
+- [x] **SQUAT-03**: Supervised baseline (R(2+1)D-18, Kinetics-init) trained; F1 per error on the official Squat test split  *(complete 2026-05-20 — test KIE 0.286 / KFE 0.800 / macro 0.543 at val-tuned thresholds; within 2% of paper Kinetics row)*
 - [ ] **SQUAT-04**: Motion-Disentangling self-supervised pretraining on the unlabeled Squat set
 - [ ] **SQUAT-05**: MD-pretrained model fine-tuned for KIE/KFE; F1 vs baseline and vs published numbers
 
@@ -75,7 +75,7 @@ Deferred to a future milestone.
 | DATA-03 | Phase 1 | Pending |
 | SQUAT-01 | Phase 2 | Pending |
 | SQUAT-02 | Phase 2 | Pending |
-| SQUAT-03 | Phase 3 | Pending |
+| SQUAT-03 | Phase 3 | Complete |
 | SQUAT-04 | Phase 4 | Pending |
 | SQUAT-05 | Phase 4 | Pending |
 | API-01 | Phase 5 | Pending |
