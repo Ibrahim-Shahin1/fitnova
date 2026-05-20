@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import logging
 import os
-import shutil
 import time
 import zipfile
 from pathlib import Path
@@ -66,6 +65,65 @@ def mount_drive() -> str:
     return _DRIVE_MYDRIVE
 
 
+def _copy_with_progress(src: Path, dst: Path, *, chunk_size: int = 16 * 1024 * 1024) -> float:
+    """Chunked binary copy with tqdm byte-progress. Returns wall time in seconds.
+
+    Chunked rather than `shutil.copy` so the user sees byte-level progress during a slow
+    Drive read. Re-running after a mid-copy disconnect overwrites the partial `dst` from
+    byte 0 — no byte-level resume; the cache check in `stage_squat_videos` handles the
+    "did we finish?" question via post-extract mp4 count.
+    """
+    try:
+        from tqdm.auto import tqdm  # type: ignore[import-not-found]
+    except ImportError:
+        tqdm = None  # graceful fallback — log only
+
+    total = src.stat().st_size
+    t0 = time.perf_counter()
+    with src.open("rb") as fin, dst.open("wb") as fout:
+        if tqdm is None:
+            while True:
+                buf = fin.read(chunk_size)
+                if not buf:
+                    break
+                fout.write(buf)
+        else:
+            with tqdm(
+                total=total, unit="B", unit_scale=True, unit_divisor=1024,
+                desc=f"copy {src.name}", leave=True,
+            ) as pbar:
+                while True:
+                    buf = fin.read(chunk_size)
+                    if not buf:
+                        break
+                    fout.write(buf)
+                    pbar.update(len(buf))
+    return time.perf_counter() - t0
+
+
+def _extract_with_progress(zip_path: Path, dest: Path) -> float:
+    """`zipfile` extract with per-member tqdm progress. Returns wall time in seconds.
+
+    Re-running after a mid-extract disconnect overwrites partial files in-place — zipfile
+    will rewrite each member from scratch, which is correct (no partial-file resume but
+    no corruption either since the final mp4 count is verified afterwards).
+    """
+    try:
+        from tqdm.auto import tqdm  # type: ignore[import-not-found]
+    except ImportError:
+        tqdm = None
+
+    t0 = time.perf_counter()
+    with zipfile.ZipFile(str(zip_path), "r") as zf:
+        members = zf.infolist()
+        iterator = members if tqdm is None else tqdm(
+            members, desc=f"unzip {zip_path.name}", unit="file", leave=True,
+        )
+        for m in iterator:
+            zf.extract(m, path=str(dest))
+    return time.perf_counter() - t0
+
+
 def stage_squat_videos(
     drive_root: str,
     *,
@@ -77,6 +135,14 @@ def stage_squat_videos(
     Drive FUSE per-frame reads are too slow for training (Phase 1 measurement: ~2.5s per
     archive open from Drive vs. effectively zero from local disk). Per-session staging
     to `/content/` local disk is the build constraint for any video iteration.
+
+    **Progress:** `_copy_with_progress` and `_extract_with_progress` show tqdm bars so the
+    cell is never silent during the slow steps. Graceful fallback if tqdm isn't present.
+
+    **Disconnect resume (restart, not byte-level):** the function is **re-runnable**.
+    Cache hit (exactly `expect_count` mp4s in `local_root`) is a millisecond no-op. On
+    a partial state, cache miss re-triggers the full copy + extract; partial files are
+    overwritten in place; the post-extract count check is the integrity gate.
 
     Cache hit semantics: if `local_root` already contains exactly `expect_count` `.mp4`
     files (any nesting), the function is a no-op and returns immediately. Otherwise it
@@ -120,18 +186,13 @@ def stage_squat_videos(
         raise FileNotFoundError(f"Source zip not found on Drive: {src_zip}")
 
     local_zip = Path("/content/squat_videos.zip")
-
-    t0 = time.perf_counter()
-    shutil.copy(str(src_zip), str(local_zip))
-    t_copy = time.perf_counter() - t0
     size_mb = src_zip.stat().st_size / 1e6
+
+    t_copy = _copy_with_progress(src_zip, local_zip)
     logger.info("copy %s -> %s (%.1f MB) in %.2fs", src_zip.name, local_zip, size_mb, t_copy)
 
     local_root_p.mkdir(parents=True, exist_ok=True)
-    t1 = time.perf_counter()
-    with zipfile.ZipFile(str(local_zip), "r") as zf:
-        zf.extractall(str(local_root_p))
-    t_unzip = time.perf_counter() - t1
+    t_unzip = _extract_with_progress(local_zip, local_root_p)
     logger.info("unzip %s -> %s in %.2fs", local_zip.name, local_root, t_unzip)
 
     mp4s = list(local_root_p.rglob("*.mp4"))
