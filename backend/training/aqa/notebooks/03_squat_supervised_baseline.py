@@ -409,11 +409,71 @@ print("=" * 72)
 # %% [markdown]
 # ## Step 4 — full supervised training run (Task 11)
 #
-# Run `run_supervised_epoch(resume=True, max_epochs=config.max_epochs)` with the
-# config authorised in Step 3. Per-epoch tqdm + per-epoch metric log lines +
-# atomic checkpoint per epoch + `best.pt` on val-macro-F1 improvement (D13).
-# Disconnect during? Re-run Step 0 + skip Steps 1–3 + re-run Step 4 — resume
-# from `latest.txt`.
+# **Long-running cell — ~3-4 h on L4 with Step 3's measured 5.3 min/epoch and
+# 8-epoch val-macro-F1 early-stop patience.** Per-epoch tqdm + metric log lines
+# + atomic `epoch_NNN.pt` per epoch + `best.pt` on val-macro-F1 improvement
+# (D13). Disconnect mid-run? Re-run Cell A → Step 0 → Step 4 — `resume=True`
+# picks up from `latest.txt` automatically (Phase 2 atomic-write contract).
+
+# %%
+import os
+
+from backend.training.aqa.harness.supervised_train import (
+    SupervisedConfig,
+    run_supervised_epoch,
+)
+
+config = SupervisedConfig()  # option-a authorised at Step 3 (4.44 h ≤ 8 h)
+RUN_NAME = "r2plus1d18_squat_supervised_v1"  # PLAN.md specifics
+
+print(f"Starting Phase 3 production run: {RUN_NAME}")
+print(f"  max_epochs            = {config.max_epochs}")
+print(f"  early_stop_patience   = {config.early_stop_patience}")
+print(f"  batch_size            = {config.batch_size}")
+print(f"  num_workers           = {config.num_workers}")
+print(f"  learning_rate         = {config.learning_rate}")
+print(f"  weight_decay          = {config.weight_decay}")
+print(f"  scheduler             = {config.scheduler_name} (T_max={config.scheduler_t_max})")
+print(f"\nDisconnect-safe: re-run Cell A → Step 0 → Step 4 to resume from latest.txt.\n")
+
+result = run_supervised_epoch(
+    run_name=RUN_NAME,
+    drive_root=MYDRIVE,
+    videos_root=VIDEOS_ROOT,
+    seed=42,
+    config=config,
+    resume=True,                       # idempotent — picks up from latest.txt on rerun
+    max_epochs=config.max_epochs,      # 50
+)
+
+run_dir = os.path.dirname(result["checkpoint_path"])
+print("\n" + "=" * 72)
+print("Phase 3 training complete (or stopped early on val-macro-F1 plateau).")
+print(f"  Final epoch reached    : {result['epoch']}")
+print(f"  best_f1_val (macro)    : {result['best_f1_val']:.4f}")
+print(f"  Last checkpoint        : {result['checkpoint_path']}")
+print(f"  Best checkpoint        : {result['best_checkpoint_path']}")
+print(f"  Run dir                : {run_dir}")
+print("=" * 72)
+
+# SQUAT-03-f acceptance: best.pt exists at ~360 MB scale.
+assert os.path.exists(result["best_checkpoint_path"]), result["best_checkpoint_path"]
+best_size_mb = os.path.getsize(result["best_checkpoint_path"]) / (1024 ** 2)
+print(f"\nbest.pt size: {best_size_mb:.0f} MB")
+assert 300 < best_size_mb < 500, f"best.pt size {best_size_mb:.0f} MB out of range"
+assert result["epoch"] >= 5, f"Final epoch {result['epoch']} < 5; training did not converge enough"
+assert result["best_f1_val"] > 0.5, f"best_f1_val={result['best_f1_val']:.4f} ≤ 0.5; suspect training divergence"
+
+# Per-epoch summary table (for paste-back).
+print("\nPer-epoch metrics history:")
+print(f"  {'ep':>3s} {'tr_loss':>8s} {'vl_loss':>8s} {'f1_kie':>7s} {'f1_kfe':>7s} {'macro':>7s} {'time_s':>7s}")
+for entry in result["metrics_history"]:
+    print(
+        f"  {entry['epoch']:>3d} {entry['train_loss_mean']:>8.4f} "
+        f"{entry['val_loss_mean']:>8.4f} {entry['val_f1_kie']:>7.4f} "
+        f"{entry['val_f1_kfe']:>7.4f} {entry['val_macro_f1']:>7.4f} "
+        f"{entry['epoch_wall_time_s']:>7.1f}"
+    )
 
 
 # %% [markdown]
