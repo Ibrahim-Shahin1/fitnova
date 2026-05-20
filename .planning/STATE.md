@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 1 of 8 (Dataset Consolidation & EDA)
-Plan: 1 of 1 in current phase
-Status: In progress — EDA
-Last activity: 2026-05-19 — Phase 1 planned (01-01-PLAN.md); Colab Drive access verified (8/8 archives readable); dataset audit underway
+Phase: 2 of 8 (Squat Data Pipeline & Colab Harness) — ready to plan
+Plan: 0 of TBD in current phase
+Status: Phase 1 complete; Phase 2 ready
+Last activity: 2026-05-20 — Phase 1 closed; dataset characterized end-to-end (see 01-DATASET-REPORT.md); all 7 errors reconcile with the published figures; Squat-first slice on clean ground
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 12%
 
 ## Performance Metrics
 
@@ -45,6 +45,10 @@ Recent decisions affecting current work:
 - Init: Rebuild form-correction on Fitness-AQA; scrap the v4–v7 / QEVD line
 - Init: Squat-first vertical slice; supervised baseline before domain-knowledge SSL
 - Init: Binary detection + timing feedback; PyTorch for the form model
+- Phase 1: Use the Drive shortcut in place (verified, 8/8 archives readable) — no preprocessing of Drive layout; copy zip → local per Colab session for training
+- Phase 1: Joint multi-label head over a shared backbone for Squat (KIE & KFE co-occur — 192 of 232 KIE+ also KFE+)
+- Phase 1: Notebook artifacts as `.py` jupytext-percent format (git-friendly; converts to .ipynb when needed)
+- Phase 1: OHP barbell-trajectory preprocessing deferred to Phase 6 (track-0 default + NaN interpolation)
 
 ### Pending Todos
 
@@ -64,6 +68,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-19
-Stopped at: Phase 1 planned; Drive access verified; running Task 1 (dataset audit) interactively in Colab
+Last session: 2026-05-20
+Stopped at: Phase 1 complete (dataset report + EDA notebook + summary committed). Recommend fresh chat for Phase 2 — clean GSD boundary.
 Resume file: None

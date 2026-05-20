@@ -6,7 +6,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 
 ## Phases
 
-- [ ] **Phase 1: Dataset Consolidation & EDA** - Extract, merge and verify the dataset; full exploratory analysis
+- [x] **Phase 1: Dataset Consolidation & EDA** - Extract, merge and verify the dataset; full exploratory analysis  *(complete 2026-05-20)*
 - [ ] **Phase 2: Squat Data Pipeline & Colab Harness** - PyTorch loaders + a resumable Colab training harness
 - [ ] **Phase 3: Squat Supervised Baseline** - R(2+1)D-18 baseline for KIE/KFE, F1 on the official split
 - [ ] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison
@@ -17,7 +17,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 
 ## Phase Details
 
-### Phase 1: Dataset Consolidation & EDA
+### Phase 1: Dataset Consolidation & EDA  *(Complete — 2026-05-20)*
 **Goal**: One clean, verified Fitness-AQA dataset tree and a complete characterization of it.
 **Depends on**: Nothing (first phase)
 **Requirements**: DATA-01, DATA-02, DATA-03
@@ -25,7 +25,10 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
   1. The nested video/image archives are extracted and the 4 split-folders merged into one consistent tree
   2. Sample counts per exercise/error reconcile with the official train/val/test split JSONs
   3. An EDA report exists with visualizations: class balance, clip-length/property distributions, sample frames, barbell-trajectory curves, error co-occurrence
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [x] 01-01: Dataset audit, label/split reconciliation, EDA & dataset report
 
 ### Phase 2: Squat Data Pipeline & Colab Harness
 **Goal**: A tested PyTorch data pipeline for Squat KIE/KFE and a Colab training harness that survives disconnects.
@@ -104,7 +107,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Dataset Consolidation & EDA | 0/TBD | Not started | - |
+| 1. Dataset Consolidation & EDA | 1/1 | Complete | 2026-05-20 |
 | 2. Squat Data Pipeline & Colab Harness | 0/TBD | Not started | - |
 | 3. Squat Supervised Baseline | 0/TBD | Not started | - |
 | 4. Squat Motion-Disentangling SSL | 0/TBD | Not started | - |
