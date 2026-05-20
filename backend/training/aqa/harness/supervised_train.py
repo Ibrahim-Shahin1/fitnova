@@ -226,6 +226,18 @@ def _build_dataloaders(
     g = torch.Generator()
     g.manual_seed(seed)
 
+    # `persistent_workers=True` (when num_workers > 0) keeps workers alive across
+    # iterations instead of fork-spawning per epoch. Two wins: (1) suppresses the
+    # known PyTorch #40157 spam at end-of-epoch DataLoader iterator __del__
+    # (AssertionError "can only test a child process" from is_alive() called via
+    # a child process context — harmless but floods stderr); (2) per-epoch
+    # restart overhead drops (no fresh worker fork). Not in D12 config_hash so
+    # adding it doesn't invalidate resume from existing checkpoints.
+    # PyTorch requires `num_workers > 0` for `persistent_workers=True`; the
+    # `config.num_workers > 0` guard preserves the num_workers=0 fallback path
+    # for CPU-only smoke runs.
+    _persistent = config.num_workers > 0
+
     # D4 / RESEARCH §2: direct DataLoader construction with seed_worker re-seed.
     train_loader = DataLoader(
         train_ds,
@@ -235,6 +247,7 @@ def _build_dataloaders(
         generator=g,
         shuffle=True,
         drop_last=False,
+        persistent_workers=_persistent,
     )
     val_loader = DataLoader(
         val_ds,
@@ -244,6 +257,7 @@ def _build_dataloaders(
         generator=g,
         shuffle=False,
         drop_last=False,
+        persistent_workers=_persistent,
     )
     test_loader = DataLoader(
         test_ds,
@@ -253,6 +267,7 @@ def _build_dataloaders(
         generator=g,
         shuffle=False,
         drop_last=False,
+        persistent_workers=_persistent,
     )
     return {"train": train_loader, "val": val_loader, "test": test_loader}
 
