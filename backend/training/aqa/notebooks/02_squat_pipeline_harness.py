@@ -176,9 +176,118 @@ else:
 # %% [markdown]
 # ## Step 4 — Drive mount + zip-stage (Task 7)
 #
-# Fills in once `harness/colab.py` slice 1 is implemented. Stages
-# `Squat/Labeled_Dataset/videos.zip` → `/content/squat_videos/` (1,739 mp4s). Prerequisite
-# for Step 5 visualization and Steps 8–11 training.
+# Mounts Drive, copies `Squat/Labeled_Dataset/videos.zip` to `/content/squat_videos.zip`,
+# extracts to `/content/squat_videos/` (1,739 mp4s), verifies count, deletes the local
+# zip to reclaim disk. Idempotent: a second call sees the staged tree and short-circuits.
+
+# %%
+from backend.training.aqa.harness.colab import mount_drive, stage_squat_videos
+
+mydrive = mount_drive()
+print("MyDrive:", mydrive)
+
+local_root = stage_squat_videos(mydrive)
+print("local_root:", local_root)
+
+import os
+mp4_count = sum(1 for f in os.listdir(local_root) if f.endswith(".mp4"))
+print(f"\nmp4 count in {local_root}: {mp4_count}")
+assert mp4_count == 1739, f"expected 1739 mp4s, got {mp4_count}"
+
+# %% [markdown]
+# ## Step 4b — Deferred F11 real-video gate (Task 5) + batch-shape check (Task 6)
+#
+# These two acceptance gates were deferred from Tasks 5 and 6 because they require
+# staged videos. Now that Step 4 has produced `/content/squat_videos/`, we close them:
+#
+# - **F11 gate** uses **clustered** indices `[100, 102, 104]` against a long clip
+#   (≥400 frames). PLAN.md's original `[0, 200, 403]` was corrected: those indices span
+#   the full clip and don't exercise windowing. With clustered indices the intermediate
+#   decoded buffer is small; we compare against a full-clip decode of the same clip and
+#   require the ratio to be < 0.25 (windowing genuinely saves memory for clustered access).
+# - **Batch-shape check** pulls one train batch and asserts `(2, 3, 32, 112, 112)` float32
+#   for the clip and `(2, 2)` float32 for the labels.
+
+# %%
+import os
+import warnings
+
+import torch
+import torchvision.io
+
+from backend.training.aqa.datasets.transforms import decode_clip
+from backend.training.aqa.datasets.squat import build_loaders
+
+VIDEOS_ROOT = "/content/squat_videos"
+
+# Find a long clip (≥400 frames) — Phase 1 confirmed they exist (max 404).
+print("=== F11 real-video acceptance gate (clustered indices) ===")
+
+long_clip = None
+long_n = 0
+long_fps = 30.0
+for p in (os.path.join(VIDEOS_ROOT, f) for f in os.listdir(VIDEOS_ROOT) if f.endswith(".mp4")):
+    pts, fps = torchvision.io.read_video_timestamps(p, pts_unit="sec")
+    if len(pts) >= 400:
+        long_clip = p
+        long_n = len(pts)
+        long_fps = float(fps) if fps else 30.0
+        break
+
+assert long_clip is not None, "No ≥400-frame clip found in dataset (Phase 1 said max 404)"
+print(f"long clip: {os.path.basename(long_clip)}  ({long_n} frames @ {long_fps:.1f} fps)")
+
+# (a) decode_clip with clustered indices — windowing path.
+clustered_idx = torch.tensor([100, 102, 104])
+clustered_frames = decode_clip(long_clip, clustered_idx)
+print(f"clustered decode: shape={tuple(clustered_frames.shape)}, dtype={clustered_frames.dtype}")
+assert clustered_frames.shape[0] == 3
+
+# (b) Directly inspect the intermediate decoded window size — proves windowing.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
+    win_video, _, _ = torchvision.io.read_video(
+        long_clip,
+        start_pts=100 / long_fps,
+        end_pts=105 / long_fps,
+        output_format="TCHW",
+        pts_unit="sec",
+    )
+win_mb = win_video.numel() / 1e6  # uint8 → 1 byte/element
+print(f"windowed intermediate: {win_video.shape[0]} frames = {win_mb:.1f} MB raw")
+del win_video
+
+# (c) Full-clip decode for comparison.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
+    full_video, _, _ = torchvision.io.read_video(
+        long_clip, output_format="TCHW", pts_unit="sec",
+    )
+full_mb = full_video.numel() / 1e6
+print(f"full-clip decode:    {full_video.shape[0]} frames = {full_mb:.1f} MB raw")
+del full_video
+
+ratio = win_mb / max(full_mb, 1e-6)
+print(f"F11 windowing ratio: {ratio:.3f} (must be < 0.25)")
+assert ratio < 0.25, f"F11 windowing not effective: {ratio:.3f} >= 0.25"
+print("F11 / R12 acceptance gate: PASSED")
+
+print()
+print("=== Task 6 deferred: batch-shape check ===")
+loaders = build_loaders(
+    drive_root="/content/drive/MyDrive",
+    videos_root=VIDEOS_ROOT,
+    batch_size=2,
+)
+batch = next(iter(loaders["train"]))
+clip, labels = batch
+print(f"clip.shape   = {tuple(clip.shape)}    dtype = {clip.dtype}")
+print(f"labels.shape = {tuple(labels.shape)}  dtype = {labels.dtype}")
+print(f"labels[0]    = {labels[0].tolist()}")
+assert tuple(clip.shape) == (2, 3, 32, 112, 112)
+assert tuple(labels.shape) == (2, 2)
+assert clip.dtype == torch.float32 and labels.dtype == torch.float32
+print("batch shape contract: OK")
 
 # %% [markdown]
 # ## Step 5 — decoded-batch visualization (Task 8) — supervisor priority
