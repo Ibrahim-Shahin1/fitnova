@@ -158,3 +158,6 @@ backend/models/form_model_v6_1_smoke/
 
 # Local user test videos used by reality_check_v*.py D9. Personal data.
 backend/training/diagnostics/references/input_clips/*.mp4
+
+# Fitness-AQA official Code_Release — cloned for inspection, not tracked
+Fitness-AQA-Code/
