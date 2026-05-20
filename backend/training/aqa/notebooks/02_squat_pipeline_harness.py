@@ -47,9 +47,39 @@ print("exists:", os.path.exists(ROOT))
 # %% [markdown]
 # ## Step 1 — official splits + labels (Task 4)
 #
-# Fills in once `backend/training/aqa/datasets/splits.py` is implemented. Cell will call
-# `index("train", drive_root=ROOT, videos_root=...)` and print per-split counts +
-# (KIE+, KFE+) tuples for reconciliation against Phase 1 (1136/243/244).
+# Loads `{train,val,test}_keys.json` + `error_knees_{inward,forward}.json` via
+# `backend.training.aqa.datasets.splits.index`. Reconciles per-split counts against
+# Phase 1 (1136/243/244) and confirms splits are disjoint (Phase 1 invariant).
+# `videos_root` is interpolated into each record's `video_path` but not opened here —
+# the .mp4 files don't need to be staged yet (that's Task 7).
+
+# %%
+from backend.training.aqa.datasets.splits import index, expected_counts, ClipRecord
+
+DRIVE_ROOT = "/content/drive/MyDrive"
+VIDEOS_ROOT = "/content/squat_videos"   # interpolated into record.video_path; not opened here
+
+print("expected counts:", expected_counts())
+print()
+
+all_ids: dict[str, set[str]] = {}
+for split_name in ("train", "val", "test"):
+    recs = index(split_name, drive_root=DRIVE_ROOT, videos_root=VIDEOS_ROOT)
+    kie_pos = sum(r.label_kie for r in recs)
+    kfe_pos = sum(r.label_kfe for r in recs)
+    print(f"{split_name:5s}: {len(recs):4d} records   KIE+ {kie_pos:3d}   KFE+ {kfe_pos:3d}")
+    all_ids[split_name] = {r.clip_id for r in recs}
+
+print()
+print("=== disjointness check (Phase 1 invariant) ===")
+for a, b in [("train", "val"), ("train", "test"), ("val", "test")]:
+    overlap = all_ids[a] & all_ids[b]
+    print(f"{a} ∩ {b}: {len(overlap)} overlapping ids (must be 0)")
+
+print()
+print("=== first train record (spot check) ===")
+first = index("train", drive_root=DRIVE_ROOT, videos_root=VIDEOS_ROOT)[0]
+print(first)
 
 # %% [markdown]
 # ## Step 2 — transforms + decode smoke test (Task 5)
