@@ -434,8 +434,14 @@ def run_supervised_epoch(
 
     # Resume branch (D11 + Phase 2 contract).
     if resume:
+        # map_location='cpu' is REQUIRED — torch.cuda.set_rng_state_all rejects
+        # CUDA ByteTensors with "RNG state must be a torch.ByteTensor" (the type
+        # system distinguishes CPU vs CUDA ByteTensors). Loading to CPU keeps
+        # RNG ByteTensors on CPU; model.load_state_dict / optimizer.load_state_dict
+        # handle their own device transfer to `device` automatically. Mirrors
+        # Phase 2's tiny_train.py which uses the load_latest_checkpoint default.
         prior = load_latest_checkpoint(
-            run_dir, expected_config_hash=config_hash_str, map_location=str(device),
+            run_dir, expected_config_hash=config_hash_str, map_location="cpu",
         )
         if prior is not None:
             model.load_state_dict(prior["model_state_dict"])
