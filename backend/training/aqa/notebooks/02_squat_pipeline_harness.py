@@ -49,6 +49,16 @@ if torch.cuda.is_available():
 
 print("CUBLAS_WORKSPACE_CONFIG:", os.environ.get("CUBLAS_WORKSPACE_CONFIG"))
 
+# Sanity-check torchvision.io has its PyAV backend wired — NO video needed for this,
+# we just inspect that `av` inside the torchvision.io.video module is a real module
+# (not an Exception placeholder from a failed import).
+from torchvision.io.video import av as _tv_av_ref
+assert not isinstance(_tv_av_ref, Exception), (
+    "torchvision.io cached `av` as an Exception — PyAV install ordered wrong. "
+    "Step 0 must install av BEFORE importing torch/torchvision."
+)
+print("torchvision.io PyAV backend: ready (no probe needed; real videos exercised in Step 4)")
+
 from google.colab import drive
 drive.mount('/content/drive')
 
