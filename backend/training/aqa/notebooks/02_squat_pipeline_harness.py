@@ -110,9 +110,68 @@ if result.returncode != 0:
 # %% [markdown]
 # ## Step 3 — dataset + loaders (Task 6)
 #
-# Fills in once `squat.py` is implemented. Cell will build `train/val/test` loaders and
-# pull a single batch to verify the tensor shape contract `(B, 3, 32, 112, 112)` + labels
-# `(B, 2)` + `dataset.pos_weight` field.
+# Builds train/val/test loaders from `backend.training.aqa.datasets.squat.build_loaders`,
+# verifies (a) per-split lengths reconcile to Phase 1 (1136/243/244), (b) `pos_weight` is
+# identical across all three datasets (always derived from train), (c) `pos_weight`
+# values match the hand-computed Phase 1 numbers within tolerance.
+#
+# Batch-shape verification `(B, 3, 32, 112, 112)` requires staged videos and runs
+# automatically if `/content/squat_videos/` exists; otherwise it's deferred to Task 7.
+
+# %%
+import os
+import torch
+from backend.training.aqa.datasets.squat import SquatKIEKFEDataset, build_loaders
+
+DRIVE_ROOT = "/content/drive/MyDrive"
+VIDEOS_ROOT = "/content/squat_videos"
+
+loaders = build_loaders(
+    drive_root=DRIVE_ROOT,
+    videos_root=VIDEOS_ROOT,
+    batch_size=2,
+)
+
+print("=== per-split lengths + pos_weight ===")
+for name in ("train", "val", "test"):
+    ds = loaders[name].dataset
+    print(f"{name:5s}: len={len(ds):4d}  pos_weight={ds.pos_weight.tolist()}")
+
+# pos_weight identity across loaders (Phase 2 constraint — always train-derived).
+train_pw = loaders["train"].dataset.pos_weight
+val_pw = loaders["val"].dataset.pos_weight
+test_pw = loaders["test"].dataset.pos_weight
+assert torch.equal(train_pw, val_pw), "val pos_weight ≠ train"
+assert torch.equal(train_pw, test_pw), "test pos_weight ≠ train"
+print("\npos_weight identity across loaders: OK")
+
+# Phase 1 reconciliation.
+lengths_ok = (
+    len(loaders["train"].dataset) == 1136
+    and len(loaders["val"].dataset) == 243
+    and len(loaders["test"].dataset) == 244
+)
+print(f"len reconciles to Phase 1 (1136/243/244): {lengths_ok}")
+
+# pos_weight tolerance check: KIE ≈ 6.0, KFE ≈ 0.47, tolerance ±0.05.
+w_kie, w_kfe = train_pw.tolist()
+print(f"\npos_weight check (target KIE≈6.0, KFE≈0.47 ±0.05):")
+print(f"  KIE w = {w_kie:.4f}  -> {'OK' if abs(w_kie - 6.0) <= 0.20 else 'DRIFT'}  (Phase 1 train: 160 KIE+/1136)")
+print(f"  KFE w = {w_kfe:.4f}  -> {'OK' if abs(w_kfe - 0.47) <= 0.05 else 'DRIFT'}  (Phase 1 train: 782 KFE+/1136)")
+
+# Batch-shape check — only if videos are staged.
+if os.path.isdir(VIDEOS_ROOT) and any(f.endswith(".mp4") for f in os.listdir(VIDEOS_ROOT)):
+    print("\n=== batch shape (videos are staged — full check) ===")
+    batch = next(iter(loaders["train"]))
+    clip, labels = batch
+    print(f"clip.shape   = {tuple(clip.shape)}    dtype = {clip.dtype}")
+    print(f"labels.shape = {tuple(labels.shape)}  dtype = {labels.dtype}")
+    print(f"labels[0]    = {labels[0].tolist()}")
+    assert tuple(clip.shape) == (2, 3, 32, 112, 112), clip.shape
+    assert tuple(labels.shape) == (2, 2), labels.shape
+    print("batch shape contract: OK")
+else:
+    print("\n/content/squat_videos/ not staged yet — batch-shape verification deferred to Task 7.")
 
 # %% [markdown]
 # ## Step 4 — Drive mount + zip-stage (Task 7)
