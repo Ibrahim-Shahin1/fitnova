@@ -1,0 +1,112 @@
+# Phase 2 — Squat Data Pipeline & Resumable Colab Harness
+#
+# Companion notebook to `.planning/phases/02-squat-data-pipeline-colab-harness/02-01-PLAN.md`.
+# Reference: `02-CONTEXT.md` (locked decisions), `02-RESEARCH.md` (technical findings),
+# `CODE-RELEASE-NOTES.md` (gap analysis of the official Code_Release).
+#
+# Run in Colab. Mounts the user's Drive shortcut `My Drive/Fitness-AQA_dataset_release`.
+#
+# Jupytext "percent" format: each `# %%` marker starts a new cell. Open in Colab via
+# `pip install jupytext && jupytext --to ipynb 02_squat_pipeline_harness.py`,
+# or paste cells one at a time.
+
+# %% [markdown]
+# ## Step 0 — environment + Drive mount
+#
+# **F8 import-order constraint (PLAN.md D13, `<determinism_checklist>`):** the first
+# line of the next cell **MUST** be `from backend.training.aqa.harness import _envinit`.
+# This sets `CUBLAS_WORKSPACE_CONFIG=:4096:8` **before** any `import torch` triggers CUDA
+# context creation. If torch is imported first, `torch.use_deterministic_algorithms(True)`
+# (Task 9) will raise at runtime. Do not reorder.
+
+# %%
+from backend.training.aqa.harness import _envinit  # F8: sets CUBLAS_WORKSPACE_CONFIG before torch
+
+import os
+import sys
+import torch
+import torchvision
+
+print("python   :", sys.version.split()[0])
+print("torch    :", torch.__version__)
+print("torchvision:", torchvision.__version__)
+print("CUDA available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("CUDA device :", torch.cuda.get_device_name(0))
+
+print("CUBLAS_WORKSPACE_CONFIG:", os.environ.get("CUBLAS_WORKSPACE_CONFIG"))
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+MYDRIVE = '/content/drive/MyDrive'
+ROOT = os.path.join(MYDRIVE, 'Fitness-AQA_dataset_release')
+print("\nROOT :", ROOT)
+print("exists:", os.path.exists(ROOT))
+
+# %% [markdown]
+# ## Step 1 — official splits + labels (Task 4)
+#
+# Fills in once `backend/training/aqa/datasets/splits.py` is implemented. Cell will call
+# `index("train", drive_root=ROOT, videos_root=...)` and print per-split counts +
+# (KIE+, KFE+) tuples for reconciliation against Phase 1 (1136/243/244).
+
+# %% [markdown]
+# ## Step 2 — transforms + decode smoke test (Task 5)
+#
+# Fills in once `transforms.py` is implemented. Cell will decode one real Squat clip via
+# `decode_clip(path, indices)`, verify peak memory < 200 MB on a 400-frame clip
+# (RESEARCH §5 OOM defense), and inspect the sampled-and-cropped frames visually.
+
+# %% [markdown]
+# ## Step 3 — dataset + loaders (Task 6)
+#
+# Fills in once `squat.py` is implemented. Cell will build `train/val/test` loaders and
+# pull a single batch to verify the tensor shape contract `(B, 3, 32, 112, 112)` + labels
+# `(B, 2)` + `dataset.pos_weight` field.
+
+# %% [markdown]
+# ## Step 4 — Drive mount + zip-stage (Task 7)
+#
+# Fills in once `harness/colab.py` slice 1 is implemented. Stages
+# `Squat/Labeled_Dataset/videos.zip` → `/content/squat_videos/` (1,739 mp4s). Prerequisite
+# for Step 5 visualization and Steps 8–11 training.
+
+# %% [markdown]
+# ## Step 5 — decoded-batch visualization (Task 8) — supervisor priority
+#
+# Fills in once Tasks 4–7 are in place. Renders a 2×8 grid of decoded-and-augmented
+# frames from the train loader, saves to
+# `.planning/phases/02-squat-data-pipeline-colab-harness/figures/decoded_batch.png`. Task
+# 15 is a blocking human-verify gate against five concrete visual criteria.
+
+# %% [markdown]
+# ## Step 6 — RNG capture/restore + cudnn determinism (Task 9)
+#
+# Fills in once `harness/colab.py` slice 2 is implemented. Round-trip identity test:
+# `restore_rng_state(capture_rng_state())` is bitwise-identity on the RNG state.
+
+# %% [markdown]
+# ## Step 7 — atomic checkpoint primitives (Task 10)
+#
+# Fills in once `harness/colab.py` slice 3 is implemented. Round-trips a fake checkpoint
+# through atomic save → load → verify; confirms `CheckpointConfigMismatchError` fires on
+# intentional config drift; verifies prune keeps last-3 + best.
+
+# %% [markdown]
+# ## Step 8 — tiny end-to-end run + bitwise-resume proof (Tasks 11–14)
+#
+# Fills in once `harness/tiny_train.py` is implemented. Three cells:
+# - 8a: baseline 2-epoch fresh run → `tiny_baseline_2epoch_losses.json`
+# - 8b: simulated restart (delete epoch_001.pt, rewind `latest.txt`, `sys.modules` purge,
+#   resume into epoch 1) → `tiny_resumed_epoch1_losses.json`
+# - 8c: assert byte-exact equality between baseline epoch-1 and resumed epoch-1 losses;
+#   save overlay plot `figures/tiny_train_loss.png`.
+
+# %% [markdown]
+# ## Step 9 — closeout (Task 15 human-verify + Task 16 SUMMARY)
+#
+# Open both figures, confirm five visual criteria for `decoded_batch.png` (clip variation,
+# frame ordering, aspect handling, no-flip semantics, label correctness), and confirm the
+# two `tiny_train_loss.png` curves overlap point-for-point. Authoring `02-01-SUMMARY.md`
+# closes Phase 2.
