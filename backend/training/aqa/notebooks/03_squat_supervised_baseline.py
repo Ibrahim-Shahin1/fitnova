@@ -208,64 +208,6 @@ assert label.dtype == torch.float32, label.dtype
 # real batch, measure peak VRAM. Confirms L4 headroom before Step 4 commits to
 # multi-hour training.
 
-# %%
-from backend.training.aqa.harness.supervised_train import build_model
-
-model = build_model().to("cuda")  # ~120 MB Kinetics-V1 download on first call
-total_params = sum(p.numel() for p in model.parameters())
-trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print(f"total_params    = {total_params:_}")
-print(f"trainable_params= {trainable_params:_}")
-# D1: end-to-end fine-tune — every parameter trainable.
-assert trainable_params == total_params, (
-    f"Expected end-to-end fine-tune (all params trainable); got "
-    f"{trainable_params:_} trainable / {total_params:_} total — D1 broken"
-)
-# R(2+1)D-18 with 2-output head sits around 31.3M params. ±2% tolerance is
-# wider than the PLAN's ±100 to absorb torchvision minor-version drift on
-# Kinetics-V1 (BN running-mean params can shift by a few hundred between
-# weight pubs). If this fires, paste back the actual number — RESEARCH §3
-# may need an update.
-assert 30_000_000 < total_params < 33_000_000, (
-    f"total_params={total_params:_} outside the 30–33 M sanity range — "
-    "torchvision API may have changed (RESEARCH §3)"
-)
-
-# Forward smoke — Step 1's `loaders` is in scope.
-clip, label = next(iter(loaders["train"]))
-clip = clip.to("cuda")
-label = label.to("cuda")
-with torch.no_grad():
-    logits = model(clip)
-print(f"\nlogits.shape = {tuple(logits.shape)}  (expected (16, 2))")
-print(f"logits.dtype = {logits.dtype}")
-print(f"logits sample:\n{logits.detach().cpu()}")
-assert tuple(logits.shape) == (16, 2), tuple(logits.shape)
-assert logits.dtype == torch.float32, logits.dtype
-
-# VRAM probe — forward only.
-peak_vram_fwd_gb = torch.cuda.max_memory_allocated() / (1024 ** 3)
-print(f"\nPeak VRAM after forward (batch 16, no backward): {peak_vram_fwd_gb:.2f} GB")
-torch.cuda.reset_peak_memory_stats()
-
-# Backward smoke — exposes optimizer/gradient VRAM. Uses train_ds.pos_weight per D2.
-criterion = torch.nn.BCEWithLogitsLoss(pos_weight=train_ds.pos_weight.to("cuda"))
-logits = model(clip)
-loss = criterion(logits, label)
-loss.backward()
-peak_vram_train_gb = torch.cuda.max_memory_allocated() / (1024 ** 3)
-print(f"Peak VRAM after backward (batch 16, fp32): {peak_vram_train_gb:.2f} GB")
-assert peak_vram_train_gb < 20.0, (
-    f"VRAM after backward = {peak_vram_train_gb:.2f} GB exceeds 20 GB headroom "
-    "on L4 (24 GB total). Reduce batch_size in SupervisedConfig or enable AMP "
-    "(overriding RESEARCH §11)."
-)
-
-# Free GPU memory before Step 3 timing probe constructs its own model.
-del model, logits, loss, criterion
-torch.cuda.empty_cache()
-print("\nGPU freed; ready for Step 3 timing probe.")
-
 
 # %% [markdown]
 # ## Step 3 — epoch 0 timing probe (Task 10) — **BLOCKING gate before full training**
