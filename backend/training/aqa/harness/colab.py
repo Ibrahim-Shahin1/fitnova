@@ -65,48 +65,96 @@ def mount_drive() -> str:
     return _DRIVE_MYDRIVE
 
 
-def _copy_with_progress(src: Path, dst: Path, *, chunk_size: int = 16 * 1024 * 1024) -> float:
-    """Chunked binary copy with tqdm byte-progress. Returns wall time in seconds.
+def _copy_with_resume_and_progress(
+    src: Path, dst: Path, *, chunk_size: int = 16 * 1024 * 1024,
+) -> float:
+    """Byte-resumable chunked copy with tqdm byte-progress. Returns wall time in seconds.
 
-    Chunked rather than `shutil.copy` so the user sees byte-level progress during a slow
-    Drive read. Re-running after a mid-copy disconnect overwrites the partial `dst` from
-    byte 0 — no byte-level resume; the cache check in `stage_squat_videos` handles the
-    "did we finish?" question via post-extract mp4 count.
+    Resume semantics (per the working agreement — disconnect is the default case):
+    - If `dst` exists with size **equal** to `src.size`, no-op (copy already complete).
+    - If `dst` exists with size **less than** `src.size`, **resume** from `dst.size`
+      using `fin.seek` + `ab` (append) mode on dst. The tqdm bar is initialized at
+      `initial=dst_size` so the bar reflects already-transferred bytes.
+    - If `dst` exists with size **greater than** `src.size` (defensive — shouldn't
+      happen), truncate and restart.
+    - If `dst` doesn't exist, start fresh from byte 0.
+
+    A kernel-interrupt mid-copy leaves `dst` at the partial size; re-running the cell
+    picks up exactly where it stopped. Full runtime restart (Colab wipes `/content/`)
+    is the only failure mode that requires copy-from-zero, and that's outside our
+    contract.
     """
     try:
         from tqdm.auto import tqdm  # type: ignore[import-not-found]
     except ImportError:
         tqdm = None  # graceful fallback — log only
 
-    total = src.stat().st_size
-    t0 = time.perf_counter()
-    with src.open("rb") as fin, dst.open("wb") as fout:
-        if tqdm is None:
-            while True:
-                buf = fin.read(chunk_size)
-                if not buf:
-                    break
-                fout.write(buf)
+    src_size = src.stat().st_size
+
+    if dst.exists():
+        dst_size = dst.stat().st_size
+        if dst_size == src_size:
+            logger.info(
+                "copy resume: %s already complete (%.1f MB) — no-op",
+                dst.name, src_size / 1e6,
+            )
+            return 0.0
+        if dst_size > src_size:
+            logger.warning(
+                "copy resume: %s is larger than src (%d > %d) — truncating and restarting",
+                dst, dst_size, src_size,
+            )
+            dst.unlink()
+            dst_size = 0
         else:
-            with tqdm(
-                total=total, unit="B", unit_scale=True, unit_divisor=1024,
-                desc=f"copy {src.name}", leave=True,
-            ) as pbar:
+            logger.info(
+                "copy resume: %s partial (%.1f / %.1f MB) — continuing from byte %d",
+                dst.name, dst_size / 1e6, src_size / 1e6, dst_size,
+            )
+    else:
+        dst_size = 0
+
+    t0 = time.perf_counter()
+    open_mode = "ab" if dst_size > 0 else "wb"
+    with src.open("rb") as fin:
+        fin.seek(dst_size)
+        with dst.open(open_mode) as fout:
+            if tqdm is None:
                 while True:
                     buf = fin.read(chunk_size)
                     if not buf:
                         break
                     fout.write(buf)
-                    pbar.update(len(buf))
+            else:
+                with tqdm(
+                    total=src_size, initial=dst_size,
+                    unit="B", unit_scale=True, unit_divisor=1024,
+                    desc=f"copy {src.name}", leave=True,
+                ) as pbar:
+                    while True:
+                        buf = fin.read(chunk_size)
+                        if not buf:
+                            break
+                        fout.write(buf)
+                        pbar.update(len(buf))
     return time.perf_counter() - t0
 
 
-def _extract_with_progress(zip_path: Path, dest: Path) -> float:
-    """`zipfile` extract with per-member tqdm progress. Returns wall time in seconds.
+def _extract_with_resume_and_progress(zip_path: Path, dest: Path) -> float:
+    """Per-member-resumable `zipfile` extract with tqdm progress. Returns wall time in seconds.
 
-    Re-running after a mid-extract disconnect overwrites partial files in-place — zipfile
-    will rewrite each member from scratch, which is correct (no partial-file resume but
-    no corruption either since the final mp4 count is verified afterwards).
+    Resume semantics: iterate `zf.infolist()` rather than `extractall`. For each member,
+    if the target file already exists at `dest / m.filename` with size matching
+    `m.file_size` (the uncompressed size from the zip header), skip the extract. Files
+    that are missing or have wrong size are (re-)extracted; existing-matching files are
+    a no-op.
+
+    A kernel-interrupt mid-extract leaves a partial set; re-running the cell skips the
+    already-extracted members and continues from where it stopped. The post-extract
+    count check in `stage_squat_videos` is the integrity gate.
+
+    Tqdm postfix shows `extracted=` and `skipped=` counters so progress reflects both
+    new work and resume reuse.
     """
     try:
         from tqdm.auto import tqdm  # type: ignore[import-not-found]
@@ -116,11 +164,34 @@ def _extract_with_progress(zip_path: Path, dest: Path) -> float:
     t0 = time.perf_counter()
     with zipfile.ZipFile(str(zip_path), "r") as zf:
         members = zf.infolist()
-        iterator = members if tqdm is None else tqdm(
-            members, desc=f"unzip {zip_path.name}", unit="file", leave=True,
-        )
-        for m in iterator:
-            zf.extract(m, path=str(dest))
+
+        if tqdm is None:
+            extracted = skipped = 0
+            for m in members:
+                target = dest / m.filename
+                if target.exists() and target.stat().st_size == m.file_size:
+                    skipped += 1
+                else:
+                    zf.extract(m, path=str(dest))
+                    extracted += 1
+            logger.info("unzip resume: extracted=%d skipped=%d", extracted, skipped)
+        else:
+            with tqdm(
+                total=len(members),
+                desc=f"unzip {zip_path.name}",
+                unit="file",
+                leave=True,
+            ) as pbar:
+                extracted = skipped = 0
+                for m in members:
+                    target = dest / m.filename
+                    if target.exists() and target.stat().st_size == m.file_size:
+                        skipped += 1
+                    else:
+                        zf.extract(m, path=str(dest))
+                        extracted += 1
+                    pbar.update(1)
+                    pbar.set_postfix(extracted=extracted, skipped=skipped)
     return time.perf_counter() - t0
 
 
@@ -130,25 +201,33 @@ def stage_squat_videos(
     local_root: str = "/content/squat_videos",
     expect_count: int = _SQUAT_VIDEOS_EXPECT_COUNT,
 ) -> str:
-    """Copy Squat `videos.zip` from Drive → `/content/`, extract, verify count. Idempotent (D15).
+    """Copy Squat `videos.zip` from Drive → `/content/`, extract, verify count. Idempotent (D15) with **byte-level resume**.
 
     Drive FUSE per-frame reads are too slow for training (Phase 1 measurement: ~2.5s per
     archive open from Drive vs. effectively zero from local disk). Per-session staging
     to `/content/` local disk is the build constraint for any video iteration.
 
-    **Progress:** `_copy_with_progress` and `_extract_with_progress` show tqdm bars so the
-    cell is never silent during the slow steps. Graceful fallback if tqdm isn't present.
+    **Three-layer resume design (per the working-agreement disconnect-by-default rule):**
 
-    **Disconnect resume (restart, not byte-level):** the function is **re-runnable**.
-    Cache hit (exactly `expect_count` mp4s in `local_root`) is a millisecond no-op. On
-    a partial state, cache miss re-triggers the full copy + extract; partial files are
-    overwritten in place; the post-extract count check is the integrity gate.
+    1. **Cache hit** (top-level fast path): if `local_root` already contains exactly
+       `expect_count` `.mp4` files, the function returns in milliseconds — no I/O at all.
+    2. **Copy byte-level resume**: `_copy_with_resume_and_progress` checks if
+       `/content/squat_videos.zip` already exists; if it's at the correct size the copy
+       is a no-op; if partial, the copy resumes from `dst_size` via `seek + ab`. A
+       kernel-interrupt mid-copy survives because the partial zip is kept.
+    3. **Extract per-member resume**: `_extract_with_resume_and_progress` iterates zip
+       members; files already at the target with matching uncompressed size are skipped.
+       A kernel-interrupt mid-extract survives because already-extracted files stay put.
 
-    Cache hit semantics: if `local_root` already contains exactly `expect_count` `.mp4`
-    files (any nesting), the function is a no-op and returns immediately. Otherwise it
-    copies the zip to `/content/squat_videos.zip`, extracts to `local_root`, verifies
-    the post-extraction count, then deletes the local zip to free disk (Colab disk is
-    tight — the extracted tree is what training reads, not the zip).
+    Tqdm progress bars cover both copy and extract so the cell is never silent.
+
+    Failure mode requiring full restart: a true runtime restart (Colab wipes `/content/`)
+    — that's outside Colab's contract, not something resume can defend against. In that
+    case the next cell run pays the full copy + extract cost, as expected.
+
+    Post-extract, the local zip is deleted to reclaim disk (the extracted tree is what
+    training reads, not the zip). If the extract verify fails the zip is NOT deleted, so
+    the next attempt benefits from copy cache.
 
     Args:
         drive_root:   path to Drive MyDrive (typically `"/content/drive/MyDrive"`).
@@ -188,11 +267,11 @@ def stage_squat_videos(
     local_zip = Path("/content/squat_videos.zip")
     size_mb = src_zip.stat().st_size / 1e6
 
-    t_copy = _copy_with_progress(src_zip, local_zip)
+    t_copy = _copy_with_resume_and_progress(src_zip, local_zip)
     logger.info("copy %s -> %s (%.1f MB) in %.2fs", src_zip.name, local_zip, size_mb, t_copy)
 
     local_root_p.mkdir(parents=True, exist_ok=True)
-    t_unzip = _extract_with_progress(local_zip, local_root_p)
+    t_unzip = _extract_with_resume_and_progress(local_zip, local_root_p)
     logger.info("unzip %s -> %s in %.2fs", local_zip.name, local_root, t_unzip)
 
     mp4s = list(local_root_p.rglob("*.mp4"))
