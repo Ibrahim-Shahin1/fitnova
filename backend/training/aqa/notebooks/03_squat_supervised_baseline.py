@@ -16,6 +16,52 @@
 # or paste cells one at a time per the FitNova interactive working agreement.
 
 # %% [markdown]
+# ## Cell A — bootstrap (clone-or-pull repo + sys.path)
+#
+# **Run this FIRST in a fresh Colab session.** Phase 2 precedent (02-01-SUMMARY.md):
+# "New session bootstrap is Cell A (clone-or-pull) → Cell B (Step 0)." Phase 3
+# bakes Cell A into the notebook so `from backend...` resolves before Step 0
+# triggers the F8 `_envinit` import.
+#
+# Idempotent: clones the repo if `/content/fitnova` is missing, otherwise
+# `git pull` to fast-forward. Then `os.chdir` + `sys.path.insert` so the
+# Phase 2 modules under `backend/training/aqa/...` are importable.
+
+# %%
+import os
+import subprocess
+import sys
+
+REPO_DIR = "/content/fitnova"
+REPO_URL = "https://github.com/Ibrahim-Shahin1/fitnova.git"
+BRANCH = "fresh-start"
+
+if not os.path.isdir(REPO_DIR):
+    print(f"Cloning {REPO_URL} (branch {BRANCH}) -> {REPO_DIR} ...")
+    subprocess.run(
+        ["git", "clone", "-b", BRANCH, REPO_URL, REPO_DIR],
+        check=True,
+    )
+else:
+    print(f"Repo already at {REPO_DIR}; pulling latest from origin/{BRANCH} ...")
+    subprocess.run(["git", "-C", REPO_DIR, "fetch", "origin", BRANCH], check=True)
+    subprocess.run(["git", "-C", REPO_DIR, "checkout", BRANCH], check=True)
+    subprocess.run(["git", "-C", REPO_DIR, "pull", "--ff-only", "origin", BRANCH], check=True)
+
+os.chdir(REPO_DIR)
+if REPO_DIR not in sys.path:
+    sys.path.insert(0, REPO_DIR)
+
+_head = subprocess.run(
+    ["git", "-C", REPO_DIR, "rev-parse", "--short", "HEAD"],
+    capture_output=True, text=True, check=True,
+).stdout.strip()
+print(f"\nRepo ready: {REPO_DIR} @ {_head}")
+print(f"sys.path[0]: {sys.path[0]}")
+print(f"cwd: {os.getcwd()}")
+
+
+# %% [markdown]
 # ## Step 0 — environment + dep version probe + GPU/VRAM check + Drive mount + stage videos (Task 7)
 #
 # **F8 import-order constraint (PLAN.md D10 / CONTEXT.md D10 / Phase 2 D13):** the
