@@ -481,7 +481,115 @@ for entry in result["metrics_history"]:
 #
 # Per-error threshold tuning via `sklearn.precision_recall_curve` (RESEARCH §5;
 # replaces the linspace at D7). Pickles `best_thresholds = {"kie", "kfe"}` into
-# `best.pt`.
+# `best.pt`. The sweep operates on val sigmoid scores from the loaded `best.pt`
+# model and picks the F1-maximizing threshold independently per error head.
+#
+# **`latest.txt` preservation:** `atomic_save_checkpoint` always updates
+# `latest.txt` to point at the basename of its target — that's correct during
+# training (each epoch's checkpoint becomes the latest) but WRONG when we
+# update `best.pt` (a separate fixed-name file). The sweep saves the current
+# `latest.txt` content, writes the updated `best.pt`, then restores
+# `latest.txt` so resume from `latest.txt` still lands on `epoch_011.pt` (or
+# whichever epoch was last completed).
+
+# %%
+import os
+
+import numpy as np
+import torch
+
+from backend.training.aqa.eval.metrics import f1_per_error, threshold_sweep
+from backend.training.aqa.harness.colab import atomic_save_checkpoint
+from backend.training.aqa.harness.supervised_train import (
+    SupervisedConfig,
+    _build_dataloaders,
+    _val_pass,
+    build_model,
+)
+
+config = SupervisedConfig()
+RUN_NAME = "r2plus1d18_squat_supervised_v1"
+run_dir = os.path.join(MYDRIVE, "FitNova/checkpoints/phase03", RUN_NAME)
+best_path = os.path.join(run_dir, "best.pt")
+latest_path = os.path.join(run_dir, "latest.txt")
+
+# 1. Load best.pt (CPU — model.load_state_dict handles device transfer; same
+#    map_location='cpu' rule as the resume fix at a0841b4).
+print(f"Loading best.pt from {best_path}")
+payload = torch.load(best_path, map_location="cpu", weights_only=False)
+print(f"  best epoch              : {payload['epoch']}")
+print(f"  best_f1_val (macro@0.5) : {payload['best_f1_val']:.4f}")
+print(f"  config_hash             : {payload['config_hash']}")
+print(f"  current best_thresholds : {payload.get('best_thresholds')}")
+
+# 2. Rebuild model + val loader. Reuse the trainer's dataloader builder so
+#    workers + worker_init_fn + persistent_workers stay consistent with training.
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = build_model().to(device)
+model.load_state_dict(payload["model_state_dict"])
+model.eval()
+
+loaders = _build_dataloaders(
+    seed=42, config=config, drive_root=MYDRIVE, videos_root=VIDEOS_ROOT,
+)
+val_loader = loaders["val"]
+val_ds = val_loader.dataset
+
+# 3. Full val pass — gathers all 243 clips' sigmoid scores + labels on CPU.
+#    The criterion is only used for the loss-mean sanity check (should match
+#    the metrics_history value of 1.2708 at epoch 3 — confirms we loaded the
+#    same weights that produced the best_f1_val).
+criterion = torch.nn.BCEWithLogitsLoss(pos_weight=val_ds.pos_weight.to(device))
+val_loss_mean, val_scores, val_labels = _val_pass(model, val_loader, criterion, device)
+print(f"\nVal pass: scores.shape={val_scores.shape}, labels.shape={val_labels.shape}")
+print(f"  val_loss_mean: {val_loss_mean:.4f}  (epoch 3 trained value: 1.2708)")
+
+# 4. Per-error threshold sweep via sklearn.precision_recall_curve.
+print("\nThreshold sweep on val (per error, F1-maximizing via sklearn.precision_recall_curve):")
+threshold_kie, f1_kie_sweep = threshold_sweep(val_labels[:, 0], val_scores[:, 0])
+threshold_kfe, f1_kfe_sweep = threshold_sweep(val_labels[:, 1], val_scores[:, 1])
+
+# Compare to threshold=0.5 baseline (the training-time proxy used for best.pt selection).
+f1_kie_at_0p5 = f1_per_error(val_labels[:, 0], (val_scores[:, 0] >= 0.5).astype(int))
+f1_kfe_at_0p5 = f1_per_error(val_labels[:, 1], (val_scores[:, 1] >= 0.5).astype(int))
+
+print(f"  KIE  best_threshold = {threshold_kie:.4f}   F1 = {f1_kie_sweep:.4f}   "
+      f"(vs F1@0.5 = {f1_kie_at_0p5:.4f}, delta = {f1_kie_sweep - f1_kie_at_0p5:+.4f})")
+print(f"  KFE  best_threshold = {threshold_kfe:.4f}   F1 = {f1_kfe_sweep:.4f}   "
+      f"(vs F1@0.5 = {f1_kfe_at_0p5:.4f}, delta = {f1_kfe_sweep - f1_kfe_at_0p5:+.4f})")
+
+macro_sweep = (f1_kie_sweep + f1_kfe_sweep) / 2.0
+macro_at_0p5 = (f1_kie_at_0p5 + f1_kfe_at_0p5) / 2.0
+print(f"\n  Macro F1 @ swept thresholds : {macro_sweep:.4f}")
+print(f"  Macro F1 @ threshold = 0.5  : {macro_at_0p5:.4f}  (matches best_f1_val = {payload['best_f1_val']:.4f})")
+print(f"  Delta from threshold tuning : {macro_sweep - macro_at_0p5:+.4f}")
+
+# 5. Save latest.txt BEFORE atomic_save_checkpoint mutates it.
+with open(latest_path, "r", encoding="utf-8") as f:
+    latest_before = f.read()
+print(f"\nlatest.txt before sweep write: {latest_before.strip()!r}")
+
+# 6. Update best.pt with best_thresholds (D13 contract — completes the payload).
+best_thresholds = {"kie": threshold_kie, "kfe": threshold_kfe}
+payload["best_thresholds"] = best_thresholds
+print(f"\nWriting best_thresholds = {best_thresholds} into best.pt ...")
+atomic_save_checkpoint(payload, best_path)
+
+# 7. Restore latest.txt — resume must still land on the last completed epoch
+#    checkpoint, NOT best.pt (which is a separate fixed-name artifact).
+with open(latest_path, "w", encoding="utf-8") as f:
+    f.write(latest_before)
+print(f"latest.txt restored to       : {latest_before.strip()!r}")
+
+# 8. Round-trip verify: re-read best.pt and confirm best_thresholds landed.
+reloaded = torch.load(best_path, map_location="cpu", weights_only=False)
+assert reloaded["best_thresholds"] == best_thresholds, reloaded["best_thresholds"]
+print(f"\nRound-trip verified: best.pt['best_thresholds'] = {reloaded['best_thresholds']}")
+
+# 9. Free GPU before Step 6 test pass.
+del model
+torch.cuda.empty_cache()
+print("\nGPU freed; ready for Step 6 test evaluation.")
 
 
 # %% [markdown]
