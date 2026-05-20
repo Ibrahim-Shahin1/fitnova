@@ -125,6 +125,81 @@ assert _mp4_count == 1739, f"Expected 1739 mp4s, got {_mp4_count}"
 # expected `(B, 3, T, H, W)` + `(B, 2)` shapes. Fast (no model construction
 # yet). If anything drifts, stop here.
 
+# %%
+from backend.training.aqa.datasets.squat import SquatKIEKFEDataset
+from backend.training.aqa.harness.supervised_train import (
+    SupervisedConfig,
+    _build_dataloaders,
+)
+
+config = SupervisedConfig()
+
+train_ds = SquatKIEKFEDataset(
+    split="train",
+    drive_root=MYDRIVE,
+    videos_root=VIDEOS_ROOT,
+    num_frames=config.num_frames,
+    crop_size=config.crop_size,
+    train_aug=True,
+    train_jitter_frames=config.train_jitter_frames,
+)
+val_ds = SquatKIEKFEDataset(
+    split="val",
+    drive_root=MYDRIVE,
+    videos_root=VIDEOS_ROOT,
+    num_frames=config.num_frames,
+    crop_size=config.crop_size,
+    train_aug=False,
+    train_jitter_frames=config.train_jitter_frames,
+)
+test_ds = SquatKIEKFEDataset(
+    split="test",
+    drive_root=MYDRIVE,
+    videos_root=VIDEOS_ROOT,
+    num_frames=config.num_frames,
+    crop_size=config.crop_size,
+    train_aug=False,
+    train_jitter_frames=config.train_jitter_frames,
+)
+
+print(f"len(train_ds)={len(train_ds)} (expected 1136)")
+print(f"len(val_ds)  ={len(val_ds)} (expected 243)")
+print(f"len(test_ds) ={len(test_ds)} (expected 244)")
+assert len(train_ds) == 1136 and len(val_ds) == 243 and len(test_ds) == 244, (
+    "split counts drifted from Phase 1 — investigate splits.expected_counts() and "
+    "the staged videos.zip BEFORE running training."
+)
+
+print(f"\npos_weight (train-derived): {train_ds.pos_weight.tolist()}")
+print("                            expected approximately [≈6.10, ≈0.45]")
+# Phase 2 D9 invariant — pos_weight identical across all three split instances
+# (computed from train regardless of which split this is). Phase 3 D2 consumes
+# train-derived weights for BCEWithLogitsLoss on all loaders.
+assert val_ds.pos_weight.tolist() == train_ds.pos_weight.tolist(), (
+    "pos_weight differs across splits — Phase 2 D9 invariant broken"
+)
+assert test_ds.pos_weight.tolist() == train_ds.pos_weight.tolist(), (
+    "pos_weight differs across splits — Phase 2 D9 invariant broken"
+)
+
+# Direct DataLoader construction (D4 — multi-worker with seed_worker).
+loaders = _build_dataloaders(
+    seed=42, config=config, drive_root=MYDRIVE, videos_root=VIDEOS_ROOT,
+)
+clip, label = next(iter(loaders["train"]))
+print(f"\nFirst train batch:")
+print(f"  clip.shape = {tuple(clip.shape)}  (expected ({config.batch_size}, 3, {config.num_frames}, {config.crop_size}, {config.crop_size}))")
+print(f"  clip.dtype = {clip.dtype}")
+print(f"  label.shape= {tuple(label.shape)}  (expected ({config.batch_size}, 2))")
+print(f"  label.dtype= {label.dtype}")
+print(f"  label (KIE/KFE per clip):\n{label}")
+
+assert tuple(clip.shape) == (
+    config.batch_size, 3, config.num_frames, config.crop_size, config.crop_size,
+), tuple(clip.shape)
+assert tuple(label.shape) == (config.batch_size, 2), tuple(label.shape)
+assert label.dtype == torch.float32, label.dtype
+
 
 # %% [markdown]
 # ## Step 2 — model construction smoke (Task 9)
