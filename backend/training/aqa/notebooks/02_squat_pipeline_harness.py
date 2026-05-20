@@ -82,11 +82,30 @@ first = index("train", drive_root=DRIVE_ROOT, videos_root=VIDEOS_ROOT)[0]
 print(first)
 
 # %% [markdown]
-# ## Step 2 — transforms + decode smoke test (Task 5)
+# ## Step 2 — transforms synthetic smoke (Task 5)
 #
-# Fills in once `transforms.py` is implemented. Cell will decode one real Squat clip via
-# `decode_clip(path, indices)`, verify peak memory < 200 MB on a 400-frame clip
-# (RESEARCH §5 OOM defense), and inspect the sampled-and-cropped frames visually.
+# Exercises `uniform_sample_indices`, `spatial_train`, `spatial_val`, and Kinetics
+# normalization on a synthetic `[T=60, 3, 480, 600]` uint8 tensor. Output shape must be
+# `(3, 60, 112, 112)` float32 with normalized mean near 0.
+#
+# **F11 real-video gate deferred to Task 7** — `decode_clip` against real `.mp4`s needs
+# `/content/squat_videos/` staged. The test case in PLAN.md (`indices=[0, 200, 403]`) was
+# corrected: those indices span the full clip and don't exercise windowing. The real F11
+# proof uses **clustered indices** `[100, 102, 104]` against a long clip, which is what
+# windowing is designed to optimize.
+
+# %%
+import sys, subprocess
+result = subprocess.run(
+    [sys.executable, "/content/fitnova/backend/training/aqa/datasets/transforms.py"],
+    capture_output=True, text=True,
+)
+print("--- stdout ---")
+print(result.stdout)
+if result.returncode != 0:
+    print("--- stderr ---")
+    print(result.stderr)
+    raise RuntimeError(f"transforms.py smoke failed (exit {result.returncode})")
 
 # %% [markdown]
 # ## Step 3 — dataset + loaders (Task 6)
