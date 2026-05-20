@@ -292,10 +292,99 @@ print("batch shape contract: OK")
 # %% [markdown]
 # ## Step 5 — decoded-batch visualization (Task 8) — supervisor priority
 #
-# Fills in once Tasks 4–7 are in place. Renders a 2×8 grid of decoded-and-augmented
-# frames from the train loader, saves to
-# `.planning/phases/02-squat-data-pipeline-colab-harness/figures/decoded_batch.png`. Task
-# 15 is a blocking human-verify gate against five concrete visual criteria.
+# Renders a 2×8 grid (2 train clips × 8 evenly-spaced frames each) showing the
+# decoded-and-augmented frames the model will actually see. Un-normalizes
+# (`frame * KINETICS_STD + KINETICS_MEAN`, clamped to `[0,1]`) before display so the
+# image is human-readable rather than blue-shifted normalization output. Saves PNG
+# **before** `plt.show()` so a Colab disconnect mid-display still leaves the file.
+#
+# Visual sanity check criteria (Task 15 will gate on these):
+# 1. Each row reads left → right as forward time (decode order correct).
+# 2. The 8 sampled frames span the clip — first ≠ near-last (uniform sampling working).
+# 3. Aspect handling preserves human shape (no extreme squash/stretch).
+# 4. Printed `KIE+/KFE+` labels match what's visible (KIE = knees-inward at any frame,
+#    KFE = knees-forward-of-toes at any frame).
+# 5. No horizontal flip artifacts — D5 confirmed.
+
+# %%
+# Visualization deliverable — supervisor priority per MEMORY.md project_supervisor_visualizations
+from pathlib import Path
+
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+
+from backend.training.aqa.datasets.transforms import KINETICS_MEAN, KINETICS_STD
+from backend.training.aqa.datasets.squat import SquatKIEKFEDataset
+
+# Build the train dataset directly (not via loader) so we can read clip_ids for the
+# row labels. `train_aug=True` so the rendered frames reflect what the model sees
+# during training (jitter + random crop). seed=42 fixed so the visualization is
+# bitwise-reproducible across re-runs.
+train_ds = SquatKIEKFEDataset(
+    split="train",
+    drive_root="/content/drive/MyDrive",
+    videos_root="/content/squat_videos",
+    train_aug=True,
+    seed=42,
+)
+
+# Deterministic pick — records[0] and records[1] (the first two in train_keys.json order).
+items = [train_ds[i] for i in (0, 1)]
+batch_clips = torch.stack([c for c, _ in items])    # (2, 3, 32, 112, 112) float32
+batch_labels = torch.stack([l for _, l in items])   # (2, 2)
+clip_ids = [train_ds.records[i].clip_id for i in (0, 1)]
+
+# Un-normalize for display. Tensors are (C, T, H, W); broadcast mean/std as (3, 1, 1, 1).
+mean_t = torch.tensor(KINETICS_MEAN, dtype=torch.float32).view(3, 1, 1, 1)
+std_t = torch.tensor(KINETICS_STD, dtype=torch.float32).view(3, 1, 1, 1)
+display = (batch_clips * std_t.unsqueeze(0) + mean_t.unsqueeze(0)).clamp(0, 1)
+# display shape: (B=2, C=3, T=32, H, W)
+
+# 8 evenly-spaced frame positions out of 32.
+frame_idx = np.linspace(0, 31, 8).round().astype(int)
+
+fig, axes = plt.subplots(2, 8, figsize=(16, 5), dpi=120)
+
+for row in range(2):
+    label_kie = int(batch_labels[row, 0].item())
+    label_kfe = int(batch_labels[row, 1].item())
+    for col, fi in enumerate(frame_idx):
+        ax = axes[row, col]
+        # display[row] is (3, T, H, W); pick frame fi -> (3, H, W); permute -> (H, W, 3)
+        frame = display[row, :, fi].permute(1, 2, 0).numpy()
+        ax.imshow(frame)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        if row == 0:
+            ax.set_title(f"t={fi}", fontsize=8)
+    # Row label to the left of the leftmost axis (using its axes-relative coords).
+    axes[row, 0].text(
+        -0.18, 0.5,
+        f"{clip_ids[row]}\nKIE={label_kie}\nKFE={label_kfe}",
+        fontsize=9, ha="right", va="center",
+        transform=axes[row, 0].transAxes,
+    )
+
+fig.suptitle(
+    "Decoded-and-augmented Squat batch — Phase 2 supervisor visualization",
+    fontsize=11, y=1.02,
+)
+plt.tight_layout()
+
+# F9 defensive mkdir: figures/ exists from Task 3 but be safe in case of a future move.
+FIG_PATH = Path("/content/fitnova/.planning/phases/02-squat-data-pipeline-colab-harness/figures/decoded_batch.png")
+FIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+# Save BEFORE show — disconnect-by-default rule: persist the artifact first.
+plt.savefig(FIG_PATH, dpi=120, bbox_inches="tight")
+print(f"saved : {FIG_PATH}")
+print(f"size  : {FIG_PATH.stat().st_size / 1024:.1f} KB")
+print(f"shape : batch={tuple(batch_clips.shape)} labels={tuple(batch_labels.shape)}")
+print(f"clips : {clip_ids}")
+print(f"labels: row0={batch_labels[0].tolist()} row1={batch_labels[1].tolist()}")
+
+plt.show()
 
 # %% [markdown]
 # ## Step 6 — RNG capture/restore + cudnn determinism (Task 9)
