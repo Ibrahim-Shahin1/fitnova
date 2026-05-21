@@ -35,7 +35,11 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: themeController),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>(
+          create: (_) => ProfileProvider(),
+          update: (_, auth, profile) =>
+              profile!..syncWithAuth(auth.user?.id),
+        ),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => FormSessionProvider()),
       ],
