@@ -23,8 +23,12 @@ See: .planning/phases/04-squat-motion-disentangling-ssl/04-RESEARCH.md — §1, 
 
 from __future__ import annotations
 
+import json
 import logging
-from typing import Callable
+import os
+import random
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import scipy.ndimage
@@ -37,6 +41,9 @@ from backend.training.aqa.datasets.transforms import (
     spatial_train,
     uniform_sample_indices,
 )
+
+if TYPE_CHECKING:  # avoid a runtime import cycle (md_pretrain imports this module)
+    from backend.training.aqa.harness.md_pretrain import MDConfig
 
 logger = logging.getLogger("aqa.phase04")
 
@@ -112,27 +119,106 @@ class SquatSSLDataset(Dataset):
         self.crop_size = crop_size
         self.seed = seed
         self._spatial_fn: Callable[..., torch.Tensor] = spatial_train  # always train-aug in SSL
-        self._clip_ids: list[str] = []  # populated by Plan 02 Task 2 after the probe
+        # Clip IDs = stems present in BOTH the videos dir and the trajectories dir. Task 1
+        # probe confirmed 4970/4970 perfect 1:1 alignment (intersect == both sets).
+        vid_stems = {p.stem for p in Path(videos_root).glob("*.mp4")}
+        traj_stems = {p.stem for p in Path(trajectories_root).glob("*.json")}
+        self._clip_ids: list[str] = sorted(vid_stems & traj_stems)
+        logger.info(
+            "SquatSSLDataset: %d clips (videos=%d, trajectories=%d) under %s",
+            len(self._clip_ids), len(vid_stems), len(traj_stems), videos_root,
+        )
 
     def __len__(self) -> int:
-        raise NotImplementedError("Plan 02 Task 2 — finalize after trajectory-format probe (§8)")
-
-    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
-        raise NotImplementedError("Plan 02 Task 2 — finalize after trajectory-format probe (§8)")
+        return len(self._clip_ids)
 
     def _load_trajectory(self, clip_id: str) -> np.ndarray:
-        raise NotImplementedError("Plan 02 Task 2 — finalize after trajectory-format probe (§8)")
+        """Load the barbell-y trajectory for ``clip_id`` (Task-1-confirmed: per-clip JSON flat float list).
+
+        The trajectory is 1:1 with video frames (Task 1 probe: frames/traj == 1.000), so its
+        index space IS the video-frame space — no rescaling. In-file NaN/null values (detection
+        gaps — FOUND by the probe in e.g. 25707_3, contradicting Phase 1's "0% NaN") are linearly
+        interpolated over so ``split_half_cycles``' extremum detection is robust (RESEARCH §1/§8).
+        """
+        path = os.path.join(self.trajectories_root, f"{clip_id}.json")
+        with open(path, encoding="utf-8") as fh:
+            y = np.asarray(json.load(fh), dtype=float)
+        nan_mask = np.isnan(y)
+        if nan_mask.any():
+            valid = ~nan_mask
+            if int(valid.sum()) < 2:
+                raise ValueError(f"trajectory {clip_id}: <2 non-NaN samples ({int(valid.sum())})")
+            idx = np.arange(len(y))
+            y[nan_mask] = np.interp(idx[nan_mask], idx[valid], y[valid])
+        return y
+
+    def _augment(self, clip_u8: torch.Tensor) -> torch.Tensor:
+        """Apply the SAFE-CORE SSL augmentations (§7) — independent default-RNG draws per call."""
+        out = ssl_augs.temporal_shift(clip_u8)
+        out = ssl_augs.horizontal_flip(out)
+        out = ssl_augs.top_mask(out)
+        out = ssl_augs.color_jitter(out)
+        return out
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        clip_id = self._clip_ids[idx]
+        traj_y = self._load_trajectory(clip_id)
+        # 1. Split into descent/ascent. bottom_is_argmax=False (ARGMIN) is the Task-1-confirmed
+        #    sign: the rep-bottom is the MIDDLE minimum; argmax lands at the standing endpoints and
+        #    degenerates the ascent (Plan 02 Task 1 probe — argmax ascent collapsed to one frame).
+        descent_idx, ascent_idx = split_half_cycles(
+            traj_y, frames_per_half=self.frames_per_half, bottom_is_argmax=False,
+        )
+        # 2. Decode the two half-cycles (1:1 traj->frame, Task 1). decode_clip -> [16,3,H,W] uint8.
+        video_path = os.path.join(self.videos_root, f"{clip_id}.mp4")
+        descent_u8 = decode_clip(video_path, torch.as_tensor(descent_idx, dtype=torch.long))
+        ascent_u8 = decode_clip(video_path, torch.as_tensor(ascent_idx, dtype=torch.long))
+        # 3. anchor + positive = two independent augmented views of the DESCENT; negative = an
+        #    augmented view of the ASCENT (RESEARCH §3 / paper §3.2).
+        anchor_u8 = self._augment(descent_u8)
+        positive_u8 = self._augment(descent_u8)
+        negative_u8 = self._augment(ascent_u8)
+        # 4. Temporal-reverse either {anchor,positive} OR {negative} so the GLOBAL down/up motion is
+        #    identical across all three and only the LOCAL (anomalous) motion distinguishes them
+        #    (RESEARCH §3). Coin flip on the default RNG (harness capture/restore covers it).
+        if float(torch.rand(1).item()) < 0.5:
+            anchor_u8 = anchor_u8.flip(0)
+            positive_u8 = positive_u8.flip(0)
+        else:
+            negative_u8 = negative_u8.flip(0)
+        # 5. Spatial pipeline -> [3,16,112,112] float32 Kinetics-normalized (transforms.py, D9).
+        return {
+            "anchor": self._spatial_fn(anchor_u8, crop_size=self.crop_size),
+            "positive": self._spatial_fn(positive_u8, crop_size=self.crop_size),
+            "negative": self._spatial_fn(negative_u8, crop_size=self.crop_size),
+        }
 
 
-def build_ssl_loader(
-    *,
-    videos_root: str,
-    trajectories_root: str,
-    batch_size: int = 8,
-    num_workers: int = 4,
-    frames_per_half: int = 16,
-    crop_size: int = 112,
-    seed: int = 42,
-) -> DataLoader:
-    """Construct the SSL DataLoader (shuffle=True, persistent_workers when num_workers>0)."""
-    raise NotImplementedError("Plan 02 — finalize after the probe-confirmed dataset (§8)")
+def seed_worker(worker_id: int) -> None:
+    """Re-seed each DataLoader worker (PyTorch reproducibility idiom; pairs with persistent_workers, D7)."""
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
+def build_ssl_loader(dataset: SquatSSLDataset, config: "MDConfig", *, seed: int = 42) -> DataLoader:
+    """Construct the SSL DataLoader (shuffle=True; persistent_workers when num_workers>0, D7).
+
+    Args:
+        dataset: a constructed ``SquatSSLDataset``.
+        config:  ``MDConfig`` — supplies ``batch_size`` and ``num_workers``.
+        seed:    seeds the DataLoader generator (worker re-seeding via ``seed_worker``).
+    """
+    g = torch.Generator()
+    g.manual_seed(seed)
+    _persistent = config.num_workers > 0  # D7 / [[reference_pytorch_persistent_workers]]
+    return DataLoader(
+        dataset,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        worker_init_fn=seed_worker,
+        generator=g,
+        shuffle=True,
+        drop_last=False,
+        persistent_workers=_persistent,
+    )
