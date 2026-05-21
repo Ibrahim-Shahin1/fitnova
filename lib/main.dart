@@ -18,16 +18,22 @@ import 'screens/video_upload_screen.dart';
 import 'screens/mode_select_screen.dart';
 import 'screens/form_replay_screen.dart';
 import 'models/form_models.dart';
+import 'providers/auth_provider.dart';
+import 'services/supabase_service.dart';
+import 'screens/auth/auth_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final themeController = ThemeController();
   await themeController.init();
 
+  await SupabaseService.initialize();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: themeController),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => FormSessionProvider()),
       ],
@@ -49,7 +55,7 @@ class FitNovaApp extends StatelessWidget {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: themeController.mode,
-          initialRoute: '/splash',
+          home: const AuthGate(),
           routes: {
             '/splash':            (_) => const SplashScreen(),
             '/register':          (_) => const RegistrationScreen(),
