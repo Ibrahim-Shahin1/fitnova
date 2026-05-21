@@ -47,6 +47,22 @@ from backend.training.aqa.harness.colab import (
 
 logger = logging.getLogger("aqa.phase04")
 
+# SSL checkpoint payload key set (RESEARCH §10). backbone.pt / best.pt writes use
+# atomic_save_checkpoint(..., update_latest=False) so latest.txt is not clobbered (D7).
+_SSL_CHECKPOINT_KEYS: tuple[str, ...] = (
+    "epoch",
+    "backbone_state_dict",
+    "projector_state_dict",
+    "optimizer_state_dict",
+    "scheduler_state_dict",
+    "rng_state",
+    "metrics_history",
+    "linear_probe_history",
+    "config_hash",
+    "config_repr",
+    "code_version",
+)
+
 
 @dataclasses.dataclass
 class MDConfig:
@@ -167,6 +183,40 @@ def build_md_model() -> tuple[nn.Module, nn.Module]:
         n_params,
     )
     return backbone, projector
+
+
+def build_ssl_checkpoint_payload(
+    *,
+    epoch: int,
+    backbone: nn.Module,
+    projector: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    scheduler: Any,
+    metrics_history: list,
+    linear_probe_history: list,
+    config_hash: str,
+    config_repr: dict,
+) -> dict:
+    """Assemble the SSL checkpoint payload (RESEARCH §10). Pure assembly — no I/O.
+
+    Returns a dict with exactly the keys in ``_SSL_CHECKPOINT_KEYS``. Plan 02's
+    ``run_md_pretrain_epoch`` calls this each epoch, then writes it via
+    ``atomic_save_checkpoint``; ``backbone.pt`` writes pass ``update_latest=False``
+    so the ``latest.txt`` epoch-resume pointer is never clobbered (D7 / Pitfall 4).
+    """
+    return {
+        "epoch": epoch,
+        "backbone_state_dict": backbone.state_dict(),
+        "projector_state_dict": projector.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "scheduler_state_dict": scheduler.state_dict(),
+        "rng_state": capture_rng_state(),
+        "metrics_history": metrics_history,
+        "linear_probe_history": linear_probe_history,
+        "config_hash": config_hash,
+        "config_repr": config_repr,
+        "code_version": "phase04-md-pretrain",
+    }
 
 
 def run_md_pretrain_epoch(*args: Any, **kwargs: Any) -> dict:

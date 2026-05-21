@@ -19,9 +19,11 @@ torch = pytest.importorskip("torch")
 
 from backend.training.aqa.datasets.squat_ssl import split_half_cycles
 from backend.training.aqa.harness.md_pretrain import (
+    _SSL_CHECKPOINT_KEYS,
     MDConfig,
     ProjectionHead,
     build_md_model,
+    build_ssl_checkpoint_payload,
     md_triplet_loss,
 )
 
@@ -126,7 +128,31 @@ def test_projector_l2norm() -> None:
 # ───────────────────────────── SQUAT-04-f: SSL checkpoint schema ────────────────────────────
 
 def test_ssl_checkpoint_schema() -> None:
-    pytest.skip("Task 7 — SSL checkpoint payload schema test")
+    # Exercise build_ssl_checkpoint_payload with minimal real objects (tiny modules +
+    # a real AdamW + cosine scheduler) — pure assembly, no I/O.
+    backbone = torch.nn.Linear(4, 4)
+    projector = torch.nn.Linear(4, 2)
+    optimizer = torch.optim.AdamW(
+        list(backbone.parameters()) + list(projector.parameters()), lr=1e-4
+    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+    payload = build_ssl_checkpoint_payload(
+        epoch=0,
+        backbone=backbone,
+        projector=projector,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        metrics_history=[],
+        linear_probe_history=[],
+        config_hash="abc123",
+        config_repr={},
+    )
+    missing = [k for k in _SSL_CHECKPOINT_KEYS if k not in payload]
+    assert missing == [], f"Missing keys: {missing}"
+    extra = [k for k in payload if k not in _SSL_CHECKPOINT_KEYS]
+    assert extra == [], f"Unexpected keys: {extra}"
+    assert payload["code_version"] == "phase04-md-pretrain"
+    assert isinstance(payload["rng_state"], dict)
 
 
 # ───────────────────────────── SQUAT-04-e: model build (slow) ───────────────────────────────
