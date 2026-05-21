@@ -236,16 +236,25 @@ def _set_global_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def _embedding_collapse_metrics(backbone: nn.Module, probe_batch: torch.Tensor, device: torch.device) -> dict:
-    """Representation-collapse metrics on a FIXED probe batch (RESEARCH §12).
+def _embedding_collapse_metrics(
+    backbone: nn.Module, probe_batch: torch.Tensor, device: torch.device, *, chunk: int = 16,
+) -> dict:
+    """Representation-collapse metrics on a FIXED probe SET (RESEARCH §12).
 
     embedding_std = mean per-dim std of L2-normalized BACKBONE embeddings (healthy ≈ 1/√512;
     collapse → 0). effective_rank = exp(entropy(normalized covariance singular values)) — the
-    dimensional-collapse signal (arXiv:2110.09348). [VERIFIED §12]
+    dimensional-collapse signal (arXiv:2110.09348). The probe SET must have MANY samples
+    (≥ ~128): effective_rank is bounded by N−1, so a small batch (e.g. 8) caps it at ~7 and
+    makes the dimensional-collapse signal meaningless. Forwarded in ``chunk``-sized slices to
+    bound VRAM. [VERIFIED §12]
     """
     backbone.eval()
+    embs: list[torch.Tensor] = []
     with torch.no_grad():
-        z = F.normalize(backbone(probe_batch.to(device)), dim=-1, p=2).detach().cpu()
+        for i in range(0, probe_batch.shape[0], chunk):
+            z_i = F.normalize(backbone(probe_batch[i:i + chunk].to(device)), dim=-1, p=2)
+            embs.append(z_i.detach().cpu())
+    z = torch.cat(embs, dim=0)  # [N, 512]
     embedding_std = float(z.std(dim=0).mean().item())
     zc = z - z.mean(dim=0, keepdim=True)
     cov = (zc.T @ zc) / max(z.shape[0] - 1, 1)
@@ -404,8 +413,17 @@ def run_md_pretrain_epoch(
             "config_hash": config_hash_str, "collapsed": False,
         }
 
-    # Fixed probe batch for the collapse monitor (SAME clips every epoch — §12).
-    probe_batch = next(iter(loader))["anchor"]
+    # Fixed probe SET for the collapse monitor — accumulate ~256 anchors (one batch of 8 is too
+    # few: effective_rank is bounded by N−1, so a batch of 8 caps it at ~7 and makes the
+    # dimensional-collapse signal meaningless — §12). SAME clips every epoch.
+    _probe_clips: list[torch.Tensor] = []
+    _probe_n = 0
+    for _pb in loader:
+        _probe_clips.append(_pb["anchor"])
+        _probe_n += int(_pb["anchor"].shape[0])
+        if _probe_n >= 256:
+            break
+    probe_batch = torch.cat(_probe_clips, dim=0)[:256]
     last_ckpt_path = ""
     collapsed = False
 
