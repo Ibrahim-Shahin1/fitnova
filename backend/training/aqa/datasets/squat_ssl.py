@@ -119,14 +119,19 @@ class SquatSSLDataset(Dataset):
         self.crop_size = crop_size
         self.seed = seed
         self._spatial_fn: Callable[..., torch.Tensor] = spatial_train  # always train-aug in SSL
-        # Clip IDs = stems present in BOTH the videos dir and the trajectories dir. Task 1
-        # probe confirmed 4970/4970 perfect 1:1 alignment (intersect == both sets).
+        # Clip IDs = stems present in BOTH the videos dir and the trajectories tree.
+        # The mp4s are flattened to the top by the video extractor, but the trajectory
+        # JSONs keep the zip's internal folder (extractall) — so RECURSIVE-glob them and
+        # keep a stem->path map. (The probe used a recursive glob and saw 4970; a
+        # non-recursive glob here returned 0 — this is the len(ds)==0 fix.)
         vid_stems = {p.stem for p in Path(videos_root).glob("*.mp4")}
-        traj_stems = {p.stem for p in Path(trajectories_root).glob("*.json")}
-        self._clip_ids: list[str] = sorted(vid_stems & traj_stems)
+        self._traj_paths: dict[str, Path] = {
+            p.stem: p for p in Path(trajectories_root).rglob("*.json")
+        }
+        self._clip_ids: list[str] = sorted(vid_stems & set(self._traj_paths))
         logger.info(
             "SquatSSLDataset: %d clips (videos=%d, trajectories=%d) under %s",
-            len(self._clip_ids), len(vid_stems), len(traj_stems), videos_root,
+            len(self._clip_ids), len(vid_stems), len(self._traj_paths), videos_root,
         )
 
     def __len__(self) -> int:
@@ -140,7 +145,7 @@ class SquatSSLDataset(Dataset):
         gaps — FOUND by the probe in e.g. 25707_3, contradicting Phase 1's "0% NaN") are linearly
         interpolated over so ``split_half_cycles``' extremum detection is robust (RESEARCH §1/§8).
         """
-        path = os.path.join(self.trajectories_root, f"{clip_id}.json")
+        path = self._traj_paths[clip_id]  # actual (possibly nested) path from the rglob map
         with open(path, encoding="utf-8") as fh:
             y = np.asarray(json.load(fh), dtype=float)
         nan_mask = np.isnan(y)
