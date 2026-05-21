@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/brand/brand_logo.dart';
 import '../../widgets/ui/app_button.dart';
 import '../../widgets/ui/app_text_field.dart';
 import 'sign_up_screen.dart';
@@ -87,15 +88,8 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'FitNova',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const FitNovaWordmark(height: 72),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Welcome back',
                       textAlign: TextAlign.center,

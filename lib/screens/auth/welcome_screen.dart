@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_spacing.dart';
+import '../../widgets/brand/brand_logo.dart';
 import '../../widgets/ui/app_button.dart';
 
 /// Animated brand splash shown to signed-out users: the logo fades in at full
@@ -105,14 +106,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       opacity: _logoOpacity.value,
                       child: Transform.scale(
                         scale: _logoScale.value,
-                        child: const Padding(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                          child: Image(
-                            image: AssetImage('assets/logo/wordmark.png'),
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                        child: const FitNovaWordmark(onDark: true, height: 150),
                       ),
                     ),
                   ),
