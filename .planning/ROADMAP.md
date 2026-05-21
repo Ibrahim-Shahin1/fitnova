@@ -64,7 +64,13 @@ Plans:
   1. Motion-Disentangling SSL pretraining runs on the unlabeled Squat set and converges
   2. The MD-pretrained model, fine-tuned for KIE/KFE, reports F1 ≥ the Phase-3 baseline
   3. A comparison table/chart places our F1 against Parmar and GYMetricPose on identical metrics
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md (wave 0) — SSL module scaffolds + unit tests (half-cycle splitter, triplet loss, projector, ensemble/TTA, checkpoint schemas) + colab.py update_latest kwarg + unlabeled staging
+- [ ] 04-02-PLAN.md (waves 1-2) — gated trajectory-format/half-cycle-sign probe + finalize SSL dataset/trainer + 12-24h MD-SSL pretrain (linear-probe + collapse monitoring)
+- [ ] 04-03-PLAN.md (wave 3) — 3-seed fine-tune (42/1337/7) from the shared MD backbone + D6 overfit monitor
+- [ ] 04-04-PLAN.md (wave 4) — ensemble (mean-of-sigmoids) + val-tuned TTA + test eval + 9 figures + Phase3-vs-Phase4 comparison chart + phase SUMMARY
 
 ### Phase 5: Backend Inference Integration (Squat)
 **Goal**: The Squat form detector served through the backend in live and video-upload modes.
