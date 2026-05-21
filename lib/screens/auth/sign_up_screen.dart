@@ -36,13 +36,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await AuthService.signUp(email: _email.text.trim(), password: _password.text);
+      final res = await AuthService.signUp(
+          email: _email.text.trim(), password: _password.text);
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => EmailVerifyPendingScreen(email: _email.text.trim()),
-          ),
-        );
+        if (res.session != null) {
+          // Email confirmation is disabled → user is already signed in.
+          // Drop the auth stack; AuthGate routes on to onboarding.
+          Navigator.of(context).popUntil((r) => r.isFirst);
+        } else {
+          // Confirmation required → wait-for-email screen.
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => EmailVerifyPendingScreen(email: _email.text.trim()),
+            ),
+          );
+        }
       }
     } on AuthException catch (e) {
       if (mounted) _showError(e.message);
