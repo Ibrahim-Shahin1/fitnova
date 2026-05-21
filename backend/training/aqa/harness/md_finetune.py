@@ -80,7 +80,23 @@ def build_finetune_model(md_backbone_path: str, *, dropout: float = 0.2) -> nn.M
     ``map_location='cpu'`` + ``strict=False`` (projector keys absent), asserts
     ``fc.in_features == 512``, then replaces ``fc`` with the dropout head (D3 / §9).
     """
-    raise NotImplementedError("Task 9 — implement build_finetune_model (D3 / RESEARCH §9)")
+    from torchvision.models.video import r2plus1d_18
+
+    # ANTI-PATTERN GUARD (§9): weights=None — NOT Kinetics. The MD-pretrained backbone
+    # IS the initialization; loading Kinetics here would discard the SSL pretraining.
+    model = r2plus1d_18(weights=None)
+    assert model.fc.in_features == 512, (
+        f"R(2+1)D-18 fc.in_features={model.fc.in_features}, expected 512"
+    )
+    # map_location='cpu' — D7 landmine (Phase 3 fix a0841b4: CUDA ByteTensors break
+    # set_rng_state_all). strict=False — the backbone-only state_dict has no fc/projector
+    # keys (the MD checkpoint stored fc=Identity + a separate projector).
+    ckpt = torch.load(md_backbone_path, map_location="cpu", weights_only=False)
+    model.load_state_dict(ckpt["backbone_state_dict"], strict=False)
+    # D3: head-only dropout before the joint KIE/KFE Linear(512, 2). Replaces fc AFTER
+    # the backbone load so the random Kinetics-400 fc is discarded.
+    model.fc = nn.Sequential(nn.Dropout(dropout), nn.Linear(512, 2))
+    return model
 
 
 def run_md_finetune_epoch(*args: Any, **kwargs: Any) -> dict:

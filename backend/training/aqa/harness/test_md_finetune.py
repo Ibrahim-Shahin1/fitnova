@@ -23,5 +23,22 @@ def _arr(*values: int | float) -> np.ndarray:
 # ───────────────────────────── SQUAT-05-a: fine-tune model build (slow) ─────────────────────
 
 @pytest.mark.slow
-def test_finetune_model_build() -> None:
-    pytest.skip("Task 9 — implement build_finetune_model + this slow test")
+def test_finetune_model_build(tmp_path) -> None:
+    pytest.importorskip("torchvision")
+    from backend.training.aqa.harness.md_pretrain import build_md_model
+
+    # Round-trip: save an MD backbone state_dict, then load it into a fresh fine-tune model.
+    backbone, _ = build_md_model()  # Kinetics backbone, fc=Identity (weights cached)
+    ckpt_path = tmp_path / "backbone.pt"
+    torch.save({"backbone_state_dict": backbone.state_dict()}, ckpt_path)
+
+    model = build_finetune_model(str(ckpt_path))
+    assert isinstance(model.fc, torch.nn.Sequential), type(model.fc)
+    assert isinstance(model.fc[0], torch.nn.Dropout)
+    assert isinstance(model.fc[1], torch.nn.Linear)
+    assert model.fc[1].out_features == 2
+
+    x = torch.zeros(2, 3, 32, 112, 112)  # 32-frame labeled clip (NOT the 16-frame half-cycle)
+    with torch.no_grad():
+        y = model(x)
+    assert y.shape == (2, 2), y.shape
