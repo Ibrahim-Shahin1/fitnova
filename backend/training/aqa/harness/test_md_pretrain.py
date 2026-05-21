@@ -9,6 +9,8 @@ in Wave 0 (Tasks 2/5/6/7/8).
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pytest
 
@@ -68,11 +70,45 @@ def test_half_cycle_split() -> None:
 # ───────────────────────────── SQUAT-04-b/c: triplet distance-ratio loss ────────────────────
 
 def test_triplet_loss_known() -> None:
-    pytest.skip("Task 5 — implement md_triplet_loss + hand-computed-value test")
+    # Known-value: phi_a == phi_p (one-hot unit vector), phi_n antipodal (-phi_a).
+    #   d_ap = ||a-p||^2 = 0                  -> num = exp(0) = 1
+    #   d_an = ||[1,..]-[-1,..]||^2 = ||[2,..]||^2 = 4 (squared) or sqrt(4)=2 (non-squared)
+    #   d_pn = d_an  (since p == a)
+    #   loss = -log( num / (num + exp(-d_an) [+ exp(-d_pn) if 3-term]) )
+    # The expected value is computed from this closed form via `math` — an INDEPENDENT
+    # code path from the torch implementation under test (not a tautology).
+    phi_a = torch.tensor([[1.0, 0.0, 0.0, 0.0]])
+    phi_p = phi_a.clone()
+    phi_n = -phi_a
+    for squared in (True, False):
+        d_an = 4.0 if squared else 2.0
+        for three_term in (True, False):
+            num = 1.0
+            den = num + math.exp(-d_an) + (math.exp(-d_an) if three_term else 0.0)
+            expected = -math.log(num / den)
+            got = float(md_triplet_loss(phi_a, phi_p, phi_n, squared=squared, three_term=three_term))
+            assert abs(got - expected) < 1e-5, (squared, three_term, got, expected)
+
+    # Degenerate exact anchor: all three identical -> all distances 0 -> num=1,
+    # den=2 (2-term) / 3 (3-term) -> loss = log(2) ~ 0.6931 / log(3) ~ 1.0986.
+    phi = torch.tensor([[1.0, 0.0, 0.0, 0.0]])
+    assert abs(float(md_triplet_loss(phi, phi, phi, three_term=False)) - math.log(2.0)) < 1e-5
+    assert abs(float(md_triplet_loss(phi, phi, phi, three_term=True)) - math.log(3.0)) < 1e-5
 
 
 def test_triplet_loss_direction() -> None:
-    pytest.skip("Task 5 — implement md_triplet_loss + directionality test")
+    # The loss must be strictly lower when anchor≈positive and far-from-negative than
+    # when positive/negative are swapped — proving it pulls positives together and
+    # pushes negatives apart (T-04-01 directionality guarantee).
+    torch.manual_seed(0)
+    d = 128
+    nrm = torch.nn.functional.normalize
+    anchor = nrm(torch.randn(4, d), dim=-1)
+    pos_close = nrm(anchor + 0.01 * torch.randn(4, d), dim=-1)
+    neg_far = nrm(-anchor + 0.01 * torch.randn(4, d), dim=-1)
+    loss_good = md_triplet_loss(anchor, pos_close, neg_far)
+    loss_bad = md_triplet_loss(anchor, neg_far, pos_close)  # positive/negative swapped
+    assert loss_good < loss_bad, (float(loss_good), float(loss_bad))
 
 
 # ───────────────────────────── SQUAT-04-d: projection head L2-norm ──────────────────────────

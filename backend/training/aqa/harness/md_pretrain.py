@@ -120,7 +120,26 @@ def md_triplet_loss(
         three_term: 3-term denominator (official active line) vs 2-term (Eq.1) — ablation flag.
         eps: numerical-stability epsilon inside the log.
     """
-    raise NotImplementedError("Task 5 — implement md_triplet_loss (D2 / RESEARCH §2)")
+    # Paper Eq.1 §3.2 p.6 + official train_test.py:60-71 (the ACTIVE line is 3-term,
+    # squared). Two documented discrepancies vs the paper text, exposed as flags:
+    #   squared:    official code uses squared L2 (sum of squares); Eq.1 shows ||·||
+    #               (non-squared). Default True = as-shipped code; False = exact Eq.1.
+    #   three_term: official active line adds exp(-d_pn) (pos-neg repulsion); Eq.1's
+    #               denominator is 2-term. Default True = as-shipped; False = exact Eq.1.
+    # NO temperature, NO stop-gradient (RESEARCH §2). Vectorized (not the per-sample loop).
+    d_ap = ((phi_a - phi_p) ** 2).sum(-1)
+    d_an = ((phi_a - phi_n) ** 2).sum(-1)
+    if not squared:
+        d_ap = d_ap.sqrt()
+        d_an = d_an.sqrt()
+    num = torch.exp(-d_ap)
+    den = num + torch.exp(-d_an)
+    if three_term:
+        d_pn = ((phi_p - phi_n) ** 2).sum(-1)
+        if not squared:
+            d_pn = d_pn.sqrt()
+        den = den + torch.exp(-d_pn)
+    return (-torch.log(num / (den + eps))).mean()
 
 
 def build_md_model() -> tuple[nn.Module, nn.Module]:
