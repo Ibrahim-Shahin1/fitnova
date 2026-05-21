@@ -32,4 +32,17 @@ def aggregate_sigmoid_mean(per_seed_logits: list[np.ndarray]) -> np.ndarray:
     Raises:
         ValueError: empty list, or inconsistent ``(N, 2)`` shapes across seeds.
     """
-    raise NotImplementedError("Task 10 — implement aggregate_sigmoid_mean (D4 / RESEARCH §13)")
+    if len(per_seed_logits) == 0:
+        raise ValueError("aggregate_sigmoid_mean: empty per_seed_logits list")
+    arrays = [np.asarray(a, dtype=float) for a in per_seed_logits]
+    shapes = {a.shape for a in arrays}
+    if len(shapes) != 1:
+        raise ValueError(
+            f"aggregate_sigmoid_mean: inconsistent shapes across seeds: {sorted(shapes)}"
+        )
+    # D4: mean of SIGMOIDS (NOT mean of logits). The [0,1] output satisfies the
+    # pr_auc_per_error assertion at metrics.py:72.
+    sigmoid_scores = [1.0 / (1.0 + np.exp(-a)) for a in arrays]
+    ensemble = np.mean(sigmoid_scores, axis=0)
+    assert ensemble.min() >= 0.0 and ensemble.max() <= 1.0, (ensemble.min(), ensemble.max())
+    return ensemble
