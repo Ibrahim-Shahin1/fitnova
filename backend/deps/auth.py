@@ -1,5 +1,5 @@
 """
-FastAPI auth dependency — turns a verified Supabase JWT into an AuthUser.
+FastAPI auth dependency — turns a verified Supabase token into an AuthUser.
 
 Usage:
     @app.get("/something")
@@ -7,17 +7,21 @@ Usage:
         ...
 
 Endpoints NEVER trust a user_id supplied in the request body — identity comes
-only from the verified bearer token resolved here.
+only from the verified bearer token resolved here. Any failure (including
+unexpected ones) is converted to HTTP 401; auth must never surface a 500.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from uuid import UUID
 
 from fastapi import Header, HTTPException
 
 from backend.services.supabase_auth import AuthError, verify_token
+
+logger = logging.getLogger("fitnova.auth")
 
 
 @dataclass(frozen=True)
@@ -39,6 +43,9 @@ def require_user(authorization: str | None = Header(default=None)) -> AuthUser:
         claims = verify_token(token)
     except AuthError as exc:
         raise HTTPException(status_code=401, detail=f"Auth failed: {exc.reason}")
+    except Exception as exc:  # defensive — auth must never leak a 500
+        logger.exception("Unexpected auth error")
+        raise HTTPException(status_code=401, detail=f"Auth error: {type(exc).__name__}")
 
     sub = claims.get("sub")
     try:

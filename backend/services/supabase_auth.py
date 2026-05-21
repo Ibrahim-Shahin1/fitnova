@@ -1,17 +1,15 @@
 """
-Supabase JWT verification.
+Supabase token verification (remote introspection).
 
-Verifies the signature + standard claims of a Supabase access token and returns
-its claims. Supports BOTH:
-  * symmetric  (HS256/384/512) — the legacy / default shared-secret projects,
-    verified against SUPABASE_JWT_SECRET.
-  * asymmetric (RS256/ES256/…) — projects using Supabase "JWT Signing Keys",
-    verified against the project's published JWKS public key.
+Verifies a Supabase access token by calling the project's GET /auth/v1/user
+endpoint with the token + anon apikey. This is ALGORITHM-AGNOSTIC: it works
+whether the project signs access tokens with the legacy HS256 shared secret or
+the newer asymmetric (ES256/RS256) signing keys, because Supabase itself does
+the cryptographic check and returns the authenticated user.
 
-The algorithm is read from the token header and the matching key source is
-chosen automatically, so the backend works regardless of how the user's
-Supabase project is configured. Restricting `algorithms` to the family that
-matches the header alg also closes the classic HS/RS "alg confusion" hole.
+Trade-off vs local JWT verification: one lightweight HTTPS call per authenticated
+request. At this app's scale that is negligible, and it removes all secret/JWKS
+handling plus the failure modes that come with it.
 
 Used by backend/deps/auth.py (the require_user FastAPI dependency).
 """
@@ -19,17 +17,12 @@ Used by backend/deps/auth.py (the require_user FastAPI dependency).
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
 
-import jwt
-from jwt import PyJWKClient
+import httpx
 
 from backend.config import supabase as cfg
 
 logger = logging.getLogger("fitnova.auth")
-
-_HS_ALGS = ("HS256", "HS384", "HS512")
-_ASYM_ALGS = ("RS256", "RS384", "RS512", "ES256", "ES384", "ES512")
 
 
 class AuthError(Exception):
@@ -40,57 +33,46 @@ class AuthError(Exception):
         super().__init__(reason)
 
 
-@lru_cache(maxsize=1)
-def _jwk_client() -> PyJWKClient:
-    url = cfg.jwks_url()
-    if not url:
-        raise AuthError("no_jwks_url")
-    # PyJWKClient caches fetched keys internally; lru_cache keeps one client.
-    return PyJWKClient(url)
-
-
 def verify_token(token: str) -> dict:
-    """Verify a Supabase access token and return its claims dict.
+    """Verify a Supabase access token via /auth/v1/user; return a claims dict.
+
+    Returns:
+        dict with 'sub' (the user UUID), 'email', and 'raw' (the full user object).
 
     Raises:
-        AuthError(reason): on any failure — missing/malformed token, bad
-        signature, expired, wrong audience, unsupported alg, or missing config.
+        AuthError(reason): missing token, Supabase unreachable, invalid/expired
+        token, or an unexpected response.
     """
     if not token:
         raise AuthError("missing_token")
+    if not cfg.SUPABASE_URL or not cfg.SUPABASE_ANON_KEY:
+        raise AuthError("supabase_not_configured")
 
     try:
-        header = jwt.get_unverified_header(token)
-    except jwt.PyJWTError:
-        raise AuthError("malformed_token")
+        resp = httpx.get(
+            f"{cfg.SUPABASE_URL}/auth/v1/user",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "apikey": cfg.SUPABASE_ANON_KEY,
+            },
+            timeout=10.0,
+        )
+    except httpx.HTTPError as exc:
+        logger.warning("Supabase auth endpoint unreachable: %s", exc)
+        raise AuthError(f"supabase_unreachable:{type(exc).__name__}")
 
-    alg = header.get("alg", "")
-    options = {"require": ["exp", "sub"]}
+    if resp.status_code == 200:
+        user = resp.json()
+        sub = user.get("id")
+        if not sub:
+            raise AuthError("no_user_id_in_response")
+        return {"sub": sub, "email": user.get("email"), "raw": user}
 
-    try:
-        if alg in _HS_ALGS:
-            if not cfg.SUPABASE_JWT_SECRET:
-                raise AuthError("jwt_secret_not_configured")
-            return jwt.decode(
-                token,
-                cfg.SUPABASE_JWT_SECRET,
-                algorithms=list(_HS_ALGS),
-                audience=cfg.JWT_AUDIENCE,
-                options=options,
-            )
-        if alg in _ASYM_ALGS:
-            signing_key = _jwk_client().get_signing_key_from_jwt(token)
-            return jwt.decode(
-                token,
-                signing_key.key,
-                algorithms=list(_ASYM_ALGS),
-                audience=cfg.JWT_AUDIENCE,
-                options=options,
-            )
-        raise AuthError(f"unsupported_alg:{alg or 'none'}")
-    except jwt.ExpiredSignatureError:
-        raise AuthError("expired")
-    except jwt.InvalidAudienceError:
-        raise AuthError("bad_audience")
-    except jwt.InvalidTokenError as exc:
-        raise AuthError(f"invalid_token:{type(exc).__name__}")
+    if resp.status_code in (401, 403):
+        raise AuthError("invalid_or_expired_token")
+
+    logger.warning(
+        "Supabase auth returned unexpected status %s: %s",
+        resp.status_code, resp.text[:200],
+    )
+    raise AuthError(f"supabase_status:{resp.status_code}")
