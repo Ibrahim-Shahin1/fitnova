@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
-import 'sign_in_screen.dart';
+import 'auth_flow.dart';
 
 /// Top-level router: shows authenticated vs unauthenticated UI based on the
 /// Supabase session. Unauthenticated → sign-in. Authenticated → placeholder for
@@ -16,7 +16,7 @@ class AuthGate extends StatelessWidget {
     if (auth.isAuthenticated) {
       return _SignedInPlaceholder(email: auth.email);
     }
-    return const SignInScreen();
+    return const AuthFlow();
   }
 }
 
