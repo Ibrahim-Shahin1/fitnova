@@ -6,6 +6,7 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/brand/brand_logo.dart';
 import '../../widgets/ui/app_button.dart';
 import '../../widgets/ui/app_text_field.dart';
+import 'forgot_password_screen.dart';
 import 'sign_up_screen.dart';
 
 /// Email + password sign-in. On success, the Supabase auth-state stream fires
@@ -43,26 +44,6 @@ class _SignInScreenState extends State<SignInScreen> {
       if (mounted) _showError("Couldn't reach the server. Check your connection.");
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _forgotPassword() async {
-    final email = _email.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      _showError('Enter your email first, then tap "Forgot password?"');
-      return;
-    }
-    try {
-      await AuthService.sendPasswordReset(email);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Password reset email sent to $email')),
-        );
-      }
-    } on AuthException catch (e) {
-      if (mounted) _showError(e.message);
-    } catch (_) {
-      if (mounted) _showError("Couldn't send the reset email. Try again.");
     }
   }
 
@@ -128,7 +109,11 @@ class _SignInScreenState extends State<SignInScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: _forgotPassword,
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        ),
                         child: const Text('Forgot password?'),
                       ),
                     ),

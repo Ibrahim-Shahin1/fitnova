@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import 'auth_flow.dart';
+import 'new_password_screen.dart';
 
 /// Top-level router: shows authenticated vs unauthenticated UI based on the
 /// Supabase session. Unauthenticated → sign-in. Authenticated → placeholder for
@@ -13,6 +14,9 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    if (auth.isRecoveringPassword) {
+      return const NewPasswordScreen();
+    }
     if (auth.isAuthenticated) {
       return _SignedInPlaceholder(email: auth.email);
     }
