@@ -97,6 +97,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-21 -- Phase 4 Wave 0 (Plan 01) complete
-Stopped at: Phase 4 Wave 0 GREEN (Plan 01, 13 tasks — SSL machinery built + unit-tested locally on CPU torch; full pytest gate 21 passed + 2 slow model-builds; Phase 3 regression intact). GPU burn authorized. NEXT: Plan 02 on a FRESH L4 Colab notebook — Wave 1 = the gated trajectory-format + half-cycle-sign probe, then Wave 2 = the 12-24h MD-SSL pretrain.
-Resume file: .planning/phases/04-squat-motion-disentangling-ssl/04-01-SUMMARY.md
+Last session: 2026-05-21 -- Phase 4 Plan 02 Tasks 1-3 (probe resolved + SSL dataset finalized)
+Stopped at: Plan 02 Task 1 probe RESOLVED on real Colab clips — trajectory = per-clip JSON flat float y-centers, 1:1 traj<->frame, SIGN = bottom_is_argmax=False (ARGMIN; argmax degenerates the ascent to one frame), in-file NaNs found (e.g. 25707_3 — Task 2 NaN-interpolates). Task 2 finalized squat_ssl.py (_load_trajectory + __getitem__ triplet recipe + build_ssl_loader); Task 3 added notebook Step 2 SSL dataset smoke. Pushed (origin 69fa2b1). NEXT: user runs Cell A + Step 0 + Step 2 on the L4 -> confirm len(ds)~4970 + triplet shapes (8,3,16,112,112) + raw descent/ascent sanity grid; THEN Task 4 (finalize md_pretrain run_md_pretrain_epoch + _linear_probe + collapse detection), Task 5 (VRAM + epoch-0 timing decision gate), Task 6 (12-24h MD-SSL pretrain).
+Resume file: .planning/phases/04-squat-motion-disentangling-ssl/04-02-PLAN.md
