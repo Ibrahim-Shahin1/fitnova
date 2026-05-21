@@ -443,6 +443,101 @@ def stage_squat_videos(
     return str(local_root_p)
 
 
+_SQUAT_UNLABELED_VIDEOS_EXPECT_COUNT = 4970  # Phase 1 verified count (Squat Unlabeled_Dataset)
+
+
+def stage_unlabeled_squat_videos(
+    drive_root: str,
+    *,
+    local_videos_root: str = "/content/squat_unlabeled_videos",
+    local_traj_root: str = "/content/squat_trajectories",
+    expect_count: int = _SQUAT_UNLABELED_VIDEOS_EXPECT_COUNT,
+) -> tuple[str, str]:
+    """Stage the unlabeled Squat `videos.zip` + `bar_trajectories_raw.zip` from Drive (§10).
+
+    Mirrors `stage_squat_videos`' three-layer resume for the videos (cache hit → byte-resume
+    copy → per-member mp4 extract, reusing the existing helpers). The trajectory archive
+    holds per-clip JSONs, so it is copied (byte-resume) then extracted with
+    `zipfile.extractall` — `_extract_with_resume_and_progress` is mp4-only and would skip
+    JSON members. The trajectory zip is small; its exact on-disk layout/format is confirmed
+    by Plan 02's gated probe before the SSL dataset's `_load_trajectory` is finalized (§8).
+
+    Args:
+        drive_root:        path to Drive MyDrive (typically `"/content/drive/MyDrive"`).
+        local_videos_root: destination for the extracted unlabeled `.mp4` files.
+        local_traj_root:   destination for the extracted trajectory JSONs.
+        expect_count:      Phase 1 verified count (4970 unlabeled Squat clips).
+
+    Returns:
+        `(local_videos_root, local_traj_root)` — paths to the staged assets.
+
+    Raises:
+        FileNotFoundError: a source zip is missing from Drive.
+        RuntimeError:      post-extraction mp4 count doesn't match `expect_count`.
+    """
+    videos_root_p = Path(local_videos_root)
+    traj_root_p = Path(local_traj_root)
+
+    # Cache hit on the expensive asset (the 4,970 mp4s) + a populated trajectory dir.
+    if videos_root_p.is_dir():
+        flat = list(videos_root_p.glob("*.mp4"))
+        if (
+            len(flat) == expect_count
+            and traj_root_p.is_dir()
+            and any(traj_root_p.iterdir())
+        ):
+            logger.info(
+                "stage_unlabeled cache hit: %d mp4s + trajectories already staged", expect_count
+            )
+            return str(videos_root_p), str(traj_root_p)
+
+    base = Path(drive_root) / "Fitness-AQA_dataset_release/Squat/Unlabeled_Dataset"
+    src_videos = base / "videos.zip"
+    src_traj = base / "bar_trajectories_raw.zip"
+    if not src_videos.is_file():
+        raise FileNotFoundError(f"Unlabeled videos zip not found on Drive: {src_videos}")
+    if not src_traj.is_file():
+        raise FileNotFoundError(f"Unlabeled trajectory zip not found on Drive: {src_traj}")
+
+    # Videos: byte-resume copy → per-member mp4 extract (reuse the existing primitives).
+    local_videos_zip = Path("/content/squat_unlabeled_videos.zip")
+    vid_mb = src_videos.stat().st_size / 1e6
+    t_vcopy = _copy_with_resume_and_progress(src_videos, local_videos_zip)
+    logger.info("copy %s (%.1f MB) in %.2fs", src_videos.name, vid_mb, t_vcopy)
+    videos_root_p.mkdir(parents=True, exist_ok=True)
+    t_vextract = _extract_with_resume_and_progress(local_videos_zip, videos_root_p)
+    mp4s = list(videos_root_p.glob("*.mp4"))
+    if len(mp4s) != expect_count:
+        raise RuntimeError(
+            f"stage_unlabeled_squat_videos: expected {expect_count} mp4s at top of "
+            f"{local_videos_root}, got {len(mp4s)}. Check Drive zip: {src_videos}"
+        )
+
+    # Trajectories: byte-resume copy → generic extractall (JSONs; the mp4-only extractor
+    # cannot handle them). Small archive; resume-safe via the copy + idempotent extractall.
+    local_traj_zip = Path("/content/squat_trajectories.zip")
+    t_tcopy = _copy_with_resume_and_progress(src_traj, local_traj_zip)
+    traj_root_p.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(str(local_traj_zip), "r") as zf:
+        zf.extractall(traj_root_p)
+    n_traj_files = sum(1 for p in traj_root_p.rglob("*") if p.is_file())
+    logger.info(
+        "stage_unlabeled_squat_videos: %d mp4s at %s + %d trajectory files at %s "
+        "(videos copy %.2fs + extract %.2fs, traj copy %.2fs)",
+        expect_count, local_videos_root, n_traj_files, local_traj_root,
+        t_vcopy, t_vextract, t_tcopy,
+    )
+
+    # Reclaim disk — both extractions succeeded.
+    for z in (local_videos_zip, local_traj_zip):
+        try:
+            z.unlink()
+        except OSError as exc:
+            logger.warning("could not remove %s: %s", z, exc)
+
+    return str(videos_root_p), str(traj_root_p)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Task 9 — RNG capture/restore. Required for Task 14's bitwise-resume assertion
 # (fresh-2-epoch vs. resumed-from-epoch-0-into-epoch-1 must produce byte-identical
@@ -535,8 +630,15 @@ def _atomic_write_text(path: str, content: str) -> None:
     os.replace(tmp, path)
 
 
-def atomic_save_checkpoint(payload: dict, target_path: str) -> None:
-    """Atomically save `payload` to `target_path` and update `latest.txt` in the same dir (D11).
+def atomic_save_checkpoint(
+    payload: dict, target_path: str, *, update_latest: bool = True
+) -> None:
+    """Atomically save `payload` to `target_path`; update `latest.txt` iff `update_latest` (D11/D7).
+
+    `update_latest` (default True) preserves the exact Phase 2/3 behavior. Pass
+    `update_latest=False` for `backbone.pt` / `best.pt` writes so the `latest.txt`
+    epoch-resume pointer is never clobbered (D7 / RESEARCH §10 / Pitfall 4) — otherwise
+    a `backbone.pt` save would make SSL resume jump to the wrong (best, not latest) epoch.
 
     Contract (in order — D11):
       1. `torch.save(payload, tmp)` where `tmp = .tmp_{basename}.{pid}` next to target.
@@ -586,10 +688,13 @@ def atomic_save_checkpoint(payload: dict, target_path: str) -> None:
     # Step 4: latest.txt LAST. Crash here leaves prior latest.txt pointing to the
     # last successful checkpoint — `target_path` is now also on disk but unreferenced
     # until a subsequent successful save rewrites latest.txt.
-    latest_path = os.path.join(target_dir, "latest.txt")
-    _atomic_write_text(latest_path, target_name + "\n")
-
-    logger.info("atomic_save_checkpoint: %s (+ latest.txt -> %s)", target_path, target_name)
+    if update_latest:
+        latest_path = os.path.join(target_dir, "latest.txt")
+        _atomic_write_text(latest_path, target_name + "\n")
+        logger.info("atomic_save_checkpoint: %s (+ latest.txt -> %s)", target_path, target_name)
+    else:
+        # D7 / Pitfall 4: backbone.pt / best.pt write — leave the epoch-resume pointer alone.
+        logger.info("atomic_save_checkpoint: %s (latest.txt NOT updated)", target_path)
 
 
 def load_latest_checkpoint(
