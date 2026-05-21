@@ -55,7 +55,7 @@ created: 2026-05-21
 | SQUAT-05-a | `build_finetune_model` loads MD backbone (NOT Kinetics); head = `Dropout(0.2)+Linear(512,2)` | unit (slow) | `pytest .../test_md_finetune.py::test_finetune_model_build -x` | ❌ W0 |
 | SQUAT-05-b | `aggregate_sigmoid_mean` averages per-seed sigmoids; output ∈ [0,1] | unit | `pytest .../test_ensemble.py::test_sigmoid_mean -x` | ❌ W0 |
 | SQUAT-05-c | `select_tta_recipe` returns val-F1-maximizing combo on synthetic scores | unit | `pytest .../test_tta.py::test_recipe_selection -x` | ❌ W0 |
-| SQUAT-05-d | Fine-tune val macro-F1 ≥ Phase 3 best (0.5454) — SSL transferred | integration (Colab) | Colab paste-back of fine-tune curve | ❌ W3 |
+| SQUAT-05-d | Fine-tune val macro-F1 ≥ Phase 3 **val-best** (0.5454, epoch 3) — SSL transferred. *(0.5454 = VAL bar for fine-tune monitoring; the 0.5429 TEST bar is SQUAT-05-e — both correct, not an arithmetic discrepancy)* | integration (Colab) | Colab paste-back of fine-tune curve | ❌ W3 |
 | SQUAT-05-e | Ensemble+TTA test macro-F1 ≥ Phase 3 (0.543); KIE F1 NOT < 0.2857 (D6 monitor 3) | integration (Colab) | Colab paste-back of final test report | ❌ W4 |
 | SQUAT-05-f | val-test F1 gap < 0.05 (D6 monitor 2) | integration (Colab) | Colab paste-back | ❌ W4 |
 
