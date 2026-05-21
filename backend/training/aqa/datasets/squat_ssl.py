@@ -66,7 +66,27 @@ def split_half_cycles(
     Raises:
         ValueError: trajectory shorter than 2 frames.
     """
-    raise NotImplementedError("Task 2 — implement split_half_cycles (D1 / RESEARCH §1)")
+    traj_y = np.asarray(traj_y, dtype=float)
+    if traj_y.ndim != 1 or traj_y.shape[0] < 2:
+        raise ValueError(
+            f"split_half_cycles: traj_y must be 1-D with >=2 samples, got shape {traj_y.shape}"
+        )
+    # 1. Smooth to suppress YOLO-detection jitter before extremum detection (RESEARCH §1 pt.2).
+    sm = scipy.ndimage.gaussian_filter1d(traj_y, sigma=smooth_sigma)
+    # 2. Bottom-of-rep = the global extremum of the smoothed y-curve (RESEARCH §1 pt.3).
+    #    The SIGN is a PARAM, never hard-coded: Fig.3 plots amplitude (possibly inverted)
+    #    and image-y grows downward, so the real argmax-vs-argmin sign is resolved
+    #    empirically in Plan 02's checkpoint:human-verify probe on real clips (T-04-02).
+    bottom = int(np.argmax(sm)) if bottom_is_argmax else int(np.argmin(sm))
+    # 3. Descent = frames [0..bottom]; Ascent = frames [bottom..end]. Reuse the existing
+    #    uniform_sample_indices (D9 — no new sampler). The bottom frame is the shared
+    #    turning point: descent[-1] == bottom == ascent[0].
+    descent = uniform_sample_indices(num_frames=bottom + 1, target=frames_per_half)
+    ascent = uniform_sample_indices(num_frames=len(sm) - bottom, target=frames_per_half) + bottom
+    # NOTE: multi-rep find_peaks handling is deferred to Plan 02, after the probe measures
+    # multi-rep frequency across the 4,970 trajectories (RESEARCH §1 pt.4 — paper is
+    # nominally single-rep, so argmax/argmin covers the bulk).
+    return descent.numpy(), ascent.numpy()
 
 
 class SquatSSLDataset(Dataset):
