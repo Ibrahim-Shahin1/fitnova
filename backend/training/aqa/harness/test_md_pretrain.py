@@ -78,7 +78,13 @@ def test_triplet_loss_direction() -> None:
 # ───────────────────────────── SQUAT-04-d: projection head L2-norm ──────────────────────────
 
 def test_projector_l2norm() -> None:
-    pytest.skip("Task 6 — implement ProjectionHead + L2-norm test")
+    head = ProjectionHead(512, 512, 128).eval()  # eval() -> BatchNorm1d uses running stats
+    x = torch.randn(4, 512)
+    with torch.no_grad():
+        out = head(x)
+    assert out.shape == (4, 128), out.shape
+    norms = out.norm(dim=-1)
+    assert torch.allclose(norms, torch.ones(4), atol=1e-5), norms
 
 
 # ───────────────────────────── SQUAT-04-f: SSL checkpoint schema ────────────────────────────

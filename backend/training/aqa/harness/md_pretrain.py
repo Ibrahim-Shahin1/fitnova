@@ -83,10 +83,19 @@ class ProjectionHead(nn.Module):
     """
 
     def __init__(self, in_dim: int = 512, hidden: int = 512, out_dim: int = 128) -> None:
-        raise NotImplementedError("Task 6 — implement ProjectionHead (RESEARCH §4)")
+        super().__init__()
+        # 2-layer MLP — dims SimCLR-standard [ASSUMED §4]; discarded at fine-tune.
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden),
+            nn.BatchNorm1d(hidden),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden, out_dim),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D102
-        raise NotImplementedError("Task 6 — implement ProjectionHead.forward (RESEARCH §4)")
+        # L2-normalize before the distance-ratio loss. CITED: official train_test.py:51
+        # (F.normalize(..., dim=-1, p=2)).
+        return F.normalize(self.net(x), dim=-1, p=2)
 
 
 def md_triplet_loss(
