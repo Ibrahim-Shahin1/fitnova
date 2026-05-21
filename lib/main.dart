@@ -19,6 +19,7 @@ import 'screens/mode_select_screen.dart';
 import 'screens/form_replay_screen.dart';
 import 'models/form_models.dart';
 import 'providers/auth_provider.dart';
+import 'providers/profile_provider.dart';
 import 'services/supabase_service.dart';
 import 'screens/auth/auth_gate.dart';
 
@@ -34,6 +35,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: themeController),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => FormSessionProvider()),
       ],
