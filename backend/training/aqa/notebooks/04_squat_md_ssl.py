@@ -440,3 +440,102 @@ print(f"saved {_sanity_png}")
 plt.show()
 
 print("\n=== STEP 2 COMPLETE — paste back len(ds), the 3 shapes, + ssl_triplet_sanity.png. Still NO GPU pretrain. ===")
+
+
+# %% [markdown]
+# ## Step 3 — VRAM probe: peak backward memory of the 3-branch triplet at batch 8 (Task 5)
+#
+# RESEARCH §5 estimates batch 8 ≈ 11.7 GB (extrapolated from Phase 3's MEASURED 15.22 GB) — but
+# the Phase 3 estimate was off, so **measure, don't trust the table**. One forward+backward of the
+# 3-branch triplet, then `max_memory_allocated`. If it exceeds ~20 GB / OOMs → option-b (batch 5).
+# Re-run Cell A first (pulls Task 4's trainer + the squat_ssl recursive-glob fix).
+
+# %%
+import importlib
+import torch
+
+import backend.training.aqa.datasets.squat_ssl as _sslds
+import backend.training.aqa.harness.md_pretrain as _mdp
+importlib.reload(_sslds)  # pick up the recursive-glob fix after git pull
+importlib.reload(_mdp)     # pick up the finalized trainer after git pull
+from backend.training.aqa.datasets.squat_ssl import SquatSSLDataset, build_ssl_loader
+from backend.training.aqa.harness.md_pretrain import MDConfig, build_md_model, md_triplet_loss
+
+config = MDConfig()
+_dev = torch.device("cuda")
+torch.cuda.empty_cache()
+torch.cuda.reset_peak_memory_stats()
+
+_bb, _proj = build_md_model()
+_bb, _proj = _bb.to(_dev), _proj.to(_dev)
+_ds = SquatSSLDataset(videos_root=UNLABELED_VIDEOS_ROOT, trajectories_root=TRAJ_ROOT,
+                      frames_per_half=config.frames_per_half, crop_size=config.crop_size)
+_b = next(iter(build_ssl_loader(_ds, config, seed=42)))
+_opt = torch.optim.AdamW(list(_bb.parameters()) + list(_proj.parameters()),
+                         lr=config.learning_rate, weight_decay=config.weight_decay)
+_bb.train(); _proj.train()
+_pa = _proj(_bb(_b["anchor"].to(_dev)))
+_pp = _proj(_bb(_b["positive"].to(_dev)))
+_pn = _proj(_bb(_b["negative"].to(_dev)))
+_loss = md_triplet_loss(_pa, _pp, _pn, squared=config.loss_squared, three_term=config.loss_three_term)
+_opt.zero_grad(); _loss.backward(); _opt.step()
+_peak_gb = torch.cuda.max_memory_allocated() / 1e9
+print(f"batch_size={config.batch_size} | peak backward VRAM = {_peak_gb:.2f} GB | loss = {_loss.item():.4f}")
+assert _peak_gb < 22.0, f"VRAM {_peak_gb:.1f} GB exceeds the L4 budget — choose option-b (batch 5)"
+print(f"VRAM fits L4 (< 22 GB) at batch {config.batch_size}")
+del _bb, _proj, _opt, _pa, _pp, _pn, _loss, _b
+torch.cuda.empty_cache()
+
+
+# %% [markdown]
+# ## Step 4 — epoch-0 timing gate ⚠ BLOCKING DECISION (Task 5)
+#
+# Runs ONE fresh epoch under the production trainer (`max_epochs=1`, separate `_timing` run dir),
+# then you authorize the full 12-24h run. `epoch_wall_time_s` is the pure SSL-pass time (measured
+# before the linear-probe), so `estimated_total_h = ssl_epoch_time * max_epochs` is the training
+# estimate; the linear-probe adds a smaller increment every 5 epochs (you'll see it in the cell's
+# total time). **Decide:** option-a (proceed batch 8, est ≤ ~18h) / option-b (batch 5) / option-c
+# (TorchCodec, only if GPU < 50% util = decode-bound).
+
+# %%
+import os
+import time
+
+import torch
+
+from backend.training.aqa.harness.md_pretrain import MDConfig, run_md_pretrain_epoch
+
+config = MDConfig()
+_t_cell = time.perf_counter()
+_res = run_md_pretrain_epoch(
+    run_name="md_pretrain_v1_timing",
+    drive_root=MYDRIVE,
+    videos_root=UNLABELED_VIDEOS_ROOT,
+    trajectories_root=TRAJ_ROOT,
+    labeled_videos_root=VIDEOS_ROOT,
+    seed=42, config=config, resume=False, max_epochs=1,
+)
+_cell_wall = time.perf_counter() - _t_cell
+_e0 = _res["metrics_history"][0]
+_ssl_t = _e0["epoch_wall_time_s"]
+_est_h = _ssl_t * config.max_epochs / 3600.0
+print(f"epoch-0 SSL pass = {_ssl_t:.1f}s | full cell (incl. linear-probe) = {_cell_wall:.1f}s")
+print(f"ssl_loss = {_e0['ssl_loss_mean']:.4f} | embedding_std = {_e0['embedding_std']:.5f} "
+      f"(healthy ~{1/512**0.5:.5f}; collapse -> 0) | effective_rank = {_e0['effective_rank']:.1f}")
+print(f"estimated SSL training time (x{config.max_epochs} epochs) = {_est_h:.1f} h "
+      f"(+ linear-probe every {config.linear_probe_cadence} epochs)")
+if _res["linear_probe_history"]:
+    _lp = _res["linear_probe_history"][0]
+    print(f"epoch-0 linear-probe macro-F1 = {_lp['linear_probe_f1_macro']:.4f} "
+          f"(kie={_lp['linear_probe_f1_kie']:.4f} kfe={_lp['linear_probe_f1_kfe']:.4f})")
+
+# Checkpoint round-trip verify (T-04-06).
+_ckpt = _res["checkpoint_path"]
+print(f"\ncheckpoint: {_ckpt} ({os.path.getsize(_ckpt) / 1e6:.1f} MB)")
+_pl = torch.load(_ckpt, map_location="cpu", weights_only=False)
+assert _pl["code_version"] == "phase04-md-pretrain", _pl.get("code_version")
+print("checkpoint round-trip OK; payload keys:", sorted(_pl.keys()))
+
+print(f"\n=== DECISION: est_total≈{_est_h:.1f}h, VRAM fits. "
+      "option-a (proceed batch 8) if ≤~18h; option-b (batch 5) if >24h or VRAM tight; "
+      "option-c (TorchCodec) only if GPU<50% util (decode-bound). NO full run until you choose. ===")
