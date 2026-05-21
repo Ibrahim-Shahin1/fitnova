@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../widgets/brand/brand_logo.dart';
 import '../onboarding/onboarding_flow.dart';
+import '../shell/app_shell.dart';
 import 'auth_flow.dart';
 import 'new_password_screen.dart';
 
@@ -44,7 +45,7 @@ class AuthGate extends StatelessWidget {
     if (!profile.profile!.onboardingCompleted) {
       return const OnboardingFlow();
     }
-    return _SignedInPlaceholder(email: auth.email);
+    return const AppShell();
   }
 }
 
@@ -95,34 +96,6 @@ class _ProfileLoadError extends StatelessWidget {
               FilledButton(onPressed: onRetry, child: const Text('Retry')),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SignedInPlaceholder extends StatelessWidget {
-  const _SignedInPlaceholder({required this.email});
-
-  final String? email;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('FitNova')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 48),
-            const SizedBox(height: 12),
-            Text('Signed in as ${email ?? "unknown"}'),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => context.read<AuthProvider>().signOut(),
-              child: const Text('Sign out'),
-            ),
-          ],
         ),
       ),
     );
