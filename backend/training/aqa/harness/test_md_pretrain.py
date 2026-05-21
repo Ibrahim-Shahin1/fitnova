@@ -133,4 +133,13 @@ def test_ssl_checkpoint_schema() -> None:
 
 @pytest.mark.slow
 def test_md_model_build() -> None:
-    pytest.skip("Task 8 — implement build_md_model + this slow test")
+    pytest.importorskip("torchvision")  # downloads ~120 MB Kinetics weights on first call
+    backbone, projector = build_md_model()
+    assert isinstance(backbone.fc, torch.nn.Identity)
+    x = torch.zeros(2, 3, 16, 112, 112)  # 16 frames = one half-cycle (NOT the 32-frame clip)
+    with torch.no_grad():
+        feat = backbone(x)
+    assert feat.shape == (2, 512), feat.shape
+    proj_out = projector(feat)
+    assert proj_out.shape == (2, 128), proj_out.shape
+    assert torch.allclose(proj_out.norm(dim=-1), torch.ones(2), atol=1e-5), proj_out.norm(dim=-1)

@@ -148,7 +148,25 @@ def build_md_model() -> tuple[nn.Module, nn.Module]:
     Returns ``(backbone, projector)`` kept separate so fine-tune loads only the
     backbone (the projector is a pretext-only artifact, discarded at fine-tune).
     """
-    raise NotImplementedError("Task 8 — implement build_md_model (RESEARCH §4)")
+    # Lazy import keeps module-level import of md_pretrain fast on CPU-only machines
+    # (PATTERNS §4 — the slow model-build test is @pytest.mark.slow).
+    from torchvision.models.video import R2Plus1D_18_Weights, r2plus1d_18
+
+    # Kinetics-V1 init matches Phase 3 for a clean P3-vs-P4 comparison (CITED §5 p.9).
+    backbone = r2plus1d_18(weights=R2Plus1D_18_Weights.KINETICS400_V1)
+    assert backbone.fc.in_features == 512, (
+        f"R(2+1)D-18 fc.in_features={backbone.fc.in_features}, expected 512"
+    )
+    backbone.fc = nn.Identity()  # expose the 512-d pooled features (RESEARCH §4)
+    projector = ProjectionHead(in_dim=512, hidden=512, out_dim=128)
+    n_params = sum(p.numel() for p in backbone.parameters()) + sum(
+        p.numel() for p in projector.parameters()
+    )
+    logger.info(
+        "build_md_model: R(2+1)D-18 (Kinetics-V1, fc=Identity) + ProjectionHead — %d params",
+        n_params,
+    )
+    return backbone, projector
 
 
 def run_md_pretrain_epoch(*args: Any, **kwargs: Any) -> dict:
