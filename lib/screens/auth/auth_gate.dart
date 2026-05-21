@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import 'sign_in_screen.dart';
 
 /// Top-level router: shows authenticated vs unauthenticated UI based on the
-/// Supabase session. Both branches are scaffolding placeholders for now — real
-/// sign-in screens arrive in the next unit, the bottom-nav shell after that.
+/// Supabase session. Unauthenticated → sign-in. Authenticated → placeholder for
+/// now; the bottom-nav shell replaces it in a later unit.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -15,31 +16,7 @@ class AuthGate extends StatelessWidget {
     if (auth.isAuthenticated) {
       return _SignedInPlaceholder(email: auth.email);
     }
-    return const _SignedOutPlaceholder();
-  }
-}
-
-class _SignedOutPlaceholder extends StatelessWidget {
-  const _SignedOutPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('FitNova',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800)),
-            SizedBox(height: 8),
-            Text('Not signed in'),
-            SizedBox(height: 4),
-            Text('(sign-in screen — next unit)',
-                style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      ),
-    );
+    return const SignInScreen();
   }
 }
 
