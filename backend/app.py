@@ -23,7 +23,7 @@ from contextlib import asynccontextmanager
 
 import os
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -33,6 +33,8 @@ from backend.services.llm_adapter import LLMAdapter
 from backend.services.recommender import Recommender
 from backend.services.form_analyzer import FormAnalyzer
 from backend.services.form_session import FormSession
+
+from backend.deps.auth import AuthUser, require_user
 
 logger = logging.getLogger("fitnova")
 
@@ -256,6 +258,17 @@ def list_exercises():
     """
     from backend.config.exercises import all_exercises
     return all_exercises()
+
+
+@app.get("/api/me", tags=["Auth"])
+async def whoami(user: AuthUser = Depends(require_user)):
+    """Debug endpoint — echoes the authenticated user's id + email.
+
+    Returns 401 if the bearer token is missing or invalid. Used to verify the
+    Supabase JWT verification path end-to-end before wiring the real per-user
+    endpoints (plan persistence, workout logs, coach chat).
+    """
+    return {"user_id": str(user.id), "email": user.email}
 
 
 @app.post("/generate-plan", response_model=GeneratePlanResponse, tags=["Plans"])
