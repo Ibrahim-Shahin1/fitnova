@@ -5,6 +5,7 @@ import '../../services/auth_service.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/ui/app_button.dart';
 import '../../widgets/ui/app_text_field.dart';
+import 'email_verify_pending_screen.dart';
 
 /// Email + password sign-up. On success Supabase sends a confirmation email;
 /// we tell the user to confirm, then pop back to the sign-in screen.
@@ -36,7 +37,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _loading = true);
     try {
       await AuthService.signUp(email: _email.text.trim(), password: _password.text);
-      if (mounted) await _showCheckEmailDialog();
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => EmailVerifyPendingScreen(email: _email.text.trim()),
+          ),
+        );
+      }
     } on AuthException catch (e) {
       if (mounted) _showError(e.message);
     } catch (_) {
@@ -44,26 +51,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  Future<void> _showCheckEmailDialog() async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm your email'),
-        content: Text(
-          'We sent a confirmation link to ${_email.text.trim()}. '
-          'Open it, then come back and sign in.',
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-    if (mounted) Navigator.of(context).pop(); // back to sign-in
   }
 
   void _showError(String msg) => ScaffoldMessenger.of(context).showSnackBar(

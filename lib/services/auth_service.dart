@@ -33,4 +33,8 @@ class AuthService {
   static Future<void> sendPasswordReset(String email) {
     return _auth.resetPasswordForEmail(email, redirectTo: redirectUrl);
   }
+
+  static Future<void> resendConfirmation(String email) {
+    return _auth.resend(type: OtpType.signup, email: email, emailRedirectTo: redirectUrl);
+  }
 }
