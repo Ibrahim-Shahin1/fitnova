@@ -357,3 +357,86 @@ print(f"\n[§1.4 multi-rep] {multi_rep}/{total_ok} trajectories have >1 prominen
       "Task 2 adds find_peaks splitting only if this fraction is large)")
 
 print("\n=== PROBE COMPLETE — paste back this report + traj_probe.png + the resolved sign. NO GPU yet. ===")
+
+
+# %% [markdown]
+# ## Step 2 — SSL dataset smoke (triplet shapes + decoded-frame sanity grid) (Task 3)
+#
+# Confirms the triplet pipeline wires up on the staged unlabeled set BEFORE the trainer
+# spins up. Instantiates `SquatSSLDataset` (finalized in Task 2 with the probe-confirmed
+# argmin sign + NaN-interp), pulls one batch via `build_ssl_loader`, asserts the three
+# `(B, 3, 16, 112, 112)` float32 shapes, and renders an 8-frame strip of anchor (descent)
+# and negative (ascent) — a SECOND visual confirmation of the half-cycle split, now through
+# the full real-data pipeline. **Re-run Cell A first (git pull)**; this cell `importlib.reload`s
+# squat_ssl so the Task-2 changes take effect without a runtime restart.
+
+# %%
+import importlib
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+
+import backend.training.aqa.datasets.squat_ssl as _squat_ssl
+importlib.reload(_squat_ssl)  # pick up Task 2 changes after git pull (sys.modules is stale)
+from backend.training.aqa.datasets.squat_ssl import SquatSSLDataset, build_ssl_loader
+from backend.training.aqa.harness.md_pretrain import MDConfig
+
+_FIG_DIR = Path(".planning/phases/04-squat-motion-disentangling-ssl/figures")
+_FIG_DIR.mkdir(parents=True, exist_ok=True)
+
+config = MDConfig()
+ds = SquatSSLDataset(
+    videos_root=UNLABELED_VIDEOS_ROOT,
+    trajectories_root=TRAJ_ROOT,
+    frames_per_half=config.frames_per_half,
+    crop_size=config.crop_size,
+)
+print(f"len(ds) = {len(ds)} (expect ~4970)")
+
+loader = build_ssl_loader(ds, config, seed=42)
+batch = next(iter(loader))
+_expected = (config.batch_size, 3, config.frames_per_half, config.crop_size, config.crop_size)
+for _k in ("anchor", "positive", "negative"):
+    _t = batch[_k]
+    print(f"  {_k:>8}: shape={tuple(_t.shape)} dtype={_t.dtype}")
+    assert tuple(_t.shape) == _expected, (_k, tuple(_t.shape), _expected)
+    assert _t.dtype == torch.float32, (_k, _t.dtype)
+print("triplet shapes ok")
+
+# Sanity grid: decode the RAW descent/ascent for one clip (NO augs / NO temporal-reverse) so the
+# half-cycle split is cleanly visible. The batch's anchor/negative are augmented AND randomly
+# temporal-reversed (the §3 global-motion equalizer), which would obscure the down/up direction —
+# so the shapes are asserted from the batch (above), but the SPLIT is shown from the raw frames.
+from backend.training.aqa.datasets.squat_ssl import split_half_cycles
+from backend.training.aqa.datasets.transforms import decode_clip
+
+_cid = ds._clip_ids[0]
+_traj = ds._load_trajectory(_cid)
+_desc, _asc = split_half_cycles(_traj, frames_per_half=config.frames_per_half, bottom_is_argmax=False)
+_vp = os.path.join(UNLABELED_VIDEOS_ROOT, f"{_cid}.mp4")
+_desc_u8 = decode_clip(_vp, torch.as_tensor(_desc, dtype=torch.long))  # [16,3,H,W] uint8
+_asc_u8 = decode_clip(_vp, torch.as_tensor(_asc, dtype=torch.long))
+
+
+def _u8_strip(clip_tchw: torch.Tensor, n: int = 8) -> np.ndarray:
+    """[T,3,H,W] uint8 -> [H, n*W, 3] uint8 (n evenly-spaced frames) for imshow."""
+    sel = torch.linspace(0, clip_tchw.shape[0] - 1, n).round().long()
+    return np.concatenate([clip_tchw[t].permute(1, 2, 0).numpy() for t in sel], axis=1)
+
+
+fig, axes = plt.subplots(2, 1, figsize=(16, 5))
+axes[0].imshow(_u8_strip(_desc_u8))
+axes[0].set_title(f"{_cid} DESCENT (frames {_desc[:4].tolist()}...) — lifter should be going DOWN")
+axes[0].axis("off")
+axes[1].imshow(_u8_strip(_asc_u8))
+axes[1].set_title(f"{_cid} ASCENT (frames {_asc[:4].tolist()}...) — lifter should be going UP")
+axes[1].axis("off")
+fig.suptitle("SSL triplet sanity — RAW descent/ascent (re-confirms argmin on real data; batch shapes asserted above)")
+fig.tight_layout()
+_sanity_png = _FIG_DIR / "ssl_triplet_sanity.png"
+fig.savefig(_sanity_png, dpi=110, bbox_inches="tight")  # save BEFORE show (disconnect-safe)
+print(f"saved {_sanity_png}")
+plt.show()
+
+print("\n=== STEP 2 COMPLETE — paste back len(ds), the 3 shapes, + ssl_triplet_sanity.png. Still NO GPU pretrain. ===")
