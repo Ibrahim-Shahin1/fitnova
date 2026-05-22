@@ -63,6 +63,7 @@ class PlanExercise {
     required this.reps,
     required this.restSeconds,
     this.coachingCue,
+    this.mediaUrl,
     this.isCompleted = false,
   });
 
@@ -72,6 +73,10 @@ class PlanExercise {
   final String reps;
   final int restSeconds;
   final String? coachingCue;
+
+  /// Backend-relative demo clip path (e.g. /static/exercise_videos/.../demo.mp4),
+  /// or null when no demo is matched.
+  final String? mediaUrl;
 
   /// Mutable so completion can be toggled optimistically.
   bool isCompleted;
@@ -83,6 +88,7 @@ class PlanExercise {
         reps: (m['reps'] ?? '').toString(),
         restSeconds: (m['rest_seconds'] ?? 0) as int,
         coachingCue: m['coaching_cue'] as String?,
+        mediaUrl: m['media_url'] as String?,
         isCompleted: (m['is_completed'] ?? false) as bool,
       );
 }

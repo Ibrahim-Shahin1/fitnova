@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/active_plan.dart';
 import '../../theme/app_spacing.dart';
 import '../ui/app_card.dart';
+import 'exercise_demo_dialog.dart';
 
 /// The canonical "clean schedule" rendering of an active plan — an optional
 /// header (title, training-day count, personalization notes) followed by one
@@ -181,6 +182,24 @@ class _ExerciseRow extends StatelessWidget {
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: cs.onSurfaceVariant),
                 ),
+                if (ex.mediaUrl != null && ex.mediaUrl!.isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.play_circle_outline, size: 16),
+                      label: const Text('View exercise'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () => ExerciseDemoDialog.show(
+                        context,
+                        exerciseName: ex.name,
+                        mediaUrl: ex.mediaUrl!,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
