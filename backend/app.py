@@ -36,6 +36,7 @@ from backend.services.form_session import FormSession
 
 from backend.deps.auth import AuthUser, require_user
 from backend.routers.plan import router as plan_router
+from backend.routers.coach import router as coach_router
 
 logger = logging.getLogger("fitnova")
 
@@ -231,6 +232,7 @@ os.makedirs(_STATIC_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 app.include_router(plan_router)
+app.include_router(coach_router)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
