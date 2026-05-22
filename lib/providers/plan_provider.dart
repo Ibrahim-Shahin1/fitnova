@@ -27,4 +27,18 @@ class PlanProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Optimistically flip an exercise's completion, persisting in the background
+  /// and reverting on failure.
+  Future<void> toggleExercise(PlanExercise ex) async {
+    final next = !ex.isCompleted;
+    ex.isCompleted = next;
+    notifyListeners();
+    try {
+      await PlanService.setExerciseCompleted(ex.id, next);
+    } catch (_) {
+      ex.isCompleted = !next; // revert
+      notifyListeners();
+    }
+  }
 }

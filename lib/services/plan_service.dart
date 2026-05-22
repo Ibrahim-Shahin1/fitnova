@@ -30,4 +30,26 @@ class PlanService {
     if (plan == null) return null;
     return ActivePlan.fromJson(plan as Map<String, dynamic>);
   }
+
+  /// Mark a plan exercise complete/incomplete.
+  static Future<void> setExerciseCompleted(String exerciseId, bool completed) async {
+    final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/plan/exercises/$exerciseId/complete');
+    final resp = await http.patch(url,
+        headers: _headers(), body: jsonEncode({'completed': completed}));
+    if (resp.statusCode != 200) {
+      throw Exception('Completion failed: ${resp.statusCode}');
+    }
+  }
+
+  /// Mark a plan day complete/incomplete.
+  static Future<void> setDayCompleted(String dayId, bool completed) async {
+    final url =
+        Uri.parse('${ApiConfig.baseUrl}/api/plan/days/$dayId/complete');
+    final resp = await http.patch(url,
+        headers: _headers(), body: jsonEncode({'completed': completed}));
+    if (resp.statusCode != 200) {
+      throw Exception('Completion failed: ${resp.statusCode}');
+    }
+  }
 }

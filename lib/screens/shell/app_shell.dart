@@ -5,8 +5,9 @@ import '../form_correction/form_correction_tab.dart';
 import '../home/home_tab.dart';
 import '../nutrition/nutrition_tab.dart';
 import '../profile/profile_tab.dart';
+import '../progress/progress_tab.dart';
 
-/// The signed-in home: a 5-tab bottom-nav shell. Tabs keep their state via
+/// The signed-in home: a 6-tab bottom-nav shell. Tabs keep their state via
 /// IndexedStack. Home (the dashboard) is the default landing tab.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -27,6 +28,7 @@ class _AppShellState extends State<AppShell> {
     final tabs = <Widget>[
       HomeTab(onOpenPlanning: () => _goTo(1)),
       const PlanningTab(),
+      const ProgressTab(),
       const FormCorrectionTab(),
       const NutritionTab(),
       const ProfileTab(),
@@ -47,6 +49,11 @@ class _AppShellState extends State<AppShell> {
             icon: Icon(Icons.fitness_center_outlined),
             selectedIcon: Icon(Icons.fitness_center),
             label: 'Planning',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Progress',
           ),
           NavigationDestination(
             icon: Icon(Icons.videocam_outlined),

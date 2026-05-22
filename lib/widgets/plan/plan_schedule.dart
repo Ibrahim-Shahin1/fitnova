@@ -7,13 +7,24 @@ import '../ui/app_card.dart';
 /// The canonical "clean schedule" rendering of an active plan — an optional
 /// header (title, training-day count, personalization notes) followed by one
 /// card per day. Non-scrolling (a [Column]) so it can sit inside either the
-/// Planning tab's [ListView] or the coach chat's one-time reveal bubble, so both
-/// surfaces render the plan identically.
+/// Planning tab's [ListView] or the coach chat's one-time reveal bubble.
+///
+/// When [onToggle] / [onLog] are provided (Planning tab), each exercise gets a
+/// completion checkbox and a "log set" action. When omitted (coach reveal) the
+/// schedule is read-only.
 class PlanScheduleView extends StatelessWidget {
-  const PlanScheduleView({super.key, required this.plan, this.showHeader = true});
+  const PlanScheduleView({
+    super.key,
+    required this.plan,
+    this.showHeader = true,
+    this.onToggle,
+    this.onLog,
+  });
 
   final ActivePlan plan;
   final bool showHeader;
+  final void Function(PlanExercise ex)? onToggle;
+  final void Function(PlanExercise ex)? onLog;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +66,7 @@ class PlanScheduleView extends StatelessWidget {
         for (final day in plan.days)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: _DayCard(day: day),
+            child: _DayCard(day: day, onToggle: onToggle, onLog: onLog),
           ),
       ],
     );
@@ -63,9 +74,11 @@ class PlanScheduleView extends StatelessWidget {
 }
 
 class _DayCard extends StatelessWidget {
-  const _DayCard({required this.day});
+  const _DayCard({required this.day, this.onToggle, this.onLog});
 
   final PlanDay day;
+  final void Function(PlanExercise ex)? onToggle;
+  final void Function(PlanExercise ex)? onLog;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +119,8 @@ class _DayCard extends StatelessWidget {
           ),
           if (!day.isRestDay && day.exercises.isNotEmpty) ...[
             const Divider(height: AppSpacing.lg),
-            for (final ex in day.exercises) _ExerciseRow(ex: ex),
+            for (final ex in day.exercises)
+              _ExerciseRow(ex: ex, onToggle: onToggle, onLog: onLog),
           ] else if (day.isRestDay) ...[
             const SizedBox(height: AppSpacing.xs),
             Text('Recovery / mobility',
@@ -120,41 +134,71 @@ class _DayCard extends StatelessWidget {
 }
 
 class _ExerciseRow extends StatelessWidget {
-  const _ExerciseRow({required this.ex});
+  const _ExerciseRow({required this.ex, this.onToggle, this.onLog});
 
   final PlanExercise ex;
+  final void Function(PlanExercise ex)? onToggle;
+  final void Function(PlanExercise ex)? onLog;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final cue = ex.coachingCue;
+    final done = ex.isCompleted;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(ex.name,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+          if (onToggle != null)
+            SizedBox(
+              width: 30,
+              child: Checkbox(
+                value: done,
+                onChanged: (_) => onToggle!(ex),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Text('${ex.sets} × ${ex.reps}',
+            ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ex.name,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w700,
-                  )),
-            ],
+                    fontWeight: FontWeight.w600,
+                    decoration: done ? TextDecoration.lineThrough : null,
+                    color: done ? cs.onSurfaceVariant : null,
+                  ),
+                ),
+                Text(
+                  cue != null && cue.isNotEmpty
+                      ? 'Rest ${ex.restSeconds}s · $cue'
+                      : 'Rest ${ex.restSeconds}s',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
           ),
-          Text(
-            cue != null && cue.isNotEmpty
-                ? 'Rest ${ex.restSeconds}s · $cue'
-                : 'Rest ${ex.restSeconds}s',
-            style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-          ),
+          const SizedBox(width: AppSpacing.sm),
+          Text('${ex.sets} × ${ex.reps}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: cs.primary,
+                fontWeight: FontWeight.w700,
+              )),
+          if (onLog != null)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              iconSize: 22,
+              color: cs.primary,
+              tooltip: 'Log a set',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => onLog!(ex),
+            ),
         ],
       ),
     );

@@ -7,6 +7,7 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/plan/plan_schedule.dart';
 import '../../widgets/ui/app_button.dart';
 import 'coach_chat_screen.dart';
+import 'log_set_sheet.dart';
 
 /// Fitness Planning — shows the active plan the coach built (full 7-day detail),
 /// or, if there's none yet, routes the user to the coach to create one. The
@@ -110,12 +111,29 @@ class _PlanView extends StatelessWidget {
   final ActivePlan plan;
   final VoidCallback onAdjust;
 
+  Future<void> _logSet(BuildContext context, PlanExercise ex) async {
+    final logged = await LogSetSheet.show(
+      context,
+      exerciseName: ex.name,
+      planExerciseId: ex.id,
+    );
+    if (logged == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Set logged — view it in Progress')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        PlanScheduleView(plan: plan),
+        PlanScheduleView(
+          plan: plan,
+          onToggle: (ex) => context.read<PlanProvider>().toggleExercise(ex),
+          onLog: (ex) => _logSet(context, ex),
+        ),
         const SizedBox(height: AppSpacing.sm),
         AppButton(
           label: 'Adjust with coach',

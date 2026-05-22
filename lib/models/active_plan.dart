@@ -25,22 +25,30 @@ class ActivePlan {
 }
 
 class PlanDay {
-  const PlanDay({
+  PlanDay({
+    required this.id,
     required this.dayNumber,
     required this.focus,
     required this.isRestDay,
     required this.exercises,
+    this.isCompleted = false,
   });
 
+  final String id;
   final int dayNumber;
   final String focus;
   final bool isRestDay;
   final List<PlanExercise> exercises;
 
+  /// Mutable so completion can be toggled optimistically.
+  bool isCompleted;
+
   factory PlanDay.fromJson(Map<String, dynamic> m) => PlanDay(
+        id: (m['id'] ?? '').toString(),
         dayNumber: (m['day_number'] ?? 0) as int,
         focus: (m['focus'] ?? '') as String,
         isRestDay: (m['is_rest_day'] ?? false) as bool,
+        isCompleted: (m['is_completed'] ?? false) as bool,
         exercises: ((m['exercises'] as List?) ?? const [])
             .map((e) => PlanExercise.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -48,25 +56,33 @@ class PlanDay {
 }
 
 class PlanExercise {
-  const PlanExercise({
+  PlanExercise({
+    required this.id,
     required this.name,
     required this.sets,
     required this.reps,
     required this.restSeconds,
     this.coachingCue,
+    this.isCompleted = false,
   });
 
+  final String id;
   final String name;
   final int sets;
   final String reps;
   final int restSeconds;
   final String? coachingCue;
 
+  /// Mutable so completion can be toggled optimistically.
+  bool isCompleted;
+
   factory PlanExercise.fromJson(Map<String, dynamic> m) => PlanExercise(
+        id: (m['id'] ?? '').toString(),
         name: (m['exercise_name'] ?? '') as String,
         sets: (m['sets'] ?? 0) as int,
         reps: (m['reps'] ?? '').toString(),
         restSeconds: (m['rest_seconds'] ?? 0) as int,
         coachingCue: m['coaching_cue'] as String?,
+        isCompleted: (m['is_completed'] ?? false) as bool,
       );
 }
