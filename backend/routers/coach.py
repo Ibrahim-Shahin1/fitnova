@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 
 from backend.db.repositories import conversation_repo
 from backend.deps.auth import AuthUser, require_user
@@ -41,3 +42,29 @@ async def get_messages(user: AuthUser = Depends(require_user)):
         logger.exception("Loading messages failed")
         raise HTTPException(status_code=500, detail=f"Messages load failed: {exc}")
     return {"conversation_id": str(conv["id"]), "messages": msgs}
+
+
+class CoachMessageRequest(BaseModel):
+    content: str = Field(..., min_length=1, max_length=2000)
+
+
+@router.post("/messages")
+async def post_message(
+    req: CoachMessageRequest,
+    request: Request,
+    user: AuthUser = Depends(require_user),
+):
+    """Send a message to the coach; runs the tool-loop and returns its reply."""
+    svc = getattr(request.app.state, "coach_service", None)
+    if svc is None:
+        raise HTTPException(status_code=503, detail="Coach service unavailable")
+    try:
+        return svc.send(
+            user.id,
+            req.content,
+            request.app.state.recommender,
+            request.app.state.llm_adapter,
+        )
+    except Exception as exc:
+        logger.exception("Coach send failed")
+        raise HTTPException(status_code=500, detail=f"Coach failed: {exc}")

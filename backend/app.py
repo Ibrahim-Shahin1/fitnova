@@ -33,6 +33,7 @@ from backend.services.llm_adapter import LLMAdapter
 from backend.services.recommender import Recommender
 from backend.services.form_analyzer import FormAnalyzer
 from backend.services.form_session import FormSession
+from backend.services.coach_service import CoachChatService
 
 from backend.deps.auth import AuthUser, require_user
 from backend.routers.plan import router as plan_router
@@ -176,6 +177,8 @@ async def lifespan(app: FastAPI):
     app.state.llm_adapter = LLMAdapter()
     logger.info("Loading chat service...")
     app.state.chat_service = ChatService()
+    logger.info("Loading coach service...")
+    app.state.coach_service = CoachChatService()
     logger.info("Loading form analyzer (Layer 4)...")
     # Auto-detection priority: v6 -> v5.2 -> v4. Override with FITNOVA_MODEL_DIR
     # env var. The form_analyzer itself does file-presence detection inside the
