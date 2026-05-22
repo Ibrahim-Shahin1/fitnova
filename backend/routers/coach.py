@@ -44,6 +44,23 @@ async def get_messages(user: AuthUser = Depends(require_user)):
     return {"conversation_id": str(conv["id"]), "messages": msgs}
 
 
+@router.post("/start")
+async def start_conversation(
+    request: Request,
+    user: AuthUser = Depends(require_user),
+):
+    """Have the coach speak first: returns (and persists) an opening message for
+    a fresh conversation, or opening_message=null if dialogue already exists."""
+    svc = getattr(request.app.state, "coach_service", None)
+    if svc is None:
+        raise HTTPException(status_code=503, detail="Coach service unavailable")
+    try:
+        return svc.start(user.id)
+    except Exception as exc:
+        logger.exception("Coach start failed")
+        raise HTTPException(status_code=500, detail=f"Coach start failed: {exc}")
+
+
 class CoachMessageRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=2000)
 

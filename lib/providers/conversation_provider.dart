@@ -38,6 +38,13 @@ class ConversationProvider extends ChangeNotifier {
         ..addAll(all.where((m) =>
             (m.role == 'user' || m.role == 'assistant') &&
             (m.content?.trim().isNotEmpty ?? false)));
+      // Fresh conversation → let the coach speak first.
+      if (_messages.isEmpty) {
+        final opener = await ConversationService.startConversation();
+        if (opener != null && opener.trim().isNotEmpty) {
+          _messages.add(CoachMessage(role: 'assistant', content: opener));
+        }
+      }
     } catch (e) {
       _error = e;
     } finally {

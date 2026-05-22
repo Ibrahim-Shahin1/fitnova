@@ -19,7 +19,7 @@ from uuid import UUID
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from backend.db.repositories import conversation_repo
+from backend.db.repositories import conversation_repo, plan_repo, profile_repo
 from backend.services import coach_tools
 
 logger = logging.getLogger("fitnova.coach")
@@ -86,12 +86,71 @@ SYSTEM_PROMPT = (
 )
 
 
+GREETING_INSTRUCTION = (
+    "Open the conversation now — you speak first. Greet the user warmly in 1-2 "
+    "short sentences as their coach, using their first name if known. If they "
+    "already have an active plan, acknowledge it and ask whether they'd like to "
+    "review or adjust it. If they have NO plan yet, offer to build one and ask "
+    "their goal (or say you can use their profile). Concise and friendly — no "
+    "lists, no markdown, no tool calls."
+)
+
+
 class CoachChatService:
     def __init__(self):
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY not set — coach unavailable")
         self.client = OpenAI(api_key=api_key)
+
+    def start(self, user_id: UUID) -> dict:
+        """Ensure the coach speaks first. For a fresh (empty) conversation,
+        generate a personalized opener, persist it, and return it. If the
+        conversation already has dialogue, returns opening_message=None."""
+        conv = conversation_repo.get_or_create_conversation(user_id)
+        conv_id = conv["id"]
+        existing = conversation_repo.fetch_messages(user_id, conv_id)
+        if any(m["role"] in ("user", "assistant") and m.get("content") for m in existing):
+            return {"conversation_id": str(conv_id), "opening_message": None}
+
+        profile = profile_repo.get_profile(user_id) or {}
+        name = str(profile.get("display_name") or "").strip()
+        first = name.split()[0] if name else ""
+        has_plan = bool(plan_repo.fetch_active(user_id))
+        ctx = (
+            f"User first name: {first or 'unknown'}\n"
+            f"Training focus: {profile.get('training_focus') or 'not set'}\n"
+            f"Weekly frequency: {profile.get('workout_frequency') or 'not set'}\n"
+            f"Has an active plan: {'yes' if has_plan else 'no'}"
+        )
+        greeting = ""
+        try:
+            resp = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": "Context:\n" + ctx},
+                    {"role": "user", "content": GREETING_INSTRUCTION},
+                ],
+                temperature=0.6,
+                max_tokens=160,
+                timeout=30,
+            )
+            greeting = (resp.choices[0].message.content or "").strip()
+        except Exception:
+            logger.exception("Greeting generation failed; using fallback")
+
+        if not greeting:
+            hi = f"Hey {first}! " if first else "Hey! "
+            greeting = hi + (
+                "Want to review or tweak your current plan, or build something new?"
+                if has_plan
+                else "I'm your FitNova coach. Tell me your goal and I'll build your "
+                "plan — and adjust it whenever you ask."
+            )
+
+        conversation_repo.append_message(user_id, conv_id, "assistant", content=greeting)
+        return {"conversation_id": str(conv_id), "opening_message": greeting}
 
     def send(self, user_id: UUID, user_text: str, recommender, llm_adapter) -> dict:
         conv = conversation_repo.get_or_create_conversation(user_id)

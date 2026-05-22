@@ -19,6 +19,20 @@ class ConversationService {
     };
   }
 
+  /// Have the coach open the conversation. Returns the opening message for a
+  /// fresh conversation, or null if dialogue already exists.
+  static Future<String?> startConversation() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/chat/start');
+    final resp = await http
+        .post(url, headers: _headers())
+        .timeout(const Duration(seconds: 45));
+    if (resp.statusCode != 200) {
+      throw Exception('Coach start failed: ${resp.statusCode}');
+    }
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    return data['opening_message'] as String?;
+  }
+
   /// Load the full coach transcript for the signed-in user.
   static Future<List<CoachMessage>> fetchMessages() async {
     final url = Uri.parse('${ApiConfig.baseUrl}/api/chat/messages');

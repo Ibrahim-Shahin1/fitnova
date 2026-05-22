@@ -27,7 +27,12 @@ _CATALOG_PATH = os.path.join(_DATA_DIR, "program_catalog.pkl")
 _ENV_PATH = os.path.join(_BASE_DIR, ".env")
 
 # Max exercises per day shown in the LLM prompt (keeps context bounded)
-_MAX_PROMPT_EXERCISES_PER_DAY = 8
+_MAX_PROMPT_EXERCISES_PER_DAY = 12
+
+# Minimum exercises per TRAINING day in the final plan. The repair pass
+# backfills from the recommended program's own exercise pool (the dataset) to
+# reach this floor, so a lazy LLM can't emit 1-2-exercise days.
+_MIN_EXERCISES_PER_DAY = {1: 4, 2: 5, 3: 5}  # by experience level
 
 # Max exercises per day in the template fallback (keeps plans readable)
 _MAX_TEMPLATE_EXERCISES = {1: 5, 2: 7, 3: 8}  # by experience level
@@ -37,53 +42,55 @@ _MAX_REASONABLE_HOLD_SECONDS = 120
 
 
 class LLMAdapter:
-    SYSTEM_PROMPT = """You are FitNova's expert fitness coach. Your job is to create a structured, \
-realistic weekly training plan that a real gym-goer would follow.
+    SYSTEM_PROMPT = """You are FitNova's expert fitness coach. Our recommender has already selected a \
+program for THIS user from our training dataset. Your job is to turn that program's exercises into a \
+clean, complete, personalized 7-day weekly plan — you are a curator of the program's exercises, NOT an \
+author of new ones.
 
 Return ONLY valid JSON with this exact top-level structure:
 {
   "program_title": "...",
   "personalization_notes": "...",
   "plan": {
-    "day_1": {...},
-    "day_2": {...},
-    "day_3": {...},
-    "day_4": {...},
-    "day_5": {...},
-    "day_6": {...},
-    "day_7": {...}
+    "day_1": {...}, "day_2": {...}, "day_3": {...}, "day_4": {...},
+    "day_5": {...}, "day_6": {...}, "day_7": {...}
   }
 }
 
 STRICT RULES:
 - The plan must contain exactly 7 days named day_1 through day_7.
 - Each day must include: day_number (int), focus (str), is_rest_day (bool), exercises (list).
-- Rest days: is_rest_day=true, exercises=[].
-- The NUMBER of workout days must equal workout_frequency exactly.
-- For each workout day exercise include: exercise_name, sets (int), reps (str), rest_seconds (int), coaching_cue (str).
-- Volume by experience level:
-    beginner    = 2-3 sets, 10-15 reps, 60-90s rest
+- Rest days: is_rest_day=true, exercises=[]. The number of NON-rest days must equal workout_frequency EXACTLY.
+- EXERCISE SOURCE (critical): build every training day from the PROGRAM EXERCISE POOL provided in the \
+user message. Those exercises come from the recommended program in our dataset — use them. Do NOT invent \
+exercises and do NOT add exercises that are not in the pool. The ONE allowed exception: if a pool exercise \
+is unsafe for the user's injuries OR cannot be performed with the user's available equipment, REPLACE it \
+with a standard equivalent that trains the same movement/muscle using available equipment — and mention \
+each such swap in personalization_notes. Never drop an exercise without replacing it.
+- VOLUME (critical): each training day must be a COMPLETE session — include 4 to 7 exercises per training \
+day, NEVER fewer than 4. Distribute the pool across the training days as a coherent split; never leave a \
+training day with only 1-2 exercises and never dump everything onto one day.
+- Prefer each exercise's given sets/reps from the pool when present and sensible; otherwise use \
+experience-appropriate volume:
+    beginner     = 2-3 sets, 10-15 reps, 60-90s rest
     intermediate = 3-4 sets, 8-12 reps, 90-120s rest
-    advanced    = 4-5 sets, 5-8 reps, 120-180s rest
-- program_title: Write a CLEAR, DESCRIPTIVE title like "Intermediate Push/Pull/Legs Strength" or \
-"Beginner 3-Day Full Body". NEVER copy a gibberish or single-word raw program title.
+    advanced     = 4-5 sets, 5-8 reps, 120-180s rest
+- For each exercise include: exercise_name, sets (int), reps (str), rest_seconds (int), coaching_cue (str).
+- coaching_cue: SPECIFIC technique cues for that exercise (2 sentences). Never reuse the same generic cue.
+- program_title: a CLEAR, DESCRIPTIVE title like "Intermediate Push/Pull/Legs Strength". NEVER copy a \
+gibberish or single-word raw program title.
 - focus: Label each day precisely — "Push", "Pull", "Legs", "Upper Body", "Lower Body", "Full Body", \
 "Conditioning", "Mobility & Recovery", etc. — based on the ACTUAL exercises in that day.
-- coaching_cue: Write SPECIFIC technique cues for each exercise (2 sentences). \
-DO NOT write the same generic cue for every exercise.
-- Keep exercise names practical. Do not invent medical advice.
-- Use the supplied week 1 exercise list as a reference for exercise selection and structure. \
-You may add or substitute exercises to make the plan coherent.
-- If training_focus is provided, adapt the plan accordingly:
+- Do not invent medical advice.
+- If training_focus is provided, adapt the split accordingly:
   * "powerbuilding" — first 1-2 exercises per session are heavy compounds (bench/squat/deadlift) \
 at 3-5 reps, followed by 3-5 hypertrophy accessories at 8-12 reps.
   * "powerlifting" — focus on big-3 + close variants at low reps (3-5), long rest (3-5 min).
   * "hypertrophy" — classic bodybuilding split, 8-15 reps, moderate rest (60-90s).
   * "general" — balanced mix of upper, lower, and core in every session.
-- If available_equipment is listed, you MUST ONLY select exercises that can be performed \
-with that equipment. Do NOT include any exercise requiring unlisted equipment. \
-Cables are a separate equipment type (cable machine) — do not substitute with cables unless \
-"Cables" is in the available equipment list.
+- EQUIPMENT (hard rule): only use exercises performable with the user's available equipment. Infer the \
+equipment from the exercise name (e.g. "(Barbell)", "(Dumbbell)", "(Cable)", "(Machine)"). Do NOT include \
+an exercise requiring equipment the user lacks. Cables = cable machine (requires Cables).
 """
 
     def __init__(
@@ -139,15 +146,24 @@ Cables are a separate equipment type (cable machine) — do not substitute with 
 
     def generate_plan(self, program_id: int, user_profile: dict) -> dict:
         # Template fallback intentionally removed (product decision): the plan
-        # must be generated by the LLM from the recommended program. A failed
-        # LLM call now propagates (surfaced as a 500) rather than silently
-        # returning a generic template plan.
+        # must be generated by the LLM from the recommended program's exercises.
+        # Validation REPAIRS common LLM slips (wrong day count, short days) from
+        # the program's own pool rather than failing; only genuinely malformed
+        # output triggers a retry, then propagates (surfaced as a 500 / coach
+        # tool error).
         program = self._get_program(program_id)
         user_prompt = self._build_user_prompt(program, user_profile)
-        llm_payload = self._call_llm(user_prompt)
-        result = self._validate_response(llm_payload, program, user_profile)
-        result["source"] = "llm"
-        return result
+        last_error: Exception | None = None
+        for attempt in range(2):
+            try:
+                llm_payload = self._call_llm(user_prompt)
+                result = self._validate_response(llm_payload, program, user_profile)
+                result["source"] = "llm"
+                return result
+            except ValueError as exc:
+                last_error = exc
+                logger.warning("Plan validation failed (attempt %d/2): %s", attempt + 1, exc)
+        raise ValueError(f"Plan generation failed validation: {last_error}")
 
     # ── LLM Call ──────────────────────────────────────────────────────────────
 
@@ -163,9 +179,9 @@ Cables are a separate equipment type (cable machine) — do not substitute with 
                         {"role": "user", "content": user_prompt},
                     ],
                     response_format={"type": "json_object"},
-                    temperature=0.7,
-                    max_tokens=4000,
-                    timeout=60,
+                    temperature=0.5,
+                    max_tokens=6000,
+                    timeout=90,
                 )
                 content = response.choices[0].message.content
                 if not content:
@@ -218,7 +234,9 @@ Cables are a separate equipment type (cable machine) — do not substitute with 
             f"- level: {self._experience_label(int(program.get('level_encoded', 1)))}",
             f"- time_per_workout_minutes: {program.get('time_per_workout_minutes', 60)}",
             "",
-            f"Week 1 exercises (up to {_MAX_PROMPT_EXERCISES_PER_DAY} per day shown):",
+            "PROGRAM EXERCISE POOL — build the plan from THESE (they are the "
+            "recommended program's exercises from our dataset). Keep their "
+            "sets/reps when sensible:",
         ]
 
         avoid_kws = self._get_avoid_keywords(user_profile.get("injuries", []))
@@ -240,10 +258,16 @@ Cables are a separate equipment type (cable machine) — do not substitute with 
                     f"  - {exercise['exercise_name']} | sets={exercise.get('sets', 3)} | reps={clean_reps}"
                 )
 
+        freq = int(user_profile.get("workout_frequency", 3))
+        min_ex = _MIN_EXERCISES_PER_DAY.get(level, 4)
         lines.append("")
         lines.append(
-            "Note: Use the exercise list as a reference. "
-            "Ensure the split and focus labels match the exercises you assign."
+            f"Build EXACTLY {freq} training day(s) and {7 - freq} rest day(s). "
+            "Organize the pool exercises above into those training days as a "
+            f"coherent split. Each training day must contain at least {min_ex} "
+            "exercises (aim for 5-7) — a full session, not 1-2 moves. Use ONLY "
+            "pool exercises; substitute only to respect the user's injuries or "
+            "equipment, and note any substitution in personalization_notes."
         )
 
         # ── Equipment constraint (hard rule) ─────────────────────────────
@@ -407,28 +431,110 @@ Cables are a separate equipment type (cable machine) — do not substitute with 
                 "exercises": [] if is_rest_day else normalized_exercises,
             }
 
-        if workout_day_count != int(user_profile.get("workout_frequency", 3)):
-            raise ValueError("Workout day count does not match workout_frequency")
+        # ── Schedule repair: force EXACTLY workout_frequency training days ──
+        # The LLM sometimes miscounts rest vs training days. Rather than fail,
+        # snap the schedule onto canonical training-day positions, keeping the
+        # LLM's per-day exercise groupings; any empty/short day is filled from
+        # the program pool by the repair pass below.
+        target = max(0, min(7, int(user_profile.get("workout_frequency", 3))))
+        if workout_day_count != target:
+            positions = self._select_workout_days(target)
+            llm_days = [
+                normalized_plan[f"day_{i}"]
+                for i in range(1, 8)
+                if not normalized_plan[f"day_{i}"]["is_rest_day"]
+            ]
+            rebuilt: dict[str, dict[str, Any]] = {}
+            ti = 0
+            for i in range(1, 8):
+                key = f"day_{i}"
+                if i in positions:
+                    if ti < len(llm_days):
+                        src = llm_days[ti]
+                        ti += 1
+                        rebuilt[key] = {
+                            "day_number": i,
+                            "focus": src["focus"] or f"Training Day {i}",
+                            "is_rest_day": False,
+                            "exercises": list(src["exercises"]),
+                        }
+                    else:
+                        rebuilt[key] = {
+                            "day_number": i,
+                            "focus": f"Training Day {i}",
+                            "is_rest_day": False,
+                            "exercises": [],
+                        }
+                else:
+                    rebuilt[key] = {
+                        "day_number": i,
+                        "focus": "Rest & Recovery",
+                        "is_rest_day": True,
+                        "exercises": [],
+                    }
+            # Fold any leftover LLM training-day exercises into the kept slots.
+            train_keys = [f"day_{i}" for i in positions]
+            j = 0
+            for src in llm_days[ti:]:
+                for ex in src["exercises"]:
+                    if not train_keys:
+                        break
+                    rebuilt[train_keys[j % len(train_keys)]]["exercises"].append(ex)
+                    j += 1
+            normalized_plan = rebuilt
 
-        # ── Post-validation: remove injury-unsafe exercises ──────────────
-        injuries = user_profile.get("injuries", [])
-        if injuries:
-            avoid_kws = self._get_avoid_keywords(injuries)
-            for day_key, day_data in normalized_plan.items():
-                if day_data.get("is_rest_day"):
+        # ── Repair pass — keep the plan grounded in the recommended program ──
+        # (1) Drop any exercise the LLM left in that is unsafe for the user's
+        #     injuries or impossible with their equipment.
+        # (2) Backfill every short training day from the program's OWN exercise
+        #     pool (the dataset) up to the per-level minimum, so no session is
+        #     left with 1-2 exercises. Backfill never invents — candidates come
+        #     only from the recommended program's catalog entry.
+        avoid_kws = self._get_avoid_keywords(user_profile.get("injuries", []))
+        equipment = user_profile.get("equipment", []) or []
+        min_per_day = _MIN_EXERCISES_PER_DAY.get(level, 4)
+        primary_type = program.get("primary_type", "Strength")
+
+        def _suitable(name: str) -> bool:
+            nl = name.lower()
+            if avoid_kws and any(kw in nl for kw in avoid_kws):
+                return False
+            return self._equipment_allowed(name, equipment)
+
+        # Safe, equipment-appropriate candidates drawn from the recommended program.
+        safe_pool: list[dict] = []
+        seen_pool: set[str] = set()
+        for ex in self._program_pool(program):
+            nm = str(ex.get("exercise_name", "")).strip()
+            key = nm.lower()
+            if not nm or key in seen_pool:
+                continue
+            if not self._is_valid_exercise_name(nm) or not _suitable(nm):
+                continue
+            seen_pool.add(key)
+            safe_pool.append(self._normalize_exercise(ex, level, primary_type))
+
+        for day_key, day_data in normalized_plan.items():
+            if day_data.get("is_rest_day"):
+                continue
+            kept = [e for e in day_data["exercises"] if _suitable(e["exercise_name"])]
+            dropped = len(day_data["exercises"]) - len(kept)
+            used = {e["exercise_name"].lower() for e in kept}
+            added = 0
+            for cand in safe_pool:
+                if len(kept) >= min_per_day:
+                    break
+                if cand["exercise_name"].lower() in used:
                     continue
-                original = day_data.get("exercises", [])
-                safe = [
-                    ex for ex in original
-                    if not any(kw in ex["exercise_name"].lower() for kw in avoid_kws)
-                ]
-                if len(safe) != len(original):
-                    removed = len(original) - len(safe)
-                    logger.info(
-                        "Removed %d unsafe exercises from %s for injuries %s",
-                        removed, day_key, injuries,
-                    )
-                day_data["exercises"] = safe
+                kept.append(dict(cand))
+                used.add(cand["exercise_name"].lower())
+                added += 1
+            if dropped or added:
+                logger.info(
+                    "Repaired %s: dropped %d unsuitable, backfilled %d from program pool",
+                    day_key, dropped, added,
+                )
+            day_data["exercises"] = kept
 
         raw_title = str(payload.get("program_title") or "")
         clean_title = self._sanitize_title(
@@ -633,6 +739,42 @@ Cables are a separate equipment type (cable machine) — do not substitute with 
             return False
         return True
 
+    # Equipment tokens inferred from the parenthetical in catalog exercise names
+    # (e.g. "Box Squat (Barbell)") → canonical equipment keyword.
+    _EQUIPMENT_HINTS = {
+        "barbell": "barbell", "dumbbell": "dumbbell", "dumbbells": "dumbbell",
+        "cable": "cable", "cables": "cable", "machine": "machine",
+        "smith": "machine", "leverage": "machine", "lever": "machine",
+        "kettlebell": "kettlebell", "band": "band", "bands": "band",
+        "bodyweight": "bodyweight",
+    }
+
+    @staticmethod
+    def _required_equipment(name: str) -> str | None:
+        """Infer the equipment an exercise needs from its name, or None if it
+        reads as bodyweight / unspecified."""
+        for token in re.findall(r"\(([^)]+)\)", name.lower()):
+            for hint, canon in LLMAdapter._EQUIPMENT_HINTS.items():
+                if hint in token:
+                    return canon
+        return None
+
+    @staticmethod
+    def _equipment_allowed(name: str, equipment: list[str]) -> bool:
+        """True if the exercise can be done with the user's equipment. Lenient:
+        no equipment constraint, a 'full gym', or an unspecified/bodyweight
+        movement all pass. The LLM is the primary equipment gate; this guards
+        the deterministic backfill from reintroducing unusable kit."""
+        if not equipment:
+            return True
+        eq = [str(e).lower() for e in equipment]
+        if any(("full gym" in e) or (e == "gym") or ("all equipment" in e) for e in eq):
+            return True
+        req = LLMAdapter._required_equipment(name)
+        if req is None or req == "bodyweight":
+            return True
+        return any(req in e for e in eq)
+
     @staticmethod
     def _categorize_exercise(exercise_name: str) -> str:
         """Categorize an exercise by movement pattern for coaching cue selection."""
@@ -738,6 +880,15 @@ Cables are a separate equipment type (cable machine) — do not substitute with 
             day = int(ex.get("day", 1))
             grouped[day].append(ex)
         return dict(grouped)
+
+    def _program_pool(self, program: dict) -> list[dict]:
+        """Flat list of the recommended program's week-1 exercises — the dataset
+        source the plan must be built from (used to backfill short days)."""
+        grouped = self._group_week1_exercises(program)
+        pool: list[dict] = []
+        for day in sorted(grouped):
+            pool.extend(grouped[day])
+        return pool
 
     def _infer_focus(self, program: dict, source_day: int, exercises: list[dict]) -> str:
         if not exercises:
