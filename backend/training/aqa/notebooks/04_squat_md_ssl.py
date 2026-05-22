@@ -539,3 +539,50 @@ print("checkpoint round-trip OK; payload keys:", sorted(_pl.keys()))
 print(f"\n=== DECISION: est_total≈{_est_h:.1f}h, VRAM fits. "
       "option-a (proceed batch 8) if ≤~18h; option-b (batch 5) if >24h or VRAM tight; "
       "option-c (TorchCodec) only if GPU<50% util (decode-bound). NO full run until you choose. ===")
+
+
+# %% [markdown]
+# ## Step 5 — full MD-SSL pretrain (multi-session, resume-safe) (Task 6)
+#
+# **This single cell IS the whole run** (batch 8, 60-epoch cosine, linear-probe every 5 — the
+# user chose the full-extend cap). `resume=True`, so a Colab disconnect is recoverable: just
+# re-run Step 0 (cache hit) + this cell — the first post-resume epoch logs `Resumed from
+# epoch_NNN.pt`. The trainer checkpoints every epoch to Drive + writes `backbone.pt` on
+# linear-probe-macro improvement (the fork point for Plan 03).
+#
+# **Paste back, staged:**
+# - **~epoch 5** (≈1.5-3h in): SSL loss DECREASING (not flat/NaN), `embedding_std` above
+#   0.1/√512≈0.0044 (no collapse, §12), first linear-probe macro above the random baseline.
+#   If collapsed/flat → ABORT, raise SSL aug strength (add `translation`) or lower LR, restart.
+# - **each session boundary**: the printed linear-probe + ssl_loss/emb_std/eff_rank trend — I'll
+#   tell you when the linear-probe plateaus (the §6 convergence stop) so you can stop before 60.
+# - **on resume**: confirm `Resumed from epoch_NNN.pt` appears (T-04-06).
+
+# %%
+import importlib
+
+import backend.training.aqa.harness.md_pretrain as _mdp
+importlib.reload(_mdp)  # pick up the finalized trainer + the collapse-metric fix after git pull
+from backend.training.aqa.harness.md_pretrain import MDConfig, run_md_pretrain_epoch
+
+config = MDConfig()  # batch 8, 60-epoch cosine, linear_probe_cadence=5
+RUN_NAME = "md_pretrain_v1"
+result = run_md_pretrain_epoch(
+    run_name=RUN_NAME,
+    drive_root=MYDRIVE,
+    videos_root=UNLABELED_VIDEOS_ROOT,
+    trajectories_root=TRAJ_ROOT,
+    labeled_videos_root=VIDEOS_ROOT,
+    seed=42, config=config, resume=True, max_epochs=config.max_epochs,
+)
+
+print(f"\nfinal epoch = {result['epoch']} | collapsed = {result['collapsed']}")
+print(f"backbone.pt = {result['backbone_path']}")
+print("\nlinear-probe history (watch macro rise then plateau — the §6 convergence stop):")
+for _e in result["linear_probe_history"]:
+    print(f"  epoch {_e['epoch']:>2}: macro={_e['linear_probe_f1_macro']:.4f} "
+          f"(kie={_e['linear_probe_f1_kie']:.4f} kfe={_e['linear_probe_f1_kfe']:.4f})")
+print("\nssl_loss + collapse trend (loss down; emb_std not -> 0; eff_rank not -> 1):")
+for _m in result["metrics_history"]:
+    print(f"  epoch {_m['epoch']:>2}: ssl_loss={_m['ssl_loss_mean']:.4f} "
+          f"emb_std={_m['embedding_std']:.5f} eff_rank={_m['effective_rank']:.1f}")
