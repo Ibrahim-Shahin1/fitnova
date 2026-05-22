@@ -60,7 +60,7 @@ async def generate_and_persist(
 
     try:
         plan_result = request.app.state.llm_adapter.generate_plan(
-            rec["program_id"], profile
+            rec["program_id"], profile, rec.get("content_candidates")
         )
     except Exception as exc:
         logger.exception("Plan generation failed")
@@ -78,6 +78,7 @@ async def generate_and_persist(
         "program_title": plan_result.get("program_title"),
         "personalization_notes": plan_result.get("personalization_notes"),
         "source": plan_result.get("source"),
+        "quality_report": plan_result.get("quality_report"),
         "weekly_plan": plan_result.get("plan", {}),
     }
 

@@ -184,7 +184,8 @@ def generate_workout_plan(ctx: ToolContext, args: dict) -> dict:
     p = profile_repo.get_profile(ctx.user_id) or {}
     profile = _build_recommender_profile(p, args)
     rec = ctx.recommender.recommend(profile)
-    plan_result = ctx.llm_adapter.generate_plan(rec["program_id"], profile)
+    plan_result = ctx.llm_adapter.generate_plan(
+        rec["program_id"], profile, rec.get("content_candidates"))
     plan_id = plan_repo.insert_plan(ctx.user_id, rec, plan_result)
     weekly = plan_result.get("plan", {})
     return {
@@ -192,6 +193,7 @@ def generate_workout_plan(ctx: ToolContext, args: dict) -> dict:
         "program_title": plan_result.get("program_title"),
         "personalization_notes": plan_result.get("personalization_notes"),
         "source": plan_result.get("source"),
+        "quality": plan_result.get("quality_report"),
         "day_count": len(weekly),
         "training_days": [
             d.get("focus")

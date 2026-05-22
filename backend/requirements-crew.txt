@@ -1,0 +1,10 @@
+# Isolated CrewAI environment for the multi-agent plan pipeline (crew_runner.py).
+# Kept SEPARATE from backend/requirements.txt on purpose: CrewAI's dependency
+# tree (chromadb, onnxruntime, litellm/openai, protobuf<6, ...) conflicts with
+# the backend's TensorFlow/mediapipe stack (protobuf 7). It runs as a subprocess.
+#
+# Setup (one-time), from the repo root:
+#   python -m venv backend/.crewenv
+#   backend/.crewenv/Scripts/python -m pip install -r backend/requirements-crew.txt
+# Override the interpreter path with FITNOVA_CREW_PYTHON if you install elsewhere.
+crewai==1.14.5

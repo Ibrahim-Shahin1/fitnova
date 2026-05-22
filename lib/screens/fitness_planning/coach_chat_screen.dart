@@ -250,10 +250,10 @@ class _PlanBuildingBubble extends StatefulWidget {
 
 class _PlanBuildingBubbleState extends State<_PlanBuildingBubble> {
   static const _steps = [
-    'Reading your profile…',
-    'Matching the right program…',
-    'Building your week…',
-    'Adding sets, reps & cues…',
+    'Profiling your goals…',
+    'Generating your split…',
+    'Critiquing the plan…',
+    'Optimizing & validating…',
   ];
   int _i = 0;
   Timer? _timer;

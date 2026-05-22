@@ -52,7 +52,7 @@ class ConversationService {
     final url = Uri.parse('${ApiConfig.baseUrl}/api/chat/messages');
     final resp = await http
         .post(url, headers: _headers(), body: jsonEncode({'content': content}))
-        .timeout(const Duration(seconds: 120));
+        .timeout(const Duration(seconds: 200));
     if (resp.statusCode != 200) {
       throw Exception('Coach failed: ${resp.statusCode} ${resp.body}');
     }
