@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: "Phase 4 context gathered (discuss-phase complete; A+B+D+E locked, F dropped). Next: /gsd:plan-phase 4 on a fresh L4 Colab notebook."
 last_updated: "2026-05-21T10:40:15.062Z"
-last_activity: 2026-05-21 -- Phase 4 Wave 0 (Plan 01) complete
+last_activity: 2026-05-22 -- Phase 4 Plan 02 run-1 (md_pretrain_v1) interpreted: SSL works (+0.141 macro over Kinetics, KIE doubled) but weak-aug collapse after ep5; decision = strong-aug paper-faithful v2
 progress:
   total_phases: 8
   completed_phases: 2
@@ -78,6 +78,7 @@ Recent decisions affecting current work:
 - Phase 2 (deviation): F11 windowing test corrected to clustered indices `[100, 102, 104]` (full-span indices defeat windowing — original plan had `[0, 200, 403]`)
 - Phase 3: Supervised baseline closed — test KIE 0.286 / KFE 0.800 / macro 0.543 (within 2% of paper Kinetics row); end-to-end fine-tune overfits on 1136 clips → empirical motivation for Phase 4 SSL
 - Phase 4 (discuss): scope A+B+D+E locked, F (aux trajectory head) dropped; AdamW wd=1e-4/dropout=0.2 (50ep+patience, P3 recipe); 3-seed ensemble (42/1337/7, mean of sigmoids); val-tuned TTA (flip OOD-corrected); abort-seed+bump-reg overfit guard (lock recipe on seed 42); one-remediation no-lift policy
+- Phase 4 (Plan 02 run-1, 2026-05-22): md_pretrain_v1 (safe-core 4-aug, 60ep cosine) — SSL WORKS: ep5 frozen linear-probe macro 0.5708 vs Kinetics 0.4297 (+0.141; KIE 0.169->0.380 doubled, mirrors paper MD's KIE-concentrated lift). BUT probe peaks ep5 then declines (10:0.566, 15:0.551) with eff_rank collapse 11.8->3.3 = weak-aug contrastive collapse. Paper §3.2/Fig.5 require STRONG augs (we ran 4 mild). DECISION (D2-augs iteration): do NOT ride to 60, do NOT fine-tune v1; re-run paper-faithful md_pretrain_v2 — wire strong augs (translation+zoom+blur+channel-swap; rotation toggle default-OFF, KIE-risky) + 20ep cosine T_max=20; 5-epoch verification gate (probe>0.5708 AND KIE>=0.380 AND eff_rank healthy) BEFORE the full run. v1 backbone.pt kept as the weak-aug ablation datapoint. Exceed-path: 3-seed ensemble + per-head threshold_sweep + val-TTA on the v2 backbone vs paper MD-alone 0.6262.
 
 ### Pending Todos
 
@@ -97,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-21 -- Phase 4 Plan 02 fully coded (Tasks 1-6); SSL pretrain starting
+Last session: 2026-05-22 -- Phase 4 Plan 02 run-1 interpreted. Control: SSL ep5 frozen-probe macro 0.5708 (KIE 0.380/KFE 0.762) vs Kinetics 0.4297 (KIE 0.169/KFE 0.691) = +0.141 lift. Probe peaks ep5 then declines + eff_rank collapse (weak-aug). DECISION = strong-aug paper-faithful md_pretrain_v2 (D2-augs), 5-epoch verification gate before full 20ep run. Aug change is a tracked code edit to ssl_augs.py + squat_ssl.py._augment; v2 run is heavy training (fresh L4 notebook, prompt before kicking off).
 Stopped at: Plan 02 Tasks 1-6 all coded + pushed (origin ef40a2e). Probe resolved (per-clip JSON flat y-centers, 1:1 traj<->frame, SIGN bottom_is_argmax=False/ARGMIN, in-file NaNs -> interp). Dataset smoke green (len 4970, shapes ok, descent/ascent visually correct). VRAM/timing gate PASSED: batch 8 = 12.35 GB (fits L4), 38 min/epoch; user chose the 60-epoch FULL-EXTEND cap (~38h, multi-session, resume-safe). Collapse metric FIXED (256-sample probe; 8 capped eff_rank at ~7). NEXT: user runs Step 5 (md_pretrain_v1) across Colab sessions -> paste back the epoch-5 convergence checkpoint (ssl_loss down, embedding_std > 0.0044 no-collapse, first linear-probe > random) + the per-session linear-probe/emb_std trend; orchestrator flags the linear-probe plateau (§6 manual convergence stop). backbone.pt (linear-probe-best epoch) -> Plan 03 (3-seed fine-tune from it) -> Plan 04 (ensemble + val-tuned TTA + test eval + 9 figures + comparison chart).
 Resume file: .planning/phases/04-squat-motion-disentangling-ssl/04-02-PLAN.md
