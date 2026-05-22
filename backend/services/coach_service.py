@@ -49,38 +49,31 @@ def _looks_like_stall(text: str) -> bool:
     return any(p in t for p in _STALL_PHRASES)
 
 SYSTEM_PROMPT = (
-    "You are FitNova's AI strength & conditioning coach. You help the user build, "
-    "change, and understand their training plan.\n\n"
+    "You are FitNova's AI strength & conditioning coach. You help the user shape "
+    "and understand their training plan.\n\n"
     "TOOLS:\n"
     "- get_user_profile — their saved baseline (experience 1-3, training focus, "
     "weekly frequency, session length, body stats, injuries, equipment).\n"
     "- get_active_plan — their current 7-day plan.\n"
-    "- generate_workout_plan — build and SAVE a new 7-day plan (this REPLACES the "
-    "current one).\n\n"
-    "HOW TO ACT — read this carefully:\n"
-    "- When the user gives a clear instruction to build or change the plan (e.g. "
-    "'build me a plan', 'make it 6 days', 'change to a 4-day split', 'use dumbbells "
-    "only'), treat it as the go-ahead and CALL generate_workout_plan in the SAME "
-    "turn, passing the change as an override (e.g. workout_frequency=6). NEVER reply "
-    "'one moment', 'let me do that', 'give me a sec', or any promise to act later — "
-    "if you intend to do it, do it now by calling the tool. A turn with no tool call "
-    "is treated as your final answer, so a promise alone does nothing.\n"
-    "- Treat a short confirmation right after you asked to proceed ('yes', 'go "
-    "ahead', 'do it') as the go-ahead — call generate_workout_plan immediately.\n"
-    "- Only ask a question when you genuinely need something that's missing or "
-    "ambiguous (e.g. an injury to work around that isn't on file). Ask at most one "
-    "short question, then act. For a first plan, confirm the key choices in ONE "
-    "short line and, unless the user objects, generate.\n"
-    "- Always pull defaults from get_user_profile; pass overrides only for what the "
-    "user states in chat.\n\n"
-    "AFTER generate_workout_plan SUCCEEDS:\n"
-    "- The app shows the user the full schedule automatically, so DO NOT list every "
-    "day and exercise and DO NOT draw tables. Reply with one or two short, "
-    "encouraging lines (e.g. 'Done — here's your new 6-day powerbuilding split. "
-    "Want to adjust anything?').\n\n"
-    "DISCUSSING the plan: call get_active_plan first so you're accurate; never "
-    "invent exercises that aren't in it. If a tool returns an 'error', explain it "
-    "plainly and suggest a next step.\n\n"
+    "- prepare_plan — readies a plan to be built. It does NOT build the plan; it "
+    "surfaces a 'Generate Plan' button the user taps to watch the multi-agent crew "
+    "build it live.\n\n"
+    "HOW TO ACT:\n"
+    "- When the user wants a plan (or a change like 'make it 6 days', 'dumbbells "
+    "only'), gather anything you genuinely need that isn't already in their profile "
+    "— their goal, weekly frequency, and any injuries or equipment limits. Ask at "
+    "most one or two short questions.\n"
+    "- As soon as you have enough, CALL prepare_plan, passing ONLY the overrides the "
+    "user stated (e.g. workout_frequency=6, equipment=['Dumbbells']); everything "
+    "else comes from their profile. Do NOT build or list the plan yourself — "
+    "prepare_plan hands off to the live builder.\n"
+    "- After calling prepare_plan, tell the user in ONE short line that their plan "
+    "is ready and to tap 'Generate Plan'. NEVER claim you already built it, and do "
+    "not draw tables or list exercises.\n"
+    "- If they're still deciding or haven't given enough, keep the conversation "
+    "going — don't call prepare_plan until it's time.\n\n"
+    "DISCUSSING an existing plan: call get_active_plan first; never invent exercises "
+    "that aren't in it. If a tool returns an 'error', explain it plainly.\n\n"
     "Style: a knowledgeable coach — encouraging, concise, concrete. No filler. Use "
     "the user's first name if you know it."
 )
@@ -170,15 +163,15 @@ class CoachChatService:
         invocations: list[dict] = []
         nudged = False
 
-        def _plan_was_generated() -> bool:
-            return any(
-                inv.get("tool") == "generate_workout_plan"
-                and not (
-                    isinstance(inv.get("result"), dict)
-                    and inv["result"].get("error")
-                )
-                for inv in invocations
-            )
+        def _prepared() -> dict | None:
+            """If the coach readied a plan this turn, return the override params
+            (possibly empty) so the app can surface the Generate Plan button."""
+            for inv in invocations:
+                if (inv.get("tool") == "prepare_plan"
+                        and isinstance(inv.get("result"), dict)
+                        and inv["result"].get("ready")):
+                    return inv.get("args") or {}
+            return None
 
         for _ in range(_MAX_HOPS):
             resp = self.client.chat.completions.create(
@@ -240,31 +233,35 @@ class CoachChatService:
             # Backstop: if the model stalled (promised to act but called no
             # tool) and hasn't actually generated anything, nudge it once to
             # act now rather than returning a do-nothing reply.
-            if not nudged and not _plan_was_generated() and _looks_like_stall(final):
+            if not nudged and not _prepared() and _looks_like_stall(final):
                 nudged = True
                 messages.append({"role": "assistant", "content": final})
                 messages.append({
                     "role": "user",
-                    "content": "Don't just say you'll do it — do it now. If this "
-                    "needs a tool (e.g. generating or changing the plan), call the "
-                    "tool in this turn. Otherwise give your actual answer.",
+                    "content": "Don't just say you'll do it — act now. If you have "
+                    "enough to build the plan, call prepare_plan in this turn. "
+                    "Otherwise give your actual answer.",
                 })
                 continue
 
+            prep = _prepared()
             conversation_repo.append_message(user_id, conv_id, "assistant", content=final)
             return {
                 "conversation_id": str(conv_id),
                 "assistant_message": final,
                 "tool_invocations": invocations,
-                "plan_generated": _plan_was_generated(),
+                "ready_to_generate": prep is not None,
+                "plan_params": prep or {},
             }
 
         fallback = ("I got a little tangled working through that — "
                     "could you rephrase or try again?")
         conversation_repo.append_message(user_id, conv_id, "assistant", content=fallback)
+        prep = _prepared()
         return {
             "conversation_id": str(conv_id),
             "assistant_message": fallback,
             "tool_invocations": invocations,
-            "plan_generated": _plan_was_generated(),
+            "ready_to_generate": prep is not None,
+            "plan_params": prep or {},
         }

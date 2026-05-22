@@ -69,18 +69,18 @@ def _build_pool(adapter, program: dict, candidates, split: list[str]) -> list[di
     return pool[:_POOL_CAP]
 
 
-def build_plan(adapter, program: dict, profile: dict, candidates=None) -> dict:
-    """Run the CrewAI pipeline (subprocess) then hard-gate + normalize. Returns
-    the same dict shape as LLMAdapter.generate_plan."""
+_SENTINEL = "FNEV "
+
+
+def _prepare(adapter, program: dict, profile: dict, candidates) -> dict:
+    """Build the crew subprocess payload + the context the finalizer needs."""
     level = int(profile.get("experience_level", 2))
-    primary_type = program.get("primary_type", "Strength")
     frequency = max(1, min(7, int(profile.get("workout_frequency", 3))))
     split = pv.default_split(frequency, profile.get("training_focus"))
     avoid = adapter._get_avoid_keywords(profile.get("injuries", []))
     equipment = profile.get("equipment", []) or []
     min_pd = _MIN_PER_DAY.get(level, 4)
     pool = _build_pool(adapter, program, candidates, split)
-
     payload = {
         "pool": pool,
         "profile": {
@@ -96,30 +96,21 @@ def build_plan(adapter, program: dict, profile: dict, candidates=None) -> dict:
         "avoid_keywords": avoid,
         "equipment": equipment,
     }
+    return {
+        "payload": payload, "pool": pool, "level": level,
+        "primary_type": program.get("primary_type", "Strength"),
+        "frequency": frequency, "avoid": avoid, "equipment": equipment,
+        "min_pd": min_pd,
+    }
 
-    if not os.path.exists(_CREW_PY):
-        raise RuntimeError(f"Crew interpreter not found at {_CREW_PY} "
-                           "(create backend/.crewenv or set FITNOVA_CREW_PYTHON)")
 
-    proc = subprocess.run(
-        [_CREW_PY, _RUNNER],
-        input=json.dumps(payload),
-        capture_output=True, text=True, timeout=240, cwd=_BACKEND_DIR,
-    )
-    if proc.returncode != 0:
-        logger.error("crew_runner exited %s: %s", proc.returncode, proc.stderr[-500:])
-        raise RuntimeError(f"Crew pipeline failed (exit {proc.returncode})")
-    try:
-        result = json.loads(proc.stdout.strip().splitlines()[-1])
-    except Exception as exc:
-        logger.error("crew_runner bad stdout: %r | stderr: %s",
-                     proc.stdout[-300:], proc.stderr[-300:])
-        raise RuntimeError(f"Crew output unparseable: {exc}")
-    if not result.get("ok"):
-        raise RuntimeError(f"Crew error: {result.get('error')}")
+def _finalize(adapter, result: dict, profile: dict, ctx: dict) -> dict:
+    """Hard-gate + normalize the crew's plan into the generate_plan shape."""
+    pool, level = ctx["pool"], ctx["level"]
+    primary_type, frequency = ctx["primary_type"], ctx["frequency"]
+    avoid, equipment, min_pd = ctx["avoid"], ctx["equipment"], ctx["min_pd"]
 
-    plan = result.get("plan", {})
-    # Guarantee all 7 days exist with the right shape.
+    plan = result.get("plan", {}) or {}
     for i in range(1, 8):
         plan.setdefault(f"day_{i}", {
             "day_number": i, "focus": "Rest & Recovery",
@@ -129,13 +120,11 @@ def build_plan(adapter, program: dict, profile: dict, candidates=None) -> dict:
         plan[f"day_{i}"].setdefault("focus", f"Training Day {i}")
         plan[f"day_{i}"].setdefault("exercises", [])
 
-    # Deterministic hard gate — grounded in the pool, never invents.
     plan = pv.repair_plan(
         plan, frequency=frequency, pool=pool, avoid_keywords=avoid,
         equipment=equipment, min_per_day=min_pd,
         select_days=adapter._select_workout_days(frequency))
 
-    # Normalize exercises (rest, cues, media, sanitized reps/sets).
     for key in sorted(plan.keys()):
         day = plan[key]
         if day.get("is_rest_day"):
@@ -146,28 +135,23 @@ def build_plan(adapter, program: dict, profile: dict, candidates=None) -> dict:
             for ex in day.get("exercises", [])
         ]
 
-    # Final score on the repaired plan (authoritative).
     final = pv.check_plan(plan, frequency=frequency, avoid_keywords=avoid,
                           equipment=equipment, min_per_day=min_pd,
                           max_per_day=_MAX_PER_DAY)
     q = result.get("quality", {})
     score = final["score"] if final["hard_violations"] else max(
         int(q.get("score", final["score"]) or final["score"]), final["score"])
-
     title = adapter._sanitize_title(
         result.get("program_title", ""), profile, level, frequency)
-    note = (f"Built by the FitNova coaching crew (Profiler → Generator → "
-            f"Critic → Optimizer) and validated against split, injury and "
-            f"equipment constraints — quality {score}/10.")
+    note = ("Built by the FitNova coaching crew (Profiler → Generator → Critic "
+            f"→ Optimizer) and validated against split, injury and equipment "
+            f"constraints — quality {score}/10.")
     if profile.get("injuries"):
         note += " Adjusted around your noted injuries."
-
     return {
         "program_title": title,
         "personalization_notes": note,
-        # DB constraint allows only 'llm'|'template_fallback'; the crew IS an LLM
-        # pipeline, and its provenance is carried in the notes + quality_report.
-        "source": "llm",
+        "source": "llm",  # DB constraint allows only 'llm'|'template_fallback'
         "plan": plan,
         "quality_report": {
             "score": score,
@@ -176,3 +160,78 @@ def build_plan(adapter, program: dict, profile: dict, candidates=None) -> dict:
             "issues": final["issues"][:8],
         },
     }
+
+
+def _events(text: str):
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith(_SENTINEL):
+            try:
+                yield json.loads(line[len(_SENTINEL):])
+            except Exception:
+                continue
+
+
+def build_plan(adapter, program: dict, profile: dict, candidates=None) -> dict:
+    """Run the CrewAI pipeline (subprocess) then hard-gate + normalize. Returns
+    the same dict shape as LLMAdapter.generate_plan."""
+    ctx = _prepare(adapter, program, profile, candidates)
+    if not os.path.exists(_CREW_PY):
+        raise RuntimeError(f"Crew interpreter not found at {_CREW_PY} "
+                           "(create backend/.crewenv or set FITNOVA_CREW_PYTHON)")
+    proc = subprocess.run(
+        [_CREW_PY, _RUNNER],
+        input=json.dumps(ctx["payload"]),
+        capture_output=True, text=True, timeout=240, cwd=_BACKEND_DIR,
+    )
+    if proc.returncode != 0:
+        logger.error("crew_runner exited %s: %s", proc.returncode, proc.stderr[-500:])
+        raise RuntimeError(f"Crew pipeline failed (exit {proc.returncode})")
+    result = next((e for e in _events(proc.stdout)
+                   if e.get("event") == "result"), None)
+    if result is None:
+        logger.error("crew_runner no result | stderr: %s", proc.stderr[-400:])
+        raise RuntimeError("Crew produced no result event")
+    if not result.get("ok"):
+        raise RuntimeError(f"Crew error: {result.get('error')}")
+    return _finalize(adapter, result, profile, ctx)
+
+
+def build_plan_streamed(adapter, program: dict, profile: dict, candidates=None):
+    """Generator: yields agent progress events as the crew works, then a final
+    {'event':'plan', ...} with the hard-gated, normalized plan. Drives the SSE
+    endpoint behind the live 4-agent screen."""
+    ctx = _prepare(adapter, program, profile, candidates)
+    if not os.path.exists(_CREW_PY):
+        yield {"event": "error", "error": "Crew environment not set up"}
+        return
+    proc = subprocess.Popen(
+        [_CREW_PY, _RUNNER],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        text=True, cwd=_BACKEND_DIR, bufsize=1,
+    )
+    proc.stdin.write(json.dumps(ctx["payload"]))
+    proc.stdin.close()
+    result = None
+    try:
+        for line in proc.stdout:
+            line = line.strip()
+            if not line.startswith(_SENTINEL):
+                continue
+            try:
+                ev = json.loads(line[len(_SENTINEL):])
+            except Exception:
+                continue
+            if ev.get("event") == "result":
+                result = ev
+                break
+            yield ev  # agent progress
+    finally:
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            proc.kill()
+    if not result or not result.get("ok"):
+        yield {"event": "error", "error": (result or {}).get("error", "crew failed")}
+        return
+    yield {"event": "plan", **_finalize(adapter, result, profile, ctx)}

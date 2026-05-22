@@ -36,6 +36,14 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 from crewai import Agent, Crew, LLM, Process, Task  # noqa: E402
 
+_OUT = sys.stdout  # real stdout; library chatter is later redirected to stderr
+
+
+def emit(event: dict) -> None:
+    """Write one progress event to the result channel (real stdout),
+    sentinel-prefixed so the bridge can pick it out of any stray output."""
+    print("FNEV " + json.dumps(event), file=_OUT, flush=True)
+
 
 def _extract_json(raw: str) -> dict:
     s = (raw or "").strip()
@@ -123,6 +131,7 @@ def main() -> None:
     )
 
     # 1) PROFILER → confirm/refine the split.
+    emit({"event": "agent", "name": "Profiler", "status": "running"})
     prof_raw = _run(
         profiler,
         common + f"Suggested split: {split_txt}. Confirm or refine the per-day "
@@ -137,8 +146,11 @@ def main() -> None:
     except Exception:
         ref_split = split
     ref_split_txt = ", ".join(f"Day{i+1}={f}" for i, f in enumerate(ref_split))
+    emit({"event": "agent", "name": "Profiler", "status": "done",
+          "detail": {"split": ref_split}})
 
     # 2) GENERATOR → first draft.
+    emit({"event": "agent", "name": "Generator", "status": "running"})
     gen_raw = _run(
         generator,
         common + f"Split: {ref_split_txt}. Build the full 7-day plan. Place each "
@@ -150,8 +162,10 @@ def main() -> None:
     plan = _extract_json(gen_raw)
     program_title = plan.get("program_title") or f"{exp.title()} {goal.title()} Plan"
     plan = plan.get("plan", plan)
+    emit({"event": "agent", "name": "Generator", "status": "done", "plan": plan})
 
-    def critique(p: dict) -> dict:
+    def critique(p: dict, round_no: int) -> dict:
+        emit({"event": "agent", "name": "Critic", "status": "running", "round": round_no})
         findings = pv.check_plan(
             p, frequency=frequency, avoid_keywords=avoid, equipment=equipment,
             min_per_day=minpd, max_per_day=maxpd)
@@ -173,11 +187,15 @@ def main() -> None:
         c["score"] = min(llm_score, 10 - 2 * hard) if hard else llm_score
         c.setdefault("issues", findings.get("issues", []))
         c.setdefault("fixes", c.get("issues", []))
+        emit({"event": "agent", "name": "Critic", "status": "done",
+              "round": round_no, "score": c["score"], "issues": c["issues"][:6]})
         return c
 
-    crit = critique(plan)
+    crit = critique(plan, 0)
     rounds = 0
     while crit.get("score", 0) < 9 and rounds < 2:
+        emit({"event": "agent", "name": "Optimizer", "status": "running",
+              "round": rounds + 1})
         opt_raw = _run(
             optimizer,
             common + f"Split: {ref_split_txt}.\nCURRENT PLAN:\n" + json.dumps(plan)
@@ -192,7 +210,9 @@ def main() -> None:
         except Exception:
             break
         rounds += 1
-        crit = critique(plan)
+        emit({"event": "agent", "name": "Optimizer", "status": "done",
+              "round": rounds, "plan": plan})
+        crit = critique(plan, rounds)
 
     return {
         "ok": True,
@@ -207,11 +227,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    _real_stdout = sys.stdout
-    sys.stdout = sys.stderr  # quarantine any library chatter off the result channel
+    _OUT = sys.stdout  # capture real stdout for emit() before redirecting
+    sys.stdout = sys.stderr  # quarantine library chatter off the event channel
     try:
         _result = main()
     except Exception as exc:  # never crash silently — the bridge reads this
         _result = {"ok": False, "error": str(exc)[:400]}
-    sys.stdout = _real_stdout
-    print(json.dumps(_result))
+    sys.stdout = _OUT
+    emit({"event": "result", **_result})

@@ -53,11 +53,14 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
-            "name": "generate_workout_plan",
-            "description": "Generate and save a new 7-day plan for the user. This "
-            "REPLACES any existing active plan, so confirm with the user first. "
+            "name": "prepare_plan",
+            "description": "Call this ONCE you have gathered enough to build the "
+            "user's plan (their goal, weekly frequency, and any injuries or "
+            "equipment limits to work around). It does NOT build the plan "
+            "immediately — it readies it and shows the user a 'Generate Plan' "
+            "button; the multi-agent crew then builds it live when they tap it. "
             "Pull defaults from their profile; pass overrides only for what they "
-            "tell you in chat (e.g. injuries to work around, available equipment).",
+            "stated in chat (e.g. a different frequency, injuries, equipment).",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -180,33 +183,25 @@ def _build_recommender_profile(p: dict, args: dict) -> dict:
     }
 
 
-def generate_workout_plan(ctx: ToolContext, args: dict) -> dict:
+def prepare_plan(ctx: ToolContext, args: dict) -> dict:
+    # Does NOT build the plan. Captures the parameters so the app can launch the
+    # live multi-agent generation (the 4-agent crew) when the user taps
+    # "Generate Plan". The actual build + persistence happens in the streaming
+    # endpoint POST /api/plan/generate/stream.
     p = profile_repo.get_profile(ctx.user_id) or {}
     profile = _build_recommender_profile(p, args)
-    rec = ctx.recommender.recommend(profile)
-    plan_result = ctx.llm_adapter.generate_plan(
-        rec["program_id"], profile, rec.get("content_candidates"))
-    plan_id = plan_repo.insert_plan(ctx.user_id, rec, plan_result)
-    weekly = plan_result.get("plan", {})
     return {
-        "plan_id": plan_id,
-        "program_title": plan_result.get("program_title"),
-        "personalization_notes": plan_result.get("personalization_notes"),
-        "source": plan_result.get("source"),
-        "quality": plan_result.get("quality_report"),
-        "day_count": len(weekly),
-        "training_days": [
-            d.get("focus")
-            for d in weekly.values()
-            if not d.get("is_rest_day")
-        ],
+        "ready": True,
+        "summary": (f"{profile.get('workout_frequency')}-day "
+                    f"{(profile.get('training_focus') or 'strength')} plan, "
+                    "ready to build."),
     }
 
 
 _DISPATCH = {
     "get_user_profile": get_user_profile,
     "get_active_plan": get_active_plan,
-    "generate_workout_plan": generate_workout_plan,
+    "prepare_plan": prepare_plan,
 }
 
 

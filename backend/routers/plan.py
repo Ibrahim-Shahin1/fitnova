@@ -11,13 +11,15 @@ avoid a circular import — app.py imports this router.
 
 from __future__ import annotations
 
+import json
 import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from backend.db.repositories import plan_repo
+from backend.db.repositories import plan_repo, profile_repo
 from backend.deps.auth import AuthUser, require_user
 
 logger = logging.getLogger("fitnova.plan")
@@ -130,3 +132,67 @@ async def complete_day(
     if row is None:
         raise HTTPException(status_code=404, detail="Day not found")
     return {"day": row}
+
+
+class PlanStreamRequest(BaseModel):
+    """Overrides gathered by the coach; missing fields fall back to the profile."""
+    workout_type: str | None = None
+    experience_level: int | None = Field(default=None, ge=1, le=3)
+    workout_frequency: int | None = Field(default=None, ge=1, le=7)
+    session_duration_hours: float | None = Field(default=None, gt=0, le=4.0)
+    injuries: list[str] | None = None
+    equipment: list[str] | None = None
+    notes: str | None = None
+
+
+def _sse(event: dict) -> str:
+    return f"data: {json.dumps(event)}\n\n"
+
+
+@router.post("/generate/stream")
+async def generate_stream(
+    req: PlanStreamRequest,
+    request: Request,
+    user: AuthUser = Depends(require_user),
+):
+    """Run the CrewAI pipeline and stream per-agent progress as SSE, persisting
+    the final plan. Drives the live 4-agent screen. Events:
+    started → agent(running/done) … → done{plan_id} | error{error}."""
+    from backend.services import plan_crew
+    from backend.services.coach_tools import _build_recommender_profile
+
+    rec_engine = request.app.state.recommender
+    adapter = request.app.state.llm_adapter
+    uid = user.id
+    overrides = req.model_dump(exclude_none=True)
+
+    def stream():
+        try:
+            base = profile_repo.get_profile(uid) or {}
+            profile = _build_recommender_profile(base, overrides)
+            rec = rec_engine.recommend(profile)
+            program = adapter._get_program(rec["program_id"])
+            yield _sse({"event": "started"})
+            for ev in plan_crew.build_plan_streamed(
+                    adapter, program, profile, rec.get("content_candidates")):
+                if ev.get("event") == "plan":
+                    try:
+                        plan_id = plan_repo.insert_plan(uid, rec, ev)
+                    except Exception as exc:
+                        logger.exception("Persisting streamed plan failed")
+                        yield _sse({"event": "error", "error": f"save failed: {exc}"})
+                        return
+                    yield _sse({"event": "done", "plan_id": plan_id,
+                                "program_title": ev.get("program_title"),
+                                "quality_report": ev.get("quality_report")})
+                else:
+                    yield _sse(ev)
+        except Exception as exc:
+            logger.exception("Streamed generation failed")
+            yield _sse({"event": "error", "error": str(exc)[:300]})
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

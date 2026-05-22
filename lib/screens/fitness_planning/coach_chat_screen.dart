@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +6,8 @@ import '../../providers/conversation_provider.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/coach/coach_message_bubble.dart';
 import '../../widgets/plan/plan_schedule.dart';
+import '../../widgets/ui/app_button.dart';
+import 'generate_plan_screen.dart';
 
 /// The persistent AI coach chat. Builds + manages the user's plan conversationally.
 class CoachChatScreen extends StatelessWidget {
@@ -62,6 +62,18 @@ class _CoachChatViewState extends State<_CoachChatView> {
     _scrollToBottom();
   }
 
+  Future<void> _openGenerate() async {
+    final prov = context.read<ConversationProvider>();
+    final params = Map<String, dynamic>.from(prov.pendingPlanParams ?? const {});
+    final ok = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => GeneratePlanScreen(params: params)),
+    );
+    if (ok == true) {
+      await prov.onPlanGenerated();
+      _scrollToBottom();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<ConversationProvider>();
@@ -81,9 +93,7 @@ class _CoachChatViewState extends State<_CoachChatView> {
                         itemCount: prov.messages.length + (prov.sending ? 1 : 0),
                         itemBuilder: (context, i) {
                           if (i >= prov.messages.length) {
-                            return prov.buildingPlan
-                                ? const _PlanBuildingBubble()
-                                : const _TypingBubble();
+                            return const _TypingBubble();
                           }
                           final m = prov.messages[i];
                           if (m.isPlanReveal) {
@@ -97,6 +107,18 @@ class _CoachChatViewState extends State<_CoachChatView> {
                       )
                     : const _Intro(),
           ),
+          if (prov.readyToGenerate)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+              child: AppButton(
+                label: 'Generate Plan',
+                icon: Icons.auto_awesome,
+                size: AppButtonSize.lg,
+                expand: true,
+                onPressed: _openGenerate,
+              ),
+            ),
           _InputBar(
             controller: _input,
             enabled: !prov.sending,
@@ -230,85 +252,6 @@ class _InputBar extends StatelessWidget {
             IconButton.filled(
               onPressed: enabled ? onSend : null,
               icon: const Icon(Icons.arrow_upward),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A richer loader shown while the coach is generating a plan — visually
-/// distinct from the plain "Coach is thinking…" bubble, with cycling steps so
-/// the wait (recommender + LLM) reads as deliberate work, not a hang.
-class _PlanBuildingBubble extends StatefulWidget {
-  const _PlanBuildingBubble();
-
-  @override
-  State<_PlanBuildingBubble> createState() => _PlanBuildingBubbleState();
-}
-
-class _PlanBuildingBubbleState extends State<_PlanBuildingBubble> {
-  static const _steps = [
-    'Profiling your goals…',
-    'Generating your split…',
-    'Critiquing the plan…',
-    'Optimizing & validating…',
-  ];
-  int _i = 0;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 1700), (_) {
-      if (!mounted) return;
-      setState(() => _i = (_i + 1) % _steps.length);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm + 2,
-        ),
-        decoration: BoxDecoration(
-          color: cs.primaryContainer,
-          borderRadius: BorderRadius.circular(AppRadius.rl),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: cs.onPrimaryContainer),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: Text(
-                _steps[_i],
-                key: ValueKey<int>(_i),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onPrimaryContainer,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
             ),
           ],
         ),

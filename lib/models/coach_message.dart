@@ -25,22 +25,24 @@ class CoachMessage {
 class CoachReply {
   const CoachReply({
     required this.assistantMessage,
-    this.toolsCalled = const [],
-    this.planGenerated = false,
+    this.readyToGenerate = false,
+    this.planParams = const {},
   });
 
   final String assistantMessage;
-  final List<String> toolsCalled;
 
-  /// True when the coach generated/replaced the plan this turn — the client
-  /// then fetches the active plan and reveals the full schedule once.
-  final bool planGenerated;
+  /// True once the coach has gathered enough and called prepare_plan — the app
+  /// surfaces a "Generate Plan" button that opens the live 4-agent builder.
+  final bool readyToGenerate;
+
+  /// Override params the coach captured (frequency, equipment, injuries…), to be
+  /// sent to the streaming generate endpoint. Empty means "use the profile".
+  final Map<String, dynamic> planParams;
 
   factory CoachReply.fromJson(Map<String, dynamic> m) => CoachReply(
         assistantMessage: (m['assistant_message'] ?? '') as String,
-        toolsCalled: ((m['tool_invocations'] as List?) ?? const [])
-            .map((t) => ((t as Map)['tool'] ?? '').toString())
-            .toList(),
-        planGenerated: (m['plan_generated'] ?? false) as bool,
+        readyToGenerate: (m['ready_to_generate'] ?? false) as bool,
+        planParams:
+            ((m['plan_params'] as Map?) ?? const {}).cast<String, dynamic>(),
       );
 }
