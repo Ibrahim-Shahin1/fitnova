@@ -8,10 +8,11 @@ import '../../theme/app_spacing.dart';
 import '../../theme/theme_controller.dart';
 import '../../widgets/ui/app_button.dart';
 import '../../widgets/ui/app_card.dart';
+import 'edit_profile_screen.dart';
 
 /// Profile — the user's personal hub: identity, body stats, training profile,
-/// and settings (theme, units, sign out). No gamification/achievements.
-/// Progress charts (weight trend, PRs) arrive once logging exists.
+/// and settings (theme, sign out). Body stats + training profile are editable
+/// via the Edit screen. Progress charts (weight trend, PRs) arrive with logging.
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
 
@@ -20,7 +21,19 @@ class ProfileTab extends StatelessWidget {
     final profile = context.watch<ProfileProvider>().profile;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          if (profile != null)
+            IconButton(
+              tooltip: 'Edit profile',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+              ),
+            ),
+        ],
+      ),
       body: profile == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -68,16 +81,7 @@ class ProfileTab extends StatelessWidget {
                 const SizedBox(height: AppSpacing.lg),
 
                 _SectionTitle('Settings'),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _ThemeSetting(),
-                      const Divider(height: AppSpacing.xl),
-                      _UnitsSetting(profile: profile),
-                    ],
-                  ),
-                ),
+                AppCard(child: const _ThemeSetting()),
                 const SizedBox(height: AppSpacing.lg),
 
                 AppButton(
@@ -172,38 +176,6 @@ class _ThemeSetting extends StatelessWidget {
             selected: {mode},
             onSelectionChanged: (s) =>
                 context.read<ThemeController>().setMode(s.first),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _UnitsSetting extends StatelessWidget {
-  const _UnitsSetting({required this.profile});
-
-  final UserProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Units', style: theme.textTheme.bodyMedium),
-        const SizedBox(height: AppSpacing.sm),
-        SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<String>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: 'metric', label: Text('kg / cm')),
-              ButtonSegment(value: 'imperial', label: Text('lb / in')),
-            ],
-            selected: {profile.unitPreference},
-            onSelectionChanged: (s) => context
-                .read<ProfileProvider>()
-                .save(profile.copyWith(unitPreference: s.first)),
           ),
         ),
       ],
@@ -325,16 +297,10 @@ String _bmi(UserProfile p) {
 
 String _weight(UserProfile p) {
   final w = p.weightKg;
-  if (w == null) return '—';
-  return p.unitPreference == 'imperial'
-      ? '${(w * 2.20462).toStringAsFixed(1)} lb'
-      : '${w.toStringAsFixed(1)} kg';
+  return w == null ? '—' : '${w.toStringAsFixed(1)} kg';
 }
 
 String _height(UserProfile p) {
   final h = p.heightCm;
-  if (h == null) return '—';
-  return p.unitPreference == 'imperial'
-      ? '${(h / 2.54).toStringAsFixed(0)} in'
-      : '${h.toStringAsFixed(0)} cm';
+  return h == null ? '—' : '${h.toStringAsFixed(0)} cm';
 }
