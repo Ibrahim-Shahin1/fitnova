@@ -35,6 +35,7 @@ from backend.services.form_analyzer import FormAnalyzer
 from backend.services.form_session import FormSession
 
 from backend.deps.auth import AuthUser, require_user
+from backend.routers.plan import router as plan_router
 
 logger = logging.getLogger("fitnova")
 
@@ -228,6 +229,8 @@ app.add_middleware(
 _STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(_STATIC_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
+
+app.include_router(plan_router)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
