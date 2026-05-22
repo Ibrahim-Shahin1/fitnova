@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/active_plan.dart';
 import '../../providers/conversation_provider.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/coach/coach_message_bubble.dart';
+import '../../widgets/plan/plan_schedule.dart';
 
 /// The persistent AI coach chat. Builds + manages the user's plan conversationally.
 class CoachChatScreen extends StatelessWidget {
@@ -77,9 +81,14 @@ class _CoachChatViewState extends State<_CoachChatView> {
                         itemCount: prov.messages.length + (prov.sending ? 1 : 0),
                         itemBuilder: (context, i) {
                           if (i >= prov.messages.length) {
-                            return const _TypingBubble();
+                            return prov.buildingPlan
+                                ? const _PlanBuildingBubble()
+                                : const _TypingBubble();
                           }
                           final m = prov.messages[i];
+                          if (m.isPlanReveal) {
+                            return _PlanRevealCard(plan: m.plan!);
+                          }
                           return CoachMessageBubble(
                             isUser: m.isUser,
                             text: m.content ?? '',
@@ -222,6 +231,140 @@ class _InputBar extends StatelessWidget {
               onPressed: enabled ? onSend : null,
               icon: const Icon(Icons.arrow_upward),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A richer loader shown while the coach is generating a plan — visually
+/// distinct from the plain "Coach is thinking…" bubble, with cycling steps so
+/// the wait (recommender + LLM) reads as deliberate work, not a hang.
+class _PlanBuildingBubble extends StatefulWidget {
+  const _PlanBuildingBubble();
+
+  @override
+  State<_PlanBuildingBubble> createState() => _PlanBuildingBubbleState();
+}
+
+class _PlanBuildingBubbleState extends State<_PlanBuildingBubble> {
+  static const _steps = [
+    'Reading your profile…',
+    'Matching the right program…',
+    'Building your week…',
+    'Adding sets, reps & cues…',
+  ];
+  int _i = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 1700), (_) {
+      if (!mounted) return;
+      setState(() => _i = (_i + 1) % _steps.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm + 2,
+        ),
+        decoration: BoxDecoration(
+          color: cs.primaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.rl),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: cs.onPrimaryContainer),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Text(
+                _steps[_i],
+                key: ValueKey<int>(_i),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One-time, in-chat reveal of a freshly generated plan — the same clean
+/// schedule design as the Planning tab, animated in, with a pointer that the
+/// canonical view lives in the Planning tab.
+class _PlanRevealCard extends StatelessWidget {
+  const _PlanRevealCard({required this.plan});
+
+  final ActivePlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.translate(offset: Offset(0, (1 - t) * 14), child: child),
+      ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(AppRadius.rl),
+          border: Border.all(color: cs.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.event_available, size: 18, color: cs.primary),
+                const SizedBox(width: AppSpacing.sm),
+                Text('Your plan is ready',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: cs.primary,
+                      fontWeight: FontWeight.w800,
+                    )),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            PlanScheduleView(plan: plan),
+            const SizedBox(height: AppSpacing.xs),
+            Text('View it anytime in the Planning tab.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: cs.onSurfaceVariant)),
           ],
         ),
       ),
