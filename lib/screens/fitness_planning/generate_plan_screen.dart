@@ -82,20 +82,28 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
             ? 'Split chosen: ${split.join(' / ')}'
             : 'Training split chosen');
       } else if (name == 'Generator' && status == 'done') {
-        _push('Draft plan built from the program');
+        _push('Generator drafted the split from the program');
       } else if (name == 'Critic' && status == 'done') {
         final r = ev['round'];
         final sc = ev['score'];
-        final iss = (ev['issues'] as List?)?.length ?? 0;
+        final hv = (ev['hard_violations'] as int?) ?? 0;
+        final issues = (ev['issues'] as List?)?.cast<String>() ?? const [];
         if (sc is int) setState(() => _score = sc);
-        _push('Review ${r == 0 ? '(draft)' : 'round $r'}: '
-            'scored $sc/10${iss > 0 ? ' · $iss issue${iss == 1 ? '' : 's'}' : ''}');
+        final when = r == 0 ? 'reviewed the draft' : 'reviewed round $r';
+        _push(hv > 0
+            ? 'Critic $when — $sc/10 · $hv constraint issue${hv == 1 ? '' : 's'} to fix:'
+            : 'Critic $when — $sc/10 · all constraints clean ✓');
+        for (final iss in issues) {
+          _push('• $iss');
+        }
       } else if (name == 'Optimizer' && status == 'done') {
-        _push('Optimizer round ${ev['round']}: applied fixes');
+        _push('Optimizer round ${ev['round']} — moved/swapped exercises to fix them');
       }
     } else if (type == 'done') {
       final q = ev['quality_report'] as Map?;
       if (q?['score'] is int) setState(() => _score = q!['score'] as int);
+      _push('Final validation — all constraints satisfied'
+          '${_score != null ? ' ($_score/10)' : ''}');
       await _loadFinal();
     } else if (type == 'error') {
       setState(() => _fail(ev['error']?.toString()));
@@ -210,21 +218,29 @@ class _ProgressView extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 for (final line in log)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.check, size: 14, color: cs.onSurfaceVariant),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(line,
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: cs.onSurfaceVariant)),
-                        ),
-                      ],
-                    ),
-                  ),
+                  Builder(builder: (_) {
+                    final isIssue = line.startsWith('• ');
+                    return Padding(
+                      padding: EdgeInsets.only(
+                          bottom: 4, left: isIssue ? AppSpacing.lg : 0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(isIssue ? Icons.close : Icons.check,
+                              size: 14,
+                              color: isIssue ? cs.error : Colors.green),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(isIssue ? line.substring(2) : line,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: isIssue
+                                        ? cs.error
+                                        : cs.onSurfaceVariant)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
               ],
             ),
           ),

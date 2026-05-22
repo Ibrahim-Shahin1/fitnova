@@ -101,6 +101,9 @@ def _prepare(adapter, program: dict, profile: dict, candidates) -> dict:
         "primary_type": program.get("primary_type", "Strength"),
         "frequency": frequency, "avoid": avoid, "equipment": equipment,
         "min_pd": min_pd,
+        # Exact program name + id from the trained dataset (no rewriting).
+        "program_title": str(program.get("title") or "").strip(),
+        "program_id": program.get("program_id"),
     }
 
 
@@ -141,11 +144,16 @@ def _finalize(adapter, result: dict, profile: dict, ctx: dict) -> dict:
     q = result.get("quality", {})
     score = final["score"] if final["hard_violations"] else max(
         int(q.get("score", final["score"]) or final["score"]), final["score"])
-    title = adapter._sanitize_title(
+    # Use the EXACT dataset program name (fall back only if the catalog lacks one).
+    title = ctx.get("program_title") or adapter._sanitize_title(
         result.get("program_title", ""), profile, level, frequency)
-    note = ("Built by the FitNova coaching crew (Profiler → Generator → Critic "
-            f"→ Optimizer) and validated against split, injury and equipment "
-            f"constraints — quality {score}/10.")
+    pid = ctx.get("program_id")
+    note = (f"Program '{title}'"
+            + (f" (#{pid})" if pid is not None else "")
+            + " — selected from the trained dataset by the recommender "
+            "(content-based filter + NCF). Every exercise is drawn from this "
+            f"program's dataset entry; the 4-agent crew organized and validated "
+            f"it (quality {score}/10).")
     if profile.get("injuries"):
         note += " Adjusted around your noted injuries."
     return {

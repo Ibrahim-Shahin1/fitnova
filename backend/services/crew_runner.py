@@ -45,6 +45,11 @@ def emit(event: dict) -> None:
     print("FNEV " + json.dumps(event), file=_OUT, flush=True)
 
 
+# Max optimizer↔critic rounds. The loop stops as soon as the plan is objectively
+# constraint-clean (deterministic hard_violations == 0); this is just the ceiling.
+_MAX_ROUNDS = 3
+
+
 def _extract_json(raw: str) -> dict:
     s = (raw or "").strip()
     s = re.sub(r"^```(?:json)?", "", s).strip()
@@ -185,23 +190,32 @@ def main() -> None:
         hard = findings.get("hard_violations", 0)
         llm_score = int(c.get("score", findings.get("score", 5)) or 5)
         c["score"] = min(llm_score, 10 - 2 * hard) if hard else llm_score
-        c.setdefault("issues", findings.get("issues", []))
-        c.setdefault("fixes", c.get("issues", []))
+        c["hard_violations"] = hard
+        det = findings.get("issues", [])
+        llm_fixes = c.get("fixes") or c.get("issues") or []
+        c["issues"] = det if det else (c.get("issues") or [])
+        # Optimizer acts on the concrete deterministic violations first.
+        c["fixes"] = list(dict.fromkeys([*det, *[f for f in llm_fixes if f]]))
         emit({"event": "agent", "name": "Critic", "status": "done",
-              "round": round_no, "score": c["score"], "issues": c["issues"][:6]})
+              "round": round_no, "score": c["score"],
+              "hard_violations": hard, "issues": c["issues"][:6]})
         return c
 
     crit = critique(plan, 0)
     rounds = 0
-    while crit.get("score", 0) < 9 and rounds < 2:
+    # Iterate until the plan is objectively constraint-clean (no wrong-day /
+    # equipment / injury / volume violations), capped to bound cost.
+    while crit.get("hard_violations", 1) > 0 and rounds < _MAX_ROUNDS:
         emit({"event": "agent", "name": "Optimizer", "status": "running",
               "round": rounds + 1})
         opt_raw = _run(
             optimizer,
             common + f"Split: {ref_split_txt}.\nCURRENT PLAN:\n" + json.dumps(plan)
-            + "\nFIXES TO APPLY:\n" + json.dumps(crit.get("fixes", []))
-            + "\nReturn the corrected full 7-day plan. Move/replace exercises using "
-            "ONLY pool exercises so each lands on a matching-focus day.",
+            + "\nPROBLEMS TO FIX (fix ONLY these; leave every other exercise "
+            "exactly as it is):\n" + json.dumps(crit.get("fixes", []))
+            + "\nFor each problem, either move that exercise to a day whose focus "
+            "matches its movement, or swap it for a POOL exercise of that day's "
+            "group. Do not touch unlisted exercises. Return the full 7-day plan.",
             _PLAN_SCHEMA,
         )
         try:

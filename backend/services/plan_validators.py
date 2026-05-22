@@ -147,6 +147,11 @@ def injury_ok(name: str, avoid_keywords: list[str]) -> bool:
     return not any(kw in nl for kw in avoid_keywords)
 
 
+def _norm(name: str) -> str:
+    """Normalize an exercise name for catalog matching (case/whitespace-insensitive)."""
+    return re.sub(r"\s+", " ", (name or "").strip().lower())
+
+
 # ── Validation ────────────────────────────────────────────────────────────────
 
 def check_plan(
@@ -250,6 +255,11 @@ def repair_plan(
         seen_pool.add(key)
         safe_pool.append({**ex, "group": ex.get("group") or movement_group(nm)})
 
+    # Canonical name map → every kept exercise must be a real catalog exercise
+    # (100% dataset provenance); the LLM's name is replaced by the exact pool
+    # name it matches, and anything not in the pool is dropped.
+    canon = {_norm(e["exercise_name"]): e["exercise_name"] for e in safe_pool}
+
     def pool_for(groups: set[str]) -> list[dict]:
         return [e for e in safe_pool if e["group"] in groups]
 
@@ -288,16 +298,15 @@ def repair_plan(
         kept: list[dict] = []
         used: set[str] = set()
         for ex in day.get("exercises", []):
-            nm = str(ex.get("exercise_name", ""))
-            grp = movement_group(nm)
-            if grp not in allowed:
+            canonical = canon.get(_norm(str(ex.get("exercise_name", ""))))
+            if canonical is None:
+                continue  # not in the catalog pool — drop (dataset-only guarantee)
+            if movement_group(canonical) not in allowed:
                 continue
-            if not equipment_ok(nm, equipment) or not injury_ok(nm, avoid_keywords):
+            if canonical.lower() in used:
                 continue
-            if nm.lower() in used:
-                continue
-            used.add(nm.lower())
-            kept.append(ex)
+            used.add(canonical.lower())
+            kept.append({**ex, "exercise_name": canonical})
 
         if len(kept) < min_per_day:
             # backfill: prefer the day's primary group(s), fall back to allowed
