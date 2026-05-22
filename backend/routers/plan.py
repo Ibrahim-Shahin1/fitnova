@@ -12,6 +12,7 @@ avoid a circular import — app.py imports this router.
 from __future__ import annotations
 
 import logging
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -90,3 +91,41 @@ async def get_active(user: AuthUser = Depends(require_user)):
         logger.exception("Fetching active plan failed")
         raise HTTPException(status_code=500, detail=f"Fetching plan failed: {exc}")
     return {"plan": plan}
+
+
+class CompletionRequest(BaseModel):
+    completed: bool
+
+
+@router.patch("/exercises/{exercise_id}/complete")
+async def complete_exercise(
+    exercise_id: UUID,
+    req: CompletionRequest,
+    user: AuthUser = Depends(require_user),
+):
+    """Mark a plan exercise complete/incomplete (RLS-safe: cross-user → 404)."""
+    try:
+        row = plan_repo.set_exercise_completed(user.id, exercise_id, req.completed)
+    except Exception as exc:
+        logger.exception("Exercise completion failed")
+        raise HTTPException(status_code=500, detail=f"Completion failed: {exc}")
+    if row is None:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+    return {"exercise": row}
+
+
+@router.patch("/days/{day_id}/complete")
+async def complete_day(
+    day_id: UUID,
+    req: CompletionRequest,
+    user: AuthUser = Depends(require_user),
+):
+    """Mark a plan day complete/incomplete (RLS-safe: cross-user → 404)."""
+    try:
+        row = plan_repo.set_day_completed(user.id, day_id, req.completed)
+    except Exception as exc:
+        logger.exception("Day completion failed")
+        raise HTTPException(status_code=500, detail=f"Completion failed: {exc}")
+    if row is None:
+        raise HTTPException(status_code=404, detail="Day not found")
+    return {"day": row}

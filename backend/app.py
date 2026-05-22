@@ -38,6 +38,7 @@ from backend.services.coach_service import CoachChatService
 from backend.deps.auth import AuthUser, require_user
 from backend.routers.plan import router as plan_router
 from backend.routers.coach import router as coach_router
+from backend.routers.logs import router as logs_router
 
 logger = logging.getLogger("fitnova")
 
@@ -236,6 +237,7 @@ app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 app.include_router(plan_router)
 app.include_router(coach_router)
+app.include_router(logs_router)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

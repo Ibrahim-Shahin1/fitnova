@@ -118,3 +118,41 @@ def fetch_active(user_id: UUID) -> dict | None:
             d["exercises"] = cur.fetchall()
         plan["days"] = days
         return plan
+
+
+def set_exercise_completed(
+    user_id: UUID, exercise_id: UUID, completed: bool
+) -> dict | None:
+    """Flip a plan exercise's completion. Ownership is enforced in the WHERE via
+    join plan_days→plans, so a cross-user id updates nothing → returns None."""
+    with pool().connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            update public.plan_exercises pe
+            set is_completed = %s,
+                completed_at = case when %s then now() else null end
+            from public.plan_days d
+            join public.plans p on p.id = d.plan_id
+            where pe.id = %s and pe.plan_day_id = d.id and p.user_id = %s
+            returning pe.id, pe.is_completed, pe.completed_at
+            """,
+            (completed, completed, str(exercise_id), str(user_id)),
+        )
+        return cur.fetchone()
+
+
+def set_day_completed(user_id: UUID, day_id: UUID, completed: bool) -> dict | None:
+    """Flip a plan day's completion (ownership enforced via join to plans)."""
+    with pool().connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            update public.plan_days d
+            set is_completed = %s,
+                completed_at = case when %s then now() else null end
+            from public.plans p
+            where d.id = %s and d.plan_id = p.id and p.user_id = %s
+            returning d.id, d.is_completed, d.completed_at
+            """,
+            (completed, completed, str(day_id), str(user_id)),
+        )
+        return cur.fetchone()
