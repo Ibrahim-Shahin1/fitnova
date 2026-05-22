@@ -87,6 +87,9 @@ class MDConfig:
     loss_three_term: bool = True         # [§2 — official active line is 3-term; flag exposes Eq.1 2-term]
     scheduler_name: str = "cosine"       # [ASSUMED — SSL standard, paper silent]
     model_arch: str = "r2plus1d_18_md_ssl_v1"
+    strong_augs: bool = True             # [§3.2/§7] v2 default: paper-faithful strong aug set (v1 ran safe-core, collapsed)
+    use_rotation: bool = False           # [§7] rotation OFF — distorts the knee-valgus KIE signal (our largest lift)
+    aug_prob: float = 0.5                # per-aug independent application probability (strong set)
 
     def __post_init__(self) -> None:
         self.scheduler_t_max = self.max_epochs
@@ -341,6 +344,7 @@ def run_md_pretrain_epoch(
         "projector_hidden": config.projector_hidden, "projector_out_dim": config.projector_out_dim,
         "loss_squared": config.loss_squared, "loss_three_term": config.loss_three_term,
         "model_arch": config.model_arch,
+        "strong_augs": config.strong_augs, "use_rotation": config.use_rotation, "aug_prob": config.aug_prob,
     }
     config_hash_str = hash_config(config_repr)
     run_dir = os.path.join(drive_root, "FitNova/checkpoints/phase04", run_name)
@@ -352,6 +356,7 @@ def run_md_pretrain_epoch(
         SquatSSLDataset(
             videos_root=videos_root, trajectories_root=trajectories_root,
             frames_per_half=config.frames_per_half, crop_size=config.crop_size, seed=seed,
+            strong_augs=config.strong_augs, use_rotation=config.use_rotation, aug_prob=config.aug_prob,
         ),
         config, seed=seed,
     )

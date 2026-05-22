@@ -112,12 +112,18 @@ class SquatSSLDataset(Dataset):
         frames_per_half: int = 16,
         crop_size: int = 112,
         seed: int = 42,
+        strong_augs: bool = True,
+        use_rotation: bool = False,
+        aug_prob: float = 0.5,
     ) -> None:
         self.videos_root = videos_root
         self.trajectories_root = trajectories_root
         self.frames_per_half = frames_per_half
         self.crop_size = crop_size
         self.seed = seed
+        self.strong_augs = strong_augs       # v2: paper-faithful strong aug set (§3.2/§7); False = v1 safe-core
+        self.use_rotation = use_rotation     # rotation OFF by default — distorts the knee-valgus KIE signal (§7)
+        self.aug_prob = aug_prob             # per-aug independent application probability (strong set)
         self._spatial_fn: Callable[..., torch.Tensor] = spatial_train  # always train-aug in SSL
         # Clip IDs = stems present in BOTH the videos dir and the trajectories tree.
         # The mp4s are flattened to the top by the video extractor, but the trajectory
@@ -158,11 +164,44 @@ class SquatSSLDataset(Dataset):
         return y
 
     def _augment(self, clip_u8: torch.Tensor) -> torch.Tensor:
-        """Apply the SAFE-CORE SSL augmentations (§7) — independent default-RNG draws per call."""
-        out = ssl_augs.temporal_shift(clip_u8)
-        out = ssl_augs.horizontal_flip(out)
-        out = ssl_augs.top_mask(out)
-        out = ssl_augs.color_jitter(out)
+        """Apply the SSL augmentations per-branch (§3.2/§7) — independent default-RNG draws per call.
+
+        ``strong_augs=False`` reproduces md_pretrain_v1's SAFE-CORE set (the weak-aug ablation
+        point). ``strong_augs=True`` is the paper-faithful set: each aug is applied INDEPENDENTLY
+        with probability ``aug_prob`` so the anchor and its positive are genuinely different views
+        — preventing the trivial-positive contrastive collapse seen in v1 (positive ≈ anchor →
+        eff_rank 11.8→3.3, probe peaked at ep5). Rotation is gated behind ``use_rotation`` (default
+        OFF) because it distorts the knee-valgus KIE signal — our largest SSL lift (§7).
+        """
+        if not self.strong_augs:
+            # md_pretrain_v1 safe-core (reproduces the weak-aug run for the ablation).
+            out = ssl_augs.temporal_shift(clip_u8)
+            out = ssl_augs.horizontal_flip(out)
+            out = ssl_augs.top_mask(out)
+            out = ssl_augs.color_jitter(out)
+            return out
+
+        # md_pretrain_v2 paper-faithful strong set — each applied independently with prob aug_prob.
+        def _coin() -> bool:
+            return float(torch.rand(1).item()) < self.aug_prob
+
+        out = clip_u8
+        if _coin():
+            out = ssl_augs.temporal_shift(out, max_shift=3)
+        out = ssl_augs.horizontal_flip(out, p=0.5)
+        if _coin():
+            out = ssl_augs.top_mask(out, mask_frac=0.4)
+        if _coin():
+            out = ssl_augs.translation(out, max_px=10)
+        if _coin():
+            out = ssl_augs.zoom(out)
+        if _coin():
+            out = ssl_augs.gaussian_blur(out)
+        if _coin():
+            out = ssl_augs.channel_swap(out)
+        if self.use_rotation and _coin():
+            out = ssl_augs.rotation(out)
+        out = ssl_augs.color_jitter(out, brightness=0.3, contrast=0.3)
         return out
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
