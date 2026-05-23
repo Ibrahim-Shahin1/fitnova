@@ -44,6 +44,15 @@ from backend.training.aqa.harness.colab import (
     prune_checkpoints,
     restore_rng_state,
 )
+# D9: reuse Phase 3's dataloader / val-pass / seed helpers verbatim (do NOT edit
+# supervised_train.py). _build_dataloaders + _val_pass are config-duck-typed — they read
+# batch_size/num_workers/num_frames/crop_size/train_jitter_frames/flip_aug, all of which
+# FinetuneConfig supplies — so a FinetuneConfig passes through unchanged.
+from backend.training.aqa.harness.supervised_train import (
+    _build_dataloaders,
+    _set_global_seed,
+    _val_pass,
+)
 
 logger = logging.getLogger("aqa.phase04")
 
@@ -99,9 +108,239 @@ def build_finetune_model(md_backbone_path: str, *, dropout: float = 0.2) -> nn.M
     return model
 
 
-def run_md_finetune_epoch(*args: Any, **kwargs: Any) -> dict:
-    """One fine-tune epoch (parallels supervised_train.run_supervised_epoch + D6 monitor).
+def _d6_overfit_abort(
+    epoch: int,
+    train_loss_mean: float,
+    val_loss_mean: float,
+    *,
+    ratio_threshold: float = 10.0,
+    before_epoch: int = 10,
+) -> bool:
+    """D6 runtime overfit monitor (CONTEXT D6 / RESEARCH §9 Delta 3) — a pure, unit-testable decision.
 
-    Finalized in Plan 03.
+    Returns True iff the train/val BCE-loss ratio exceeds ``ratio_threshold`` BEFORE
+    ``before_epoch`` — the early signal the model is memorizing the 1,136-clip train split
+    (Phase 3 hit 32x by epoch 8 with wd=0/no-dropout). The D3 moderate reg should keep Phase 4
+    well below this, so it likely won't fire — but the monitor is mandatory. Kept as a pure
+    helper so the abort condition is testable without a GPU (test_d6_overfit_monitor).
     """
-    raise NotImplementedError("Plan 03 — finalize; parallels supervised_train.run_supervised_epoch + D6 monitor")
+    train_val_ratio = train_loss_mean / (val_loss_mean + 1e-9)
+    return epoch < before_epoch and train_val_ratio > ratio_threshold
+
+
+def run_md_finetune_epoch(
+    *,
+    run_name: str,
+    md_backbone_path: str,
+    drive_root: str = "/content/drive/MyDrive",
+    videos_root: str = "/content/squat_videos",
+    seed: int = 42,
+    config: FinetuneConfig | None = None,
+    resume: bool = True,
+    max_epochs: int | None = None,
+) -> dict:
+    """Fine-tune the MD backbone on labeled Squat KIE/KFE (parallels run_supervised_epoch + 4 deltas).
+
+    Deltas vs Phase 3 (CONTEXT D3 / D6 / RESEARCH §9):
+      1. ``build_finetune_model(md_backbone_path)`` — MD-pretrained backbone init, NOT Kinetics.
+      2. ``torch.optim.AdamW`` (true decoupled weight decay), NOT Adam.
+      3. Head is ``Dropout(config.dropout) + Linear(512, 2)`` (inside ``build_finetune_model``).
+      4. D6 runtime overfit monitor: train/val BCE ratio > 10x before epoch 10 -> abort the seed
+         (early-return ``aborted_overfit=True``) so the notebook can bump reg + restart (Step 6).
+
+    Auto-resumes from ``{drive_root}/FitNova/checkpoints/phase04/{run_name}/latest.txt``. Writes
+    ``epoch_NNN.pt`` every epoch + ``best.pt`` on val-macro-F1 improvement, with a payload that
+    mirrors the Phase 3 schema EXACTLY (``code_version`` = ``"phase04-md-finetune"``) so the Phase 3
+    tools load it. Use ``max_epochs=1`` for the timing/VRAM probe before the full 50-epoch run.
+    """
+    try:
+        from tqdm.auto import tqdm
+    except ImportError:
+        tqdm = None  # type: ignore[assignment]
+
+    config = config or FinetuneConfig()
+    effective_max_epochs = max_epochs if max_epochs is not None else config.max_epochs
+    _set_global_seed(seed)
+
+    # config_repr mirrors the Phase 3 ordered hash + the fine-tune-specific keys (dropout, the
+    # MD backbone path) so a resume with a different backbone / dropout correctly mismatches (D12).
+    config_repr = {
+        "seed": seed,
+        "batch_size": config.batch_size,
+        "num_workers": config.num_workers,
+        "crop_size": config.crop_size,
+        "num_frames": config.num_frames,
+        "train_jitter_frames": config.train_jitter_frames,
+        "flip_aug": config.flip_aug,
+        "learning_rate": config.learning_rate,
+        "weight_decay": config.weight_decay,
+        "dropout": config.dropout,
+        "scheduler_name": config.scheduler_name,
+        "scheduler_t_max": config.scheduler_t_max,
+        "model_arch": config.model_arch,
+        "loss_name": config.loss_name,
+        "md_backbone_path": md_backbone_path,
+    }
+    config_hash_str = hash_config(config_repr)
+
+    run_dir = os.path.join(drive_root, "FitNova/checkpoints/phase04", run_name)
+    os.makedirs(run_dir, exist_ok=True)
+    logger.info("run_dir: %s (config_hash=%s, md_backbone=%s)", run_dir, config_hash_str, md_backbone_path)
+
+    loaders = _build_dataloaders(seed, config, drive_root, videos_root)
+    train_loader = loaders["train"]
+    val_loader = loaders["val"]
+    pos_weight = train_loader.dataset.pos_weight  # type: ignore[attr-defined]
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = build_finetune_model(md_backbone_path, dropout=config.dropout).to(device)  # Deltas 1 + 3
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight.to(device))  # Phase 2/3 D2 contract
+    optimizer = torch.optim.AdamW(  # Delta 2 — AdamW (decoupled wd), NOT Adam
+        model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay,
+    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.scheduler_t_max)
+
+    metrics_history: list[dict] = []
+    best_f1_val = -1.0
+    epochs_since_improve = 0
+    start_epoch = 0
+
+    if resume:
+        # map_location='cpu' REQUIRED (Phase 3 fix a0841b4 — CUDA ByteTensors break set_rng_state_all).
+        prior = load_latest_checkpoint(run_dir, expected_config_hash=config_hash_str, map_location="cpu")
+        if prior is not None:
+            model.load_state_dict(prior["model_state_dict"])  # full fine-tuned model (backbone+head)
+            optimizer.load_state_dict(prior["optimizer_state_dict"])
+            if prior.get("scheduler_state_dict") is not None:
+                scheduler.load_state_dict(prior["scheduler_state_dict"])
+            restore_rng_state(prior["rng_state"])
+            metrics_history = list(prior["metrics_history"])
+            best_f1_val = float(prior.get("best_f1_val", -1.0))
+            start_epoch = int(prior["epoch"]) + 1
+            epochs_since_improve = 0
+            for entry in reversed(metrics_history):
+                if float(entry.get("val_macro_f1", -1.0)) >= best_f1_val:
+                    break
+                epochs_since_improve += 1
+            logger.info("Resumed epoch_%03d.pt; start_epoch=%d best_f1_val=%.4f since_improve=%d",
+                        int(prior["epoch"]), start_epoch, best_f1_val, epochs_since_improve)
+
+    best_ckpt_path = os.path.join(run_dir, "best.pt")
+    if start_epoch >= effective_max_epochs:
+        logger.info("Already at/past effective_max_epochs=%d (start_epoch=%d)", effective_max_epochs, start_epoch)
+        return {
+            "epoch": start_epoch - 1, "metrics_history": metrics_history,
+            "best_f1_val": best_f1_val, "best_thresholds": None,
+            "checkpoint_path": os.path.join(run_dir, f"epoch_{start_epoch - 1:03d}.pt"),
+            "best_checkpoint_path": best_ckpt_path, "config_hash": config_hash_str,
+            "aborted_overfit": False,
+        }
+
+    last_ckpt_path = ""
+    aborted_overfit = False
+
+    for epoch in range(start_epoch, effective_max_epochs):
+        epoch_start_t = time.perf_counter()
+        model.train()
+        train_losses: list[float] = []
+        train_iter = (
+            train_loader if tqdm is None
+            else tqdm(train_loader, desc=f"seed{seed} epoch {epoch}/{effective_max_epochs - 1} train", leave=False)
+        )
+        for batch_idx, (clip, label) in enumerate(train_iter):
+            clip = clip.to(device, non_blocking=True)
+            label = label.to(device, non_blocking=True)
+            logits = model(clip)
+            loss = criterion(logits, label)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            train_losses.append(float(loss.item()))
+            if batch_idx % 10 == 0:
+                logger.info("seed=%d epoch=%d batch=%d train_loss=%.6f", seed, epoch, batch_idx, train_losses[-1])
+        scheduler.step()  # cosine, per-epoch (mirrors Phase 3)
+
+        val_loss_mean, val_scores, val_labels = _val_pass(model, val_loader, criterion, device)
+        val_pred = (val_scores >= 0.5).astype(int)  # 0.5 proxy for best.pt selection; Plan 04 sweeps thresholds
+        val_f1_kie = f1_per_error(val_labels[:, 0], val_pred[:, 0])
+        val_f1_kfe = f1_per_error(val_labels[:, 1], val_pred[:, 1])
+        val_pr_auc_kie = pr_auc_per_error(val_labels[:, 0], val_scores[:, 0])
+        val_pr_auc_kfe = pr_auc_per_error(val_labels[:, 1], val_scores[:, 1])
+        val_macro_f1 = (val_f1_kie + val_f1_kfe) / 2.0
+        train_loss_mean = float(np.mean(train_losses)) if train_losses else float("nan")
+        train_val_loss_ratio = train_loss_mean / (val_loss_mean + 1e-9)
+        epoch_wall_time_s = time.perf_counter() - epoch_start_t
+        logger.info(
+            "seed=%d epoch=%d train_loss=%.6f val_loss=%.6f ratio=%.2f val_macro_f1=%.4f "
+            "(kie=%.4f kfe=%.4f) wall=%.1fs",
+            seed, epoch, train_loss_mean, val_loss_mean, train_val_loss_ratio,
+            val_macro_f1, val_f1_kie, val_f1_kfe, epoch_wall_time_s,
+        )
+
+        metrics_history.append({
+            "epoch": epoch,
+            "train_loss_mean": train_loss_mean,
+            "train_loss_per_batch": train_losses,
+            "val_loss_mean": val_loss_mean,
+            "val_f1_kie": val_f1_kie,
+            "val_f1_kfe": val_f1_kfe,
+            "val_pr_auc_kie": val_pr_auc_kie,
+            "val_pr_auc_kfe": val_pr_auc_kfe,
+            "val_macro_f1": val_macro_f1,
+            "train_val_loss_ratio": train_val_loss_ratio,  # D6 monitor evidence (per-epoch)
+            "epoch_wall_time_s": epoch_wall_time_s,
+        })
+
+        payload = {
+            "epoch": epoch,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict(),
+            "rng_state": capture_rng_state(),
+            "metrics_history": metrics_history,
+            "best_f1_val": best_f1_val,
+            "best_thresholds": None,  # filled by Plan 04's threshold sweep
+            "config_hash": config_hash_str,
+            "config_repr": config_repr,
+            "code_version": "phase04-md-finetune",  # Delta 4 — distinct from Phase 3, same schema
+        }
+        ckpt_path = os.path.join(run_dir, f"epoch_{epoch:03d}.pt")
+        atomic_save_checkpoint(payload, ckpt_path)
+        last_ckpt_path = ckpt_path
+
+        if val_macro_f1 > best_f1_val:
+            best_f1_val = val_macro_f1
+            payload["best_f1_val"] = best_f1_val
+            atomic_save_checkpoint(payload, best_ckpt_path)  # update_latest=True default (best.pt is fine here)
+            logger.info("seed=%d new best val_macro_f1=%.4f -> wrote best.pt", seed, best_f1_val)
+            epochs_since_improve = 0
+        else:
+            epochs_since_improve += 1
+
+        prune_checkpoints(run_dir, keep_last=3, keep_best=True)
+
+        # Delta 3: D6 runtime overfit monitor — abort the seed (notebook bumps reg + restarts).
+        if _d6_overfit_abort(epoch, train_loss_mean, val_loss_mean):
+            logger.warning(
+                "D6-ABORT seed=%d epoch=%d: train/val loss ratio %.2f > 10.0 before epoch 10 — "
+                "aborting seed; bump reg (wd=5e-4, dropout=0.3) + restart, lock recipe (Step 6 / D6).",
+                seed, epoch, train_val_loss_ratio,
+            )
+            aborted_overfit = True
+            break
+
+        if epochs_since_improve >= config.early_stop_patience:
+            logger.info("seed=%d early stop at epoch %d (best=%.4f, %d epochs no improve)",
+                        seed, epoch, best_f1_val, epochs_since_improve)
+            break
+
+    return {
+        "epoch": epoch,
+        "metrics_history": metrics_history,
+        "best_f1_val": best_f1_val,
+        "best_thresholds": None,
+        "checkpoint_path": last_ckpt_path,
+        "best_checkpoint_path": best_ckpt_path,
+        "config_hash": config_hash_str,
+        "aborted_overfit": aborted_overfit,
+    }
