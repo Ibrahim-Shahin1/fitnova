@@ -83,11 +83,6 @@ TOOL_SCHEMAS = [
                         "description": "Training days per week. Override the profile "
                         "only if the user states it in chat.",
                     },
-                    "session_duration_hours": {
-                        "type": "number",
-                        "description": "Hours per session (e.g. 1.5). Override the "
-                        "profile only if the user states it in chat.",
-                    },
                     "injuries": {
                         "type": "array",
                         "items": {"type": "string"},

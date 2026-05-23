@@ -37,11 +37,11 @@ class ConversationProvider extends ChangeNotifier {
         ..addAll(all.where((m) =>
             (m.role == 'user' || m.role == 'assistant') &&
             (m.content?.trim().isNotEmpty ?? false)));
-      if (_messages.isEmpty) {
-        final opener = await ConversationService.startConversation();
-        if (opener != null && opener.trim().isNotEmpty) {
-          _messages.add(CoachMessage(role: 'assistant', content: opener));
-        }
+      // The coach always opens the conversation — a fresh, transient greeting
+      // shown as the latest message (whether or not there's prior history).
+      final opener = await ConversationService.startConversation();
+      if (opener != null && opener.trim().isNotEmpty) {
+        _messages.add(CoachMessage(role: 'assistant', content: opener));
       }
     } catch (e) {
       _error = e;

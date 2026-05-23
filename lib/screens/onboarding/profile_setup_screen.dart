@@ -32,6 +32,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _weight = TextEditingController();
   String _gender = 'Male';
   String _focus = 'general';
+  int _experience = 2;
   final Set<String> _injuries = {};
   bool _saving = false;
 
@@ -45,6 +46,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     if (p?.weightKg != null) _weight.text = '${p!.weightKg}';
     _gender = p?.gender ?? 'Male';
     _focus = p?.trainingFocus ?? 'general';
+    _experience = p?.experienceLevel ?? 2;
     _injuries.addAll(p?.injuries ?? const []);
   }
 
@@ -70,6 +72,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       heightCm: double.tryParse(_height.text.trim()),
       weightKg: double.tryParse(_weight.text.trim()),
       trainingFocus: _focus,
+      experienceLevel: _experience,
       injuries: _injuries.toList(),
       onboardingCompleted: false, // flips true after the walkthrough
     );
@@ -182,6 +185,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         DropdownMenuItem(value: f, child: Text(_titleCase(f))))
                     .toList(),
                 onChanged: (v) => setState(() => _focus = v ?? 'general'),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              DropdownButtonFormField<int>(
+                value: _experience,
+                decoration: const InputDecoration(
+                  labelText: 'Experience level',
+                  prefixIcon: Icon(Icons.bar_chart),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 1, child: Text('Beginner')),
+                  DropdownMenuItem(value: 2, child: Text('Intermediate')),
+                  DropdownMenuItem(value: 3, child: Text('Advanced')),
+                ],
+                onChanged: (v) => setState(() => _experience = v ?? 2),
               ),
               const SizedBox(height: AppSpacing.lg),
               Text('Any injuries to work around? (optional)',

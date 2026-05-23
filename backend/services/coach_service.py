@@ -62,7 +62,8 @@ SYSTEM_PROMPT = (
     "- When the user wants a plan (or a change like 'make it 6 days', 'dumbbells "
     "only'), gather anything you genuinely need that isn't already in their profile "
     "— their goal, weekly frequency, and any injuries or equipment limits. Ask at "
-    "most one or two short questions.\n"
+    "most one or two short questions. NEVER ask how long they want to train per "
+    "session (session length) — it is not needed.\n"
     "- As soon as you have enough, CALL prepare_plan, passing ONLY the overrides the "
     "user stated (e.g. workout_frequency=6, equipment=['Dumbbells']); everything "
     "else comes from their profile. Do NOT build or list the plan yourself — "
@@ -97,14 +98,12 @@ class CoachChatService:
         self.client = OpenAI(api_key=api_key)
 
     def start(self, user_id: UUID) -> dict:
-        """Ensure the coach speaks first. For a fresh (empty) conversation,
-        generate a personalized opener, persist it, and return it. If the
-        conversation already has dialogue, returns opening_message=None."""
+        """The coach always speaks first when the screen opens — a fresh,
+        context-aware greeting from the current profile/plan state. It is
+        TRANSIENT (not persisted), so reopening regenerates it instead of
+        cluttering the saved thread."""
         conv = conversation_repo.get_or_create_conversation(user_id)
         conv_id = conv["id"]
-        existing = conversation_repo.fetch_messages(user_id, conv_id)
-        if any(m["role"] in ("user", "assistant") and m.get("content") for m in existing):
-            return {"conversation_id": str(conv_id), "opening_message": None}
 
         profile = profile_repo.get_profile(user_id) or {}
         name = str(profile.get("display_name") or "").strip()
@@ -112,6 +111,7 @@ class CoachChatService:
         has_plan = bool(plan_repo.fetch_active(user_id))
         ctx = (
             f"User first name: {first or 'unknown'}\n"
+            f"Experience level (1-3): {profile.get('experience_level') or 'not set'}\n"
             f"Training focus: {profile.get('training_focus') or 'not set'}\n"
             f"Weekly frequency: {profile.get('workout_frequency') or 'not set'}\n"
             f"Has an active plan: {'yes' if has_plan else 'no'}"
@@ -142,7 +142,6 @@ class CoachChatService:
                 "plan — and adjust it whenever you ask."
             )
 
-        conversation_repo.append_message(user_id, conv_id, "assistant", content=greeting)
         return {"conversation_id": str(conv_id), "opening_message": greeting}
 
     def send(self, user_id: UUID, user_text: str, recommender, llm_adapter) -> dict:

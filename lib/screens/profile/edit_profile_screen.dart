@@ -31,7 +31,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _age = TextEditingController();
   final _height = TextEditingController();
   final _weight = TextEditingController();
-  final _session = TextEditingController();
   String _gender = 'Male';
   String _focus = 'general';
   int _experience = 1;
@@ -48,7 +47,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (p?.age != null) _age.text = '${p!.age}';
     if (p?.heightCm != null) _height.text = _num(p!.heightCm!);
     if (p?.weightKg != null) _weight.text = _num(p!.weightKg!);
-    if (p?.sessionDurationHours != null) _session.text = _num(p!.sessionDurationHours!);
     _gender = p?.gender ?? 'Male';
     _focus = p?.trainingFocus ?? 'general';
     _experience = p?.experienceLevel ?? 1;
@@ -66,7 +64,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _age.dispose();
     _height.dispose();
     _weight.dispose();
-    _session.dispose();
     super.dispose();
   }
 
@@ -88,7 +85,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       trainingFocus: _focus,
       experienceLevel: _experience,
       workoutFrequency: _frequency,
-      sessionDurationHours: double.tryParse(_session.text.trim()),
       injuries: _injuries.toList(),
       equipment: _equipment.toList(),
     );
@@ -225,18 +221,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     DropdownMenuItem(value: i, child: Text('$i / week')),
                 ],
                 onChanged: (v) => setState(() => _frequency = v ?? 3),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _session,
-                label: 'Session length (hours, optional)',
-                prefixIcon: Icons.timer_outlined,
-                keyboardType: TextInputType.number,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return null;
-                  final n = double.tryParse(v.trim());
-                  return (n == null || n <= 0 || n > 4) ? '0–4 h' : null;
-                },
               ),
               const SizedBox(height: AppSpacing.lg),
               Text('Equipment', style: theme.textTheme.labelLarge),
