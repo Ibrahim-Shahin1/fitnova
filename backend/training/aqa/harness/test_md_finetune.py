@@ -47,17 +47,22 @@ def test_finetune_model_build(tmp_path) -> None:
 # ───────────────────────────── SQUAT-05-D6: overfit monitor (pure logic, fast) ──────────────
 
 def test_d6_overfit_monitor() -> None:
-    """D6 monitor fires iff (epoch < 10 AND train/val BCE ratio > 10.0). Pure logic, no GPU."""
+    """D6 monitor fires iff (epoch < 10 AND val/train BCE ratio > 10.0). Pure logic, no GPU.
+
+    Overfit = val loss far ABOVE train (Phase 3's ~32x), so the abort signal is val/train > 10.
+    """
     from backend.training.aqa.harness.md_finetune import _d6_overfit_abort
 
-    # Ratio ~20 (>10) before epoch 10 → ABORT (the overfit signal).
-    assert _d6_overfit_abort(epoch=8, train_loss_mean=10.0, val_loss_mean=0.5) is True
+    # val/train ~20 (>10) before epoch 10 → ABORT (overfit: val loss >> train).
+    assert _d6_overfit_abort(epoch=8, train_loss_mean=0.5, val_loss_mean=10.0) is True
     # Same blow-up but AT/after epoch 10 → no abort (monitor only guards the early epochs).
-    assert _d6_overfit_abort(epoch=10, train_loss_mean=10.0, val_loss_mean=0.5) is False
-    assert _d6_overfit_abort(epoch=20, train_loss_mean=10.0, val_loss_mean=0.5) is False
-    # Healthy ratio (~1) early → no abort.
+    assert _d6_overfit_abort(epoch=10, train_loss_mean=0.5, val_loss_mean=10.0) is False
+    assert _d6_overfit_abort(epoch=20, train_loss_mean=0.5, val_loss_mean=10.0) is False
+    # Healthy (val ≈ train) early → no abort.
     assert _d6_overfit_abort(epoch=3, train_loss_mean=0.50, val_loss_mean=0.50) is False
-    # Boundary: ratio == 10.0 exactly (with the +1e-9 eps, just under) → no abort.
-    assert _d6_overfit_abort(epoch=5, train_loss_mean=5.0, val_loss_mean=0.5) is False
-    # Just over the threshold → abort.
-    assert _d6_overfit_abort(epoch=5, train_loss_mean=5.01, val_loss_mean=0.5) is True
+    # INVERTED case (train >> val) must NOT abort — that's under-fitting, not overfit (guards the bug).
+    assert _d6_overfit_abort(epoch=5, train_loss_mean=10.0, val_loss_mean=0.5) is False
+    # Boundary: val/train == 10.0 exactly (with the +1e-9 eps, just under) → no abort.
+    assert _d6_overfit_abort(epoch=5, train_loss_mean=0.5, val_loss_mean=5.0) is False
+    # Just over → abort.
+    assert _d6_overfit_abort(epoch=5, train_loss_mean=0.5, val_loss_mean=5.01) is True

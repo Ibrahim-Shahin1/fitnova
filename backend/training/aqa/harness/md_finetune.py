@@ -118,14 +118,17 @@ def _d6_overfit_abort(
 ) -> bool:
     """D6 runtime overfit monitor (CONTEXT D6 / RESEARCH §9 Delta 3) — a pure, unit-testable decision.
 
-    Returns True iff the train/val BCE-loss ratio exceeds ``ratio_threshold`` BEFORE
-    ``before_epoch`` — the early signal the model is memorizing the 1,136-clip train split
-    (Phase 3 hit 32x by epoch 8 with wd=0/no-dropout). The D3 moderate reg should keep Phase 4
-    well below this, so it likely won't fire — but the monitor is mandatory. Kept as a pure
-    helper so the abort condition is testable without a GPU (test_d6_overfit_monitor).
+    Overfitting drives the VAL loss far ABOVE the train loss, so the signal is val/train
+    (Phase 3 hit ~32x by epoch 8 with wd=0/no-dropout — val loss ~32x train). Returns True iff
+    ``val_loss / train_loss`` exceeds ``ratio_threshold`` BEFORE ``before_epoch``.
+
+    NOTE: the Plan 03 spec wrote this ratio as train/val, which is INVERTED — train/val>10 flags
+    under-fitting, never the Phase-3 overfit it must catch. Corrected here to val/train (the
+    academically correct direction). The val-macro-F1 early-stop stays the primary guard; this is
+    the fast catastrophic-overfit abort. Pure helper so it's testable without a GPU.
     """
-    train_val_ratio = train_loss_mean / (val_loss_mean + 1e-9)
-    return epoch < before_epoch and train_val_ratio > ratio_threshold
+    val_train_ratio = val_loss_mean / (train_loss_mean + 1e-9)
+    return epoch < before_epoch and val_train_ratio > ratio_threshold
 
 
 def run_md_finetune_epoch(
@@ -268,12 +271,13 @@ def run_md_finetune_epoch(
         val_pr_auc_kfe = pr_auc_per_error(val_labels[:, 1], val_scores[:, 1])
         val_macro_f1 = (val_f1_kie + val_f1_kfe) / 2.0
         train_loss_mean = float(np.mean(train_losses)) if train_losses else float("nan")
-        train_val_loss_ratio = train_loss_mean / (val_loss_mean + 1e-9)
+        # Overfit signal = val/train (Phase 3's "~32x"): val loss diverging ABOVE train.
+        val_train_loss_ratio = val_loss_mean / (train_loss_mean + 1e-9)
         epoch_wall_time_s = time.perf_counter() - epoch_start_t
         logger.info(
-            "seed=%d epoch=%d train_loss=%.6f val_loss=%.6f ratio=%.2f val_macro_f1=%.4f "
+            "seed=%d epoch=%d train_loss=%.6f val_loss=%.6f val/train=%.2f val_macro_f1=%.4f "
             "(kie=%.4f kfe=%.4f) wall=%.1fs",
-            seed, epoch, train_loss_mean, val_loss_mean, train_val_loss_ratio,
+            seed, epoch, train_loss_mean, val_loss_mean, val_train_loss_ratio,
             val_macro_f1, val_f1_kie, val_f1_kfe, epoch_wall_time_s,
         )
 
@@ -287,7 +291,7 @@ def run_md_finetune_epoch(
             "val_pr_auc_kie": val_pr_auc_kie,
             "val_pr_auc_kfe": val_pr_auc_kfe,
             "val_macro_f1": val_macro_f1,
-            "train_val_loss_ratio": train_val_loss_ratio,  # D6 monitor evidence (per-epoch)
+            "val_train_loss_ratio": val_train_loss_ratio,  # D6 monitor evidence (val/train; >10 = overfit)
             "epoch_wall_time_s": epoch_wall_time_s,
         })
 
@@ -322,9 +326,9 @@ def run_md_finetune_epoch(
         # Delta 3: D6 runtime overfit monitor — abort the seed (notebook bumps reg + restarts).
         if _d6_overfit_abort(epoch, train_loss_mean, val_loss_mean):
             logger.warning(
-                "D6-ABORT seed=%d epoch=%d: train/val loss ratio %.2f > 10.0 before epoch 10 — "
+                "D6-ABORT seed=%d epoch=%d: val/train loss ratio %.2f > 10.0 before epoch 10 — "
                 "aborting seed; bump reg (wd=5e-4, dropout=0.3) + restart, lock recipe (Step 6 / D6).",
-                seed, epoch, train_val_loss_ratio,
+                seed, epoch, val_train_loss_ratio,
             )
             aborted_overfit = True
             break
