@@ -5,13 +5,13 @@ milestone_name: milestone
 status: executing
 stopped_at: "Phase 4 context gathered (discuss-phase complete; A+B+D+E locked, F dropped). Next: /gsd:plan-phase 4 on a fresh L4 Colab notebook."
 last_updated: "2026-05-21T10:40:15.062Z"
-last_activity: 2026-05-25 -- Phase 4 Plan 04 Step 7: ensemble TEST macro 0.6304 (KIE 0.4198/KFE 0.8410) — MATCHES paper MD 0.6262 (parity within noise), decisively beats Phase3 0.5429 (+0.087) + paper-Kinetics 0.5577, BEFORE TTA. Ensemble > all single seeds (0.6115/0.6121/0.5691 — D4 lift; seed7 overfit val→worst test, ensemble corrected). D6 green (val-test gap 0.026<0.05, KIE 0.4198 no regression). Next: Step 8 TTA, Step 9 figures, Step 10 SUMMARY
+last_activity: 2026-05-25 -- Phase 4 COMPLETE: MD-SSL 3-seed ensemble test macro 0.6304 (KIE 0.4198/KFE 0.8410) MATCHES paper MD 0.6262, beats Phase3 0.5429 (+0.087). TTA evaluated/not adopted (val gain reversed on test). 9 figures + results.pkl + all 4 plan SUMMARYs done. Next: Phase 5 (backend inference integration)
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 3
-  percent: 25
+  completed_plans: 8
+  percent: 50
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 4 (Squat Motion-Disentangling SSL) — EXECUTING
-Plan: 1 of 4 complete (Wave 0 — SSL machinery + green pytest gate); Plan 02 (Colab SSL) next
-Status: Wave 0 GREEN — GPU burn authorized; Plan 02 on a fresh L4 Colab next
-Last activity: 2026-05-21 -- Phase 4 Wave 0 (Plan 01) complete; pytest gate green
+Phase: 4 (Squat Motion-Disentangling SSL) — COMPLETE (4/4 plans)
+Plan: all 4 complete; Phase 4 result = MD-SSL 3-seed ensemble test macro 0.6304 (matches paper MD 0.6262; +0.087 over Phase 3)
+Status: Phase 4 closed; next = Phase 5 (Backend Inference Integration — serve the Squat detector live + video-upload)
+Last activity: 2026-05-25 -- Phase 4 complete (ensemble 0.6304, 9 figures, results.pkl, 4 plan SUMMARYs)
 
-Progress: [███░░░░░░░] 25%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
