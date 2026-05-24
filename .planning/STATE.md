@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: "Phase 4 context gathered (discuss-phase complete; A+B+D+E locked, F dropped). Next: /gsd:plan-phase 4 on a fresh L4 Colab notebook."
 last_updated: "2026-05-21T10:40:15.062Z"
-last_activity: 2026-05-22 -- Phase 4 Plan 03 COMPLETE: 3-seed fine-tune from v2-ep5 done (val macro 0.6062/0.6055/0.6169, mean ~0.609; all beat Phase3 0.543 + paper-Kinetics 0.558). D6 monitor fixed (val/train; seed7 hit 13x late, validated). 3 best.pt on Drive. Next: Plan 04 ensemble+threshold+TTA+test eval+figures
+last_activity: 2026-05-25 -- Phase 4 Plan 04 Step 7: ensemble TEST macro 0.6304 (KIE 0.4198/KFE 0.8410) — MATCHES paper MD 0.6262 (parity within noise), decisively beats Phase3 0.5429 (+0.087) + paper-Kinetics 0.5577, BEFORE TTA. Ensemble > all single seeds (0.6115/0.6121/0.5691 — D4 lift; seed7 overfit val→worst test, ensemble corrected). D6 green (val-test gap 0.026<0.05, KIE 0.4198 no regression). Next: Step 8 TTA, Step 9 figures, Step 10 SUMMARY
 progress:
   total_phases: 8
   completed_phases: 2
