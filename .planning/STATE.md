@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Phase 4 COMPLETE (4/4 plans; HEAD b49a7d2, pushed). MD-SSL ensemble test macro 0.6304 matches paper MD 0.6262 (+0.087 over Phase 3). ROADMAP + STATE reconciled. Next: /gsd:discuss-phase 5 (Backend Inference Integration)."
-last_updated: "2026-05-25"
-last_activity: 2026-05-25 -- Phase 4 COMPLETE: MD-SSL 3-seed ensemble test macro 0.6304 (KIE 0.4198/KFE 0.8410) MATCHES paper MD 0.6262, beats Phase3 0.5429 (+0.087). TTA evaluated/not adopted (val gain reversed on test). 9 figures + results.pkl + all 4 plan SUMMARYs done. Next: Phase 5 (backend inference integration)
+status: Phase 4 closed; next = Phase 5 (Backend Inference Integration — serve the Squat detector live + video-upload)
+stopped_at: "Phase 5 context gathered (discuss-phase complete; decisions resolved from master plan + Phase 4 protocol). Next: /gsd:plan-phase 5."
+last_updated: "2026-05-25T09:16:07.802Z"
+last_activity: 2026-05-25 -- Phase 4 complete (ensemble 0.6304, 9 figures, results.pkl, 4 plan SUMMARYs)
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 7
+  completed_phases: 3
+  total_plans: 8
   completed_plans: 7
-  percent: 50
+  percent: 38
 ---
 
 # Project State
@@ -98,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-25 -- Phase 4 COMPLETE and fully wrapped (HEAD b49a7d2, pushed to origin/fresh-start). MD-SSL 3-seed ensemble test macro 0.6304 (KIE 0.4198 / KFE 0.8410) matches paper MD 0.6262, beats Phase 3 baseline 0.5429 (+0.087). All 4 plan SUMMARYs, 10 figures + results.pkl, and the consolidated 05_squat_md_finetune.{py,ipynb} committed. Production protocol: 3-seed mean-of-sigmoids, thresholds KIE 0.614 / KFE 0.385, NO TTA; single-seed latency fallback ~0.612. Checkpoints live on Drive at MyDrive/FitNova/checkpoints/phase04/ (md_pretrain_v2/backbone.pt + md_finetune_seed{42,1337,7}/best.pt) — NOT in the repo; Phase 5 must transfer them to the serving machine.
-Stopped at: Phase 4 closed; ROADMAP + STATE reconciled to reflect completion. Next: /gsd:discuss-phase 5 (Backend Inference Integration — serve the Squat detector live + video-upload, replacing the TF/MediaPipe form_analyzer/form_session). Design tensions to surface in discuss: the new model is clip-level (32-frame, 112², Kinetics-norm RGB -> 2 binary errors) vs the old per-frame pose pipeline, so live mode needs rep segmentation WITHOUT pose; PyTorch+TF coexistence in one FastAPI process; Drive->local-server weight transfer; CPU latency (3x R(2+1)D-18 forward); early real-camera domain-shift test (offline 0.63 != live phone camera).
-Resume file: .planning/ROADMAP.md (Phase 5 — no phase dir yet; discuss-phase 5 creates it)
+Last session: 2026-05-25T09:16:07.797Z
+Stopped at: Phase 5 context gathered (discuss-phase complete; decisions resolved from master plan + Phase 4 protocol). Next: /gsd:plan-phase 5.
+Resume file: .planning/phases/05-backend-inference-integration-squat/05-CONTEXT.md
