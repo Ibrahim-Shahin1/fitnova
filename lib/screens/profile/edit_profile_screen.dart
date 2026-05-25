@@ -6,7 +6,7 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/ui/app_button.dart';
 import '../../widgets/ui/app_text_field.dart';
 
-const _focusOptions = ['powerbuilding', 'powerlifting', 'hypertrophy', 'general'];
+const _focusOptions = ['bodybuilding', 'powerbuilding', 'powerlifting', 'cardio', 'general'];
 const _injuryOptions = [
   'lower_back', 'knees', 'shoulders', 'elbows', 'wrists', 'hips', 'ankles', 'neck',
 ];
@@ -48,7 +48,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (p?.heightCm != null) _height.text = _num(p!.heightCm!);
     if (p?.weightKg != null) _weight.text = _num(p!.weightKg!);
     _gender = p?.gender ?? 'Male';
-    _focus = p?.trainingFocus ?? 'general';
+    _focus = _focusOptions.contains(p?.trainingFocus) ? p!.trainingFocus! : 'general';
     _experience = p?.experienceLevel ?? 1;
     _frequency = p?.workoutFrequency ?? 3;
     _injuries.addAll(p?.injuries ?? const []);

@@ -331,7 +331,7 @@ def default_split(frequency: int, training_focus: str | None = None) -> list[str
     Profiler may refine it, but this guarantees a coherent starting structure."""
     f = max(1, min(7, int(frequency)))
     goal = (training_focus or "").lower()
-    body_part_goal = goal in ("general", "")
+    body_part_goal = goal in ("general", "cardio", "")
     table = {
         1: ["Full Body"],
         2: ["Upper Body", "Lower Body"],

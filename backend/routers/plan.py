@@ -39,7 +39,8 @@ class PlanGenerateRequest(BaseModel):
     bmi: float = Field(default=25.0, gt=10, lt=60)
     injuries: list[str] = Field(default_factory=list)
     training_focus: str | None = Field(
-        default=None, pattern=r"^(powerbuilding|powerlifting|hypertrophy|general)$"
+        default=None,
+        pattern=r"^(bodybuilding|powerbuilding|powerlifting|cardio|general)$",
     )
     years_training: int | None = Field(default=None, ge=0, le=50)
     equipment: list[str] = Field(default_factory=list)
@@ -59,6 +60,11 @@ async def generate_and_persist(
     except Exception as exc:
         logger.exception("Recommendation failed")
         raise HTTPException(status_code=500, detail=f"Recommendation failed: {exc}")
+
+    # Goal-aware pick: prefer a candidate whose dataset goal matches the focus.
+    from backend.services import plan_crew
+    rec["program_id"] = plan_crew.select_program_id(
+        request.app.state.llm_adapter, rec, profile.get("training_focus"))
 
     try:
         plan_result = request.app.state.llm_adapter.generate_plan(
@@ -171,6 +177,8 @@ async def generate_stream(
             base = profile_repo.get_profile(uid) or {}
             profile = _build_recommender_profile(base, overrides)
             rec = rec_engine.recommend(profile)
+            rec["program_id"] = plan_crew.select_program_id(
+                adapter, rec, profile.get("training_focus"))
             program = adapter._get_program(rec["program_id"])
             yield _sse({"event": "started"})
             for ev in plan_crew.build_plan_streamed(

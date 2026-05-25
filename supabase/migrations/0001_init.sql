@@ -56,7 +56,7 @@ create table if not exists public.profiles (
   height_cm               numeric(5,2) check (height_cm between 80 and 250),
   weight_kg               numeric(5,2) check (weight_kg between 20 and 400),
   injuries                text[]       not null default '{}',
-  training_focus          text         check (training_focus in ('powerbuilding', 'powerlifting', 'hypertrophy', 'general')),
+  training_focus          text         check (training_focus in ('bodybuilding', 'powerbuilding', 'powerlifting', 'cardio', 'general')),
   years_training          int          check (years_training between 0 and 80),
   equipment               text[]       not null default '{}',
   experience_level        int          check (experience_level in (1, 2, 3)),

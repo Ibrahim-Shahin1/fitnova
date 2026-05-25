@@ -33,6 +33,32 @@ _MAX_PER_DAY = 8
 _POOL_CAP = 70  # keep the crew prompt bounded
 _MIN_PER_GROUP = 4  # augment from candidates until each needed group has this many
 
+# User-facing training focus → the dataset program goals it should pull from, so
+# the chosen goal actually steers which catalog program is used.
+FOCUS_TO_GOALS = {
+    "bodybuilding": {"Bodybuilding", "Muscle & Sculpting"},
+    "powerbuilding": {"Powerbuilding"},
+    "powerlifting": {"Powerlifting"},
+    "cardio": {"Athletics", "Athletic Performance", "Weight Loss"},
+    "general": {"General Fitness", "Toning", "Bodyweight Fitness",
+                "Endurance", "Flexibility", "Cardio Health"},
+}
+
+
+def select_program_id(adapter, rec: dict, training_focus: str | None):
+    """Prefer the highest-ranked recommended candidate whose dataset goal matches
+    the user's chosen focus, so the goal actually influences the program (the
+    content filter alone doesn't key on goal). Falls back to the recommender's
+    top pick — always stays within the dataset."""
+    goals = FOCUS_TO_GOALS.get((training_focus or "").lower())
+    catalog = getattr(adapter, "catalog", None)
+    if goals and isinstance(catalog, dict):
+        for cid in (rec.get("content_candidates") or []):
+            prog = catalog.get(cid)
+            if prog and str(prog.get("goal")) in goals:
+                return cid
+    return rec.get("program_id")
+
 
 def _primary_groups(focus: str) -> set[str]:
     return pv.allowed_groups_for_focus(focus) - {"core", "mobility", "unknown"}

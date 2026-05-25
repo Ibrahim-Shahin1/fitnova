@@ -70,7 +70,7 @@ class UserProfileRequest(BaseModel):
     )
     training_focus: str | None = Field(
         default=None,
-        pattern=r"^(powerbuilding|powerlifting|hypertrophy|general)$",
+        pattern=r"^(bodybuilding|powerbuilding|powerlifting|cardio|general)$",
     )
     years_training: int | None = Field(default=None, ge=0, le=50)
     equipment: list[str] = Field(default_factory=list)
@@ -120,7 +120,7 @@ class UserContext(BaseModel):
     )
     training_focus: str | None = Field(
         default=None,
-        pattern=r"^(powerbuilding|powerlifting|hypertrophy|general)$",
+        pattern=r"^(bodybuilding|powerbuilding|powerlifting|cardio|general)$",
     )
 
 
