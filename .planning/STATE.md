@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Phase 4 closed; next = Phase 5 (Backend Inference Integration — serve the Squat detector live + video-upload)
+status: executing
 stopped_at: "Phase 5 context gathered (discuss-phase complete; decisions resolved from master plan + Phase 4 protocol). Next: /gsd:plan-phase 5."
-last_updated: "2026-05-25T09:18:40.356Z"
-last_activity: 2026-05-25 -- Phase 4 complete (ensemble 0.6304, 9 figures, results.pkl, 4 plan SUMMARYs)
+last_updated: "2026-05-25T10:15:00.043Z"
+last_activity: 2026-05-25 -- Phase 5 planning complete
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 7
+  total_plans: 12
   completed_plans: 7
   percent: 50
 ---
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 4 (Squat Motion-Disentangling SSL) — COMPLETE (4/4 plans)
-Plan: all 4 complete; Phase 4 result = MD-SSL 3-seed ensemble test macro 0.6304 (matches paper MD 0.6262; +0.087 over Phase 3)
-Status: Phase 4 closed; next = Phase 5 (Backend Inference Integration — serve the Squat detector live + video-upload)
-Last activity: 2026-05-25 -- Phase 4 complete (ensemble 0.6304, 9 figures, results.pkl, 4 plan SUMMARYs)
+Phase: 5 (Backend Inference Integration — Squat) — PLANNED (5 plans, 4 waves; ready to execute)
+Plan: Phases 1-4 complete (7 plans). Phase 5 planned: 5 plans / 4 waves (build SquatFormService → stage weights + redefine upload → live WS → archive old subsystem). Phase 4 result = MD-SSL ensemble test macro 0.6304.
+Status: Ready to execute
+Last activity: 2026-05-25 -- Phase 5 planning complete
 
 Progress: [█████░░░░░] 50%
 
