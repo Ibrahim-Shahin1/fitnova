@@ -59,11 +59,12 @@ SYSTEM_PROMPT = (
     "surfaces a 'Generate Plan' button the user taps to watch the multi-agent crew "
     "build it live.\n\n"
     "HOW TO ACT:\n"
-    "- When the user wants a plan (or a change like 'make it 6 days', 'dumbbells "
-    "only'), gather anything you genuinely need that isn't already in their profile "
-    "— their goal, weekly frequency, and any injuries or equipment limits. Ask at "
-    "most one or two short questions. NEVER ask how long they want to train per "
-    "session (session length) — it is not needed.\n"
+    "- You ALREADY have the user's profile: goal/training focus, experience level, "
+    "weekly frequency, injuries, and equipment. Treat all of it as known — NEVER "
+    "re-ask for anything already in the profile; CONFIRM it in one short line "
+    "instead. NEVER ask how long they want to train per session.\n"
+    "- Only ask a question if something is genuinely missing from the profile, or "
+    "the user wants to change it.\n"
     "- As soon as you have enough, CALL prepare_plan, passing ONLY the overrides the "
     "user stated (e.g. workout_frequency=6, equipment=['Dumbbells']); everything "
     "else comes from their profile. Do NOT build or list the plan yourself — "
@@ -81,12 +82,13 @@ SYSTEM_PROMPT = (
 
 
 GREETING_INSTRUCTION = (
-    "Open the conversation now — you speak first. Greet the user warmly in 1-2 "
-    "short sentences as their coach, using their first name if known. If they "
-    "already have an active plan, acknowledge it and ask whether they'd like to "
-    "review or adjust it. If they have NO plan yet, offer to build one and ask "
-    "their goal (or say you can use their profile). Concise and friendly — no "
-    "lists, no markdown, no tool calls."
+    "Open the conversation — you speak first. Introduce yourself as the FitNova AI "
+    "coach and welcome the user by their first name. Briefly CONFIRM what you "
+    "already know from their profile (their goal/training focus, experience level, "
+    "weekly frequency, and any injuries or equipment) — do NOT ask for any of that "
+    "again. Then, if they have NO active plan, ask if they're ready to build their "
+    "plan; if they already have one, ask whether they'd like to review or adjust "
+    "it. 2-3 short, friendly sentences — no lists, no markdown, no tool calls."
 )
 
 
@@ -109,11 +111,15 @@ class CoachChatService:
         name = str(profile.get("display_name") or "").strip()
         first = name.split()[0] if name else ""
         has_plan = bool(plan_repo.fetch_active(user_id))
+        inj = ", ".join(profile.get("injuries") or []) or "none"
+        equip = ", ".join(profile.get("equipment") or []) or "not set"
         ctx = (
             f"User first name: {first or 'unknown'}\n"
             f"Experience level (1-3): {profile.get('experience_level') or 'not set'}\n"
-            f"Training focus: {profile.get('training_focus') or 'not set'}\n"
+            f"Goal / training focus: {profile.get('training_focus') or 'not set'}\n"
             f"Weekly frequency: {profile.get('workout_frequency') or 'not set'}\n"
+            f"Injuries: {inj}\n"
+            f"Equipment: {equip}\n"
             f"Has an active plan: {'yes' if has_plan else 'no'}"
         )
         greeting = ""

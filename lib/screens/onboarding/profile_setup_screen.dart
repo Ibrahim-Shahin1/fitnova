@@ -12,6 +12,10 @@ const _focusOptions = ['powerbuilding', 'powerlifting', 'hypertrophy', 'general'
 const _injuryOptions = [
   'lower_back', 'knees', 'shoulders', 'elbows', 'wrists', 'hips', 'ankles', 'neck',
 ];
+const _equipmentOptions = [
+  'barbell', 'dumbbells', 'machines', 'cables',
+  'kettlebell', 'bodyweight', 'resistance_bands', 'pull_up_bar',
+];
 
 /// Step 1 of onboarding: collect the user's physical profile + training focus.
 /// Saves to Supabase (onboarding_completed stays false until the walkthrough).
@@ -33,7 +37,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   String _gender = 'Male';
   String _focus = 'general';
   int _experience = 2;
+  int _frequency = 3;
   final Set<String> _injuries = {};
+  final Set<String> _equipment = {};
   bool _saving = false;
 
   @override
@@ -47,7 +53,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _gender = p?.gender ?? 'Male';
     _focus = p?.trainingFocus ?? 'general';
     _experience = p?.experienceLevel ?? 2;
+    _frequency = p?.workoutFrequency ?? 3;
     _injuries.addAll(p?.injuries ?? const []);
+    _equipment.addAll(p?.equipment ?? const []);
   }
 
   @override
@@ -73,7 +81,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       weightKg: double.tryParse(_weight.text.trim()),
       trainingFocus: _focus,
       experienceLevel: _experience,
+      workoutFrequency: _frequency,
       injuries: _injuries.toList(),
+      equipment: _equipment.toList(),
       onboardingCompleted: false, // flips true after the walkthrough
     );
     try {
@@ -200,6 +210,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ],
                 onChanged: (v) => setState(() => _experience = v ?? 2),
               ),
+              const SizedBox(height: AppSpacing.md),
+              DropdownButtonFormField<int>(
+                value: _frequency,
+                decoration: const InputDecoration(
+                  labelText: 'Workouts per week',
+                  prefixIcon: Icon(Icons.calendar_today_outlined),
+                ),
+                items: [
+                  for (var i = 1; i <= 7; i++)
+                    DropdownMenuItem(value: i, child: Text('$i / week')),
+                ],
+                onChanged: (v) => setState(() => _frequency = v ?? 3),
+              ),
               const SizedBox(height: AppSpacing.lg),
               Text('Any injuries to work around? (optional)',
                   style: theme.textTheme.labelLarge),
@@ -214,6 +237,22 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     selected: selected,
                     onSelected: (on) => setState(
                         () => on ? _injuries.add(inj) : _injuries.remove(inj)),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Equipment you can train with', style: theme.textTheme.labelLarge),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: _equipmentOptions.map((eq) {
+                  final selected = _equipment.contains(eq);
+                  return FilterChip(
+                    label: Text(_titleCase(eq.replaceAll('_', ' '))),
+                    selected: selected,
+                    onSelected: (on) => setState(
+                        () => on ? _equipment.add(eq) : _equipment.remove(eq)),
                   );
                 }).toList(),
               ),

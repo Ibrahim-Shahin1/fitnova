@@ -41,7 +41,8 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
   final Map<String, String> _status = {for (final a in _agents) a: 'pending'};
   final List<String> _log = [];
   StreamSubscription<Map<String, dynamic>>? _sub;
-  bool _done = false;
+  bool _finished = false; // crew done; process stays on screen behind a gate
+  bool _proceeded = false; // user tapped "Proceed" → reveal the plan
   bool _error = false;
   String? _errMsg;
   int? _score;
@@ -115,32 +116,39 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
   }
 
   Future<void> _loadFinal() async {
+    // The crew is done. Load the plan in the background but DON'T reveal it yet —
+    // keep the process on screen behind a "Proceed" gate.
     try {
       final plan = await PlanService.fetchActive();
       if (!mounted) return;
       setState(() {
         _finalPlan = plan;
-        _done = true;
+        _finished = true;
         for (final a in _agents) {
           _status[a] = 'done';
         }
       });
     } catch (_) {
-      if (mounted) setState(() => _done = true);
+      if (mounted) setState(() => _finished = true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final title = _proceeded
+        ? 'Your plan is ready'
+        : _finished
+            ? 'The crew is done'
+            : 'Building your plan';
     return Scaffold(
       appBar: AppBar(
-        title: Text(_done ? 'Your plan is ready' : 'Building your plan'),
-        automaticallyImplyLeading: _done || _error,
+        title: Text(title),
+        automaticallyImplyLeading: _proceeded || _error,
       ),
       body: _error
           ? _ErrorView(message: _errMsg, onClose: () => Navigator.of(context).pop(false))
-          : _done
+          : _proceeded
               ? _SuccessView(plan: _finalPlan, score: _score)
               : _ProgressView(
                   agents: _agents,
@@ -150,6 +158,8 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
                   log: _log,
                   score: _score,
                   theme: theme,
+                  finished: _finished,
+                  onProceed: () => setState(() => _proceeded = true),
                 ),
     );
   }
@@ -164,6 +174,8 @@ class _ProgressView extends StatelessWidget {
     required this.log,
     required this.score,
     required this.theme,
+    required this.finished,
+    required this.onProceed,
   });
 
   final List<String> agents;
@@ -173,6 +185,8 @@ class _ProgressView extends StatelessWidget {
   final List<String> log;
   final int? score;
   final ThemeData theme;
+  final bool finished;
+  final VoidCallback onProceed;
 
   @override
   Widget build(BuildContext context) {
@@ -245,11 +259,37 @@ class _ProgressView extends StatelessWidget {
             ),
           ),
         const SizedBox(height: AppSpacing.lg),
-        Center(
-          child: Text('This usually takes about a minute…',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: cs.onSurfaceVariant)),
-        ),
+        if (!finished)
+          Center(
+            child: Text('This usually takes about a minute…',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: cs.onSurfaceVariant)),
+          )
+        else ...[
+          Row(
+            children: [
+              const Icon(Icons.verified, color: Colors.green, size: 22),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'The crew finished — review their work above'
+                  '${score != null ? '  ·  $score/10' : ''}.',
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppButton(
+            label: 'Proceed to my plan',
+            icon: Icons.arrow_forward,
+            size: AppButtonSize.lg,
+            expand: true,
+            onPressed: onProceed,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
       ],
     );
   }
