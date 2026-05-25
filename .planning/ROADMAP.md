@@ -9,7 +9,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 - [x] **Phase 1: Dataset Consolidation & EDA** - Extract, merge and verify the dataset; full exploratory analysis  *(complete 2026-05-20)*
 - [x] **Phase 2: Squat Data Pipeline & Colab Harness** - PyTorch loaders + a resumable Colab training harness  *(complete 2026-05-20)*
 - [x] **Phase 3: Squat Supervised Baseline** - R(2+1)D-18 baseline for KIE/KFE, F1 on the official split  *(complete 2026-05-20)*
-- [ ] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison
+- [x] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison  *(complete 2026-05-25)*
 - [ ] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API
 - [ ] **Phase 6: Overhead Press** - Extend the video pipeline to OHP Elbow/Knees errors
 - [ ] **Phase 7: Image-Based Errors (CVCSPC)** - Shallow-Squat and Barbell Row detectors
@@ -68,35 +68,35 @@ Plans:
 
 - [x] 03-01: Squat supervised baseline — R(2+1)D-18 Kinetics-V1 fine-tune + threshold sweep + test eval + 7 supervisor figures (16 tasks; test KIE 0.286 / KFE 0.800 / macro 0.543 at val-tuned thresholds; matches paper Kinetics row within 2%)
 
-### Phase 4: Squat Motion-Disentangling SSL
+### Phase 4: Squat Motion-Disentangling SSL  *(Complete — 2026-05-25)*
 
 **Goal**: Domain-knowledge self-supervised pretraining that improves Squat error detection over the baseline.
 **Depends on**: Phase 3
 **Requirements**: SQUAT-04, SQUAT-05
 **Success Criteria** (what must be TRUE):
 
-  1. Motion-Disentangling SSL pretraining runs on the unlabeled Squat set and converges
-  2. The MD-pretrained model, fine-tuned for KIE/KFE, reports F1 ≥ the Phase-3 baseline
-  3. A comparison table/chart places our F1 against Parmar and GYMetricPose on identical metrics
+  1. ✓ Motion-Disentangling SSL pretraining runs on the unlabeled Squat set and converges (linear-probe rose above frozen-Kinetics; backbone.pt = strong-aug v2-ep5)
+  2. ✓ The MD-pretrained model, fine-tuned for KIE/KFE, reports F1 ≥ the Phase-3 baseline (test macro 0.6304 > Phase 3 0.5429, +0.087)
+  3. ✓ A comparison table/chart places our F1 against Parmar and GYMetricPose on identical metrics (matches paper MD 0.6262 on the official split)
 
 **Plans**: 4 plans
 
 Plans:
 **Wave 1**
 
-- [ ] 04-01-PLAN.md (wave 0) — SSL module scaffolds + unit tests (half-cycle splitter, triplet loss, projector, ensemble/TTA, checkpoint schemas) + colab.py update_latest kwarg + unlabeled staging
+- [x] 04-01-PLAN.md (wave 0) — SSL module scaffolds + unit tests (half-cycle splitter, triplet loss, projector, ensemble/TTA, checkpoint schemas) + colab.py update_latest kwarg + unlabeled staging
 
-**Wave 2** *(blocked on Wave 1 completion)*
+**Wave 2**
 
-- [ ] 04-02-PLAN.md (waves 1-2) — gated trajectory-format/half-cycle-sign probe + finalize SSL dataset/trainer + 12-24h MD-SSL pretrain (linear-probe + collapse monitoring)
+- [x] 04-02-PLAN.md (waves 1-2) — gated trajectory-format/half-cycle-sign probe + finalize SSL dataset/trainer + MD-SSL pretrain (backbone.pt = strong-aug v2-ep5; linear-probe + collapse monitoring)
 
-**Wave 3** *(blocked on Wave 2 completion)*
+**Wave 3**
 
-- [ ] 04-03-PLAN.md (wave 3) — 3-seed fine-tune (42/1337/7) from the shared MD backbone + D6 overfit monitor
+- [x] 04-03-PLAN.md (wave 3) — 3-seed fine-tune (42/1337/7) from the shared MD backbone + D6 overfit monitor (val macro ~0.609 ± 0.006)
 
-**Wave 4** *(blocked on Wave 3 completion)*
+**Wave 4**
 
-- [ ] 04-04-PLAN.md (wave 4) — ensemble (mean-of-sigmoids) + val-tuned TTA + test eval + 9 figures + Phase3-vs-Phase4 comparison chart + phase SUMMARY
+- [x] 04-04-PLAN.md (wave 4) — ensemble (mean-of-sigmoids) + val-tuned TTA + test eval + 9 figures + Phase3-vs-Phase4 comparison chart + phase SUMMARY (test macro 0.6304; KIE 0.4198 / KFE 0.8410; matches paper MD 0.6262)
 
 ### Phase 5: Backend Inference Integration (Squat)
 
@@ -160,7 +160,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 1. Dataset Consolidation & EDA | 1/1 | Complete | 2026-05-20 |
 | 2. Squat Data Pipeline & Colab Harness | 1/1 | Complete | 2026-05-20 |
 | 3. Squat Supervised Baseline | 1/1 | Complete | 2026-05-20 |
-| 4. Squat Motion-Disentangling SSL | 0/TBD | Not started | - |
+| 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
 | 5. Backend Inference Integration (Squat) | 0/TBD | Not started | - |
 | 6. Overhead Press | 0/TBD | Not started | - |
 | 7. Image-Based Errors (CVCSPC) | 0/TBD | Not started | - |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 4 context gathered (discuss-phase complete; A+B+D+E locked, F dropped). Next: /gsd:plan-phase 4 on a fresh L4 Colab notebook."
-last_updated: "2026-05-21T10:40:15.062Z"
+stopped_at: "Phase 4 COMPLETE (4/4 plans; HEAD b49a7d2, pushed). MD-SSL ensemble test macro 0.6304 matches paper MD 0.6262 (+0.087 over Phase 3). ROADMAP + STATE reconciled. Next: /gsd:discuss-phase 5 (Backend Inference Integration)."
+last_updated: "2026-05-25"
 last_activity: 2026-05-25 -- Phase 4 COMPLETE: MD-SSL 3-seed ensemble test macro 0.6304 (KIE 0.4198/KFE 0.8410) MATCHES paper MD 0.6262, beats Phase3 0.5429 (+0.087). TTA evaluated/not adopted (val gain reversed on test). 9 figures + results.pkl + all 4 plan SUMMARYs done. Next: Phase 5 (backend inference integration)
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 7
+  completed_plans: 7
   percent: 50
 ---
 
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-19)
 
 **Core value:** A user can record/upload a lift and get trustworthy, plain-language form-error feedback grounded in a published dataset and method.
-**Current focus:** Phase 4 — Squat Motion-Disentangling SSL
+**Current focus:** Phase 5 — Backend Inference Integration (Squat)
 
 ## Current Position
 
@@ -36,9 +36,9 @@ Progress: [█████░░░░░] 50%
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 7 (Phases 1–4)
+- Average duration: — (per-plan wall-time not tracked)
+- Total execution time: — (interactive Colab execution; heavy training spanned multiple sessions)
 
 **By Phase:**
 
@@ -98,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-22 -- Phase 4 Plan 02 run-1 interpreted. Control: SSL ep5 frozen-probe macro 0.5708 (KIE 0.380/KFE 0.762) vs Kinetics 0.4297 (KIE 0.169/KFE 0.691) = +0.141 lift. Probe peaks ep5 then declines + eff_rank collapse (weak-aug). DECISION = strong-aug paper-faithful md_pretrain_v2 (D2-augs), 5-epoch verification gate before full 20ep run. Aug change is a tracked code edit to ssl_augs.py + squat_ssl.py._augment; v2 run is heavy training. GATE PASSED (ep0-5, 2026-05-22): v2 ep5 probe macro 0.5844, KIE 0.4554 (>> v1's 0.380, and above paper MD's fine-tuned 0.4186 — different protocol), eff_rank 10.4 vs v1's 5.8 = collapse PREVENTED, macro rising not peaking. KFE 0.7133 dipped below v1's 0.762 (zoom may erode the depth cue — watch; dial back if it stays down). Plan 03 COMPLETE (2026-05-22): 3-seed fine-tune from v2-ep5 backbone.pt. best.pt on Drive at phase04/md_finetune_seed{42,1337,7}/. Val macro-F1: seed42=0.6062 (KIE 0.411/KFE 0.801, ep8), seed1337=0.6055 (0.431/0.780, ep2), seed7=0.6169 (KIE 0.493!/KFE 0.741, ep8). Mean ~0.609 ±0.006 = low seed variance (trustworthy ensemble). Diverse KIE/KFE balance (seed7 KIE-strong, seed42 KFE-strong) = good ensemble inputs. All 3 beat Phase3 (0.543) + paper-Kinetics (0.558); approaching paper-MD (0.626 test, ours val). D6 monitor was inverted (train/val), FIXED to val/train (commit 6f0587b) — validated by seed7's real late overfit (val/train 13x by ep16, after the ep<10 guard window so early-stop handled it). Base recipe (wd1e-4/dropout0.2) never tripped D6 -> locked across all 3 seeds. NEXT: Plan 04 — load 3 best.pt, aggregate_sigmoid_mean ensemble, per-head threshold_sweep (val), val-tuned TTA, TEST eval + 9 figures + P3-vs-P4 comparison chart. Eval primitives exist (ensemble.py/tta.py/metrics.py); the load->test-forward->ensemble->threshold->figures orchestration + notebook need building (Plan 04 not started). md_pretrain_v2 COMPLETE (ep0-19): probe ALSO peaks ep5 (0.5844, KIE 0.4554) then declines/oscillates (ep10 0.5443, ep15 0.5605); eff_rank held ~10 through ep5 then drifted to ~5-6 by ep11-19. Strong augs => higher peak (vs v1 0.5708) + better KIE (vs 0.380) + delayed collapse (ep11 vs ep6), but NOT a sustained plateau — peak-at-ep5 shape is robust across both runs. backbone.pt = v2-ep5 (probe-best, the SSL deliverable; later collapse does not touch saved ep5 weights). DECISION: SSL iteration DONE; proceed to Plan 03 = fine-tune 3 seeds (42/1337/7) from v2-ep5 backbone.pt (AdamW wd1e-4 dropout0.2 50ep/8-patience) -> Plan 04 ensemble(mean-sigmoid)+per-head threshold_sweep+val-TTA vs paper MD 0.6262. Pre-registered one-remediation if no lift = lower SSL LR (over-train-after-ep5 implicates LR). Plan 03 needs a new fine-tune notebook.
-Stopped at: Plan 02 Tasks 1-6 all coded + pushed (origin ef40a2e). Probe resolved (per-clip JSON flat y-centers, 1:1 traj<->frame, SIGN bottom_is_argmax=False/ARGMIN, in-file NaNs -> interp). Dataset smoke green (len 4970, shapes ok, descent/ascent visually correct). VRAM/timing gate PASSED: batch 8 = 12.35 GB (fits L4), 38 min/epoch; user chose the 60-epoch FULL-EXTEND cap (~38h, multi-session, resume-safe). Collapse metric FIXED (256-sample probe; 8 capped eff_rank at ~7). NEXT: user runs Step 5 (md_pretrain_v1) across Colab sessions -> paste back the epoch-5 convergence checkpoint (ssl_loss down, embedding_std > 0.0044 no-collapse, first linear-probe > random) + the per-session linear-probe/emb_std trend; orchestrator flags the linear-probe plateau (§6 manual convergence stop). backbone.pt (linear-probe-best epoch) -> Plan 03 (3-seed fine-tune from it) -> Plan 04 (ensemble + val-tuned TTA + test eval + 9 figures + comparison chart).
-Resume file: .planning/phases/04-squat-motion-disentangling-ssl/04-02-PLAN.md
+Last session: 2026-05-25 -- Phase 4 COMPLETE and fully wrapped (HEAD b49a7d2, pushed to origin/fresh-start). MD-SSL 3-seed ensemble test macro 0.6304 (KIE 0.4198 / KFE 0.8410) matches paper MD 0.6262, beats Phase 3 baseline 0.5429 (+0.087). All 4 plan SUMMARYs, 10 figures + results.pkl, and the consolidated 05_squat_md_finetune.{py,ipynb} committed. Production protocol: 3-seed mean-of-sigmoids, thresholds KIE 0.614 / KFE 0.385, NO TTA; single-seed latency fallback ~0.612. Checkpoints live on Drive at MyDrive/FitNova/checkpoints/phase04/ (md_pretrain_v2/backbone.pt + md_finetune_seed{42,1337,7}/best.pt) — NOT in the repo; Phase 5 must transfer them to the serving machine.
+Stopped at: Phase 4 closed; ROADMAP + STATE reconciled to reflect completion. Next: /gsd:discuss-phase 5 (Backend Inference Integration — serve the Squat detector live + video-upload, replacing the TF/MediaPipe form_analyzer/form_session). Design tensions to surface in discuss: the new model is clip-level (32-frame, 112², Kinetics-norm RGB -> 2 binary errors) vs the old per-frame pose pipeline, so live mode needs rep segmentation WITHOUT pose; PyTorch+TF coexistence in one FastAPI process; Drive->local-server weight transfer; CPU latency (3x R(2+1)D-18 forward); early real-camera domain-shift test (offline 0.63 != live phone camera).
+Resume file: .planning/ROADMAP.md (Phase 5 — no phase dir yet; discuss-phase 5 creates it)
