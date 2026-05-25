@@ -23,7 +23,7 @@ from contextlib import asynccontextmanager
 
 import os
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -33,6 +33,12 @@ from backend.services.llm_adapter import LLMAdapter
 from backend.services.recommender import Recommender
 from backend.services.form_analyzer import FormAnalyzer
 from backend.services.form_session import FormSession
+from backend.services.coach_service import CoachChatService
+
+from backend.deps.auth import AuthUser, require_user
+from backend.routers.plan import router as plan_router
+from backend.routers.coach import router as coach_router
+from backend.routers.logs import router as logs_router
 
 logger = logging.getLogger("fitnova")
 
@@ -64,7 +70,7 @@ class UserProfileRequest(BaseModel):
     )
     training_focus: str | None = Field(
         default=None,
-        pattern=r"^(powerbuilding|powerlifting|hypertrophy|general)$",
+        pattern=r"^(bodybuilding|powerbuilding|powerlifting|cardio|general)$",
     )
     years_training: int | None = Field(default=None, ge=0, le=50)
     equipment: list[str] = Field(default_factory=list)
@@ -114,7 +120,7 @@ class UserContext(BaseModel):
     )
     training_focus: str | None = Field(
         default=None,
-        pattern=r"^(powerbuilding|powerlifting|hypertrophy|general)$",
+        pattern=r"^(bodybuilding|powerbuilding|powerlifting|cardio|general)$",
     )
 
 
@@ -172,6 +178,8 @@ async def lifespan(app: FastAPI):
     app.state.llm_adapter = LLMAdapter()
     logger.info("Loading chat service...")
     app.state.chat_service = ChatService()
+    logger.info("Loading coach service...")
+    app.state.coach_service = CoachChatService()
     logger.info("Loading form analyzer (Layer 4)...")
     # Auto-detection priority: v6 -> v5.2 -> v4. Override with FITNOVA_MODEL_DIR
     # env var. The form_analyzer itself does file-presence detection inside the
@@ -227,6 +235,10 @@ _STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(_STATIC_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
+app.include_router(plan_router)
+app.include_router(coach_router)
+app.include_router(logs_router)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints
@@ -256,6 +268,17 @@ def list_exercises():
     """
     from backend.config.exercises import all_exercises
     return all_exercises()
+
+
+@app.get("/api/me", tags=["Auth"])
+async def whoami(user: AuthUser = Depends(require_user)):
+    """Debug endpoint — echoes the authenticated user's id + email.
+
+    Returns 401 if the bearer token is missing or invalid. Used to verify the
+    Supabase JWT verification path end-to-end before wiring the real per-user
+    endpoints (plan persistence, workout logs, coach chat).
+    """
+    return {"user_id": str(user.id), "email": user.email}
 
 
 @app.post("/generate-plan", response_model=GeneratePlanResponse, tags=["Plans"])
