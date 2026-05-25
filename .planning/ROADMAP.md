@@ -109,7 +109,25 @@ Plans:
   2. Uploading a squat clip returns binary error detections with timing
   3. A live WebSocket session segments reps and returns per-rep error feedback
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 05-01-PLAN.md (wave 1) — SquatFormService (3-seed MD-SSL ensemble, EXACT inference path: spatial_val + mean-of-sigmoids + 0.614/0.385 thresholds) + RepSegmenter (motion-energy upload + live sliding-window) + Wave 0 test scaffold
+
+**Wave 2**
+
+- [ ] 05-02-PLAN.md (wave 2) — stage the 3 best.pt from Drive (human action) + .gitignore/README + CPU latency probe (single vs ensemble, D-08) + EARLY real-clip domain-shift test (D-11, human-verify)
+- [ ] 05-03-PLAN.md (wave 2) — app.py swap: lifespan + /health + D-05 Pydantic models + redefined POST /analyze-form-video (segment → per-rep classify → binary+timing) + upload-size cap + REST tests + reconcile test_app.py
+
+**Wave 3**
+
+- [ ] 05-04-PLAN.md (wave 3) — redefined WS /ws/form-session (SquatLiveSession: buffer → sliding-window → per-rep rep_result + deterministic session_summary) + WS integration tests
+
+**Wave 4**
+
+- [ ] 05-05-PLAN.md (wave 4) — archive the old TF+MediaPipe form subsystem (D-06, git mv, reversible) + visualization (Squat KIE/KFE overlay on a sample clip)
 
 ### Phase 6: Overhead Press
 
@@ -161,7 +179,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Squat Data Pipeline & Colab Harness | 1/1 | Complete | 2026-05-20 |
 | 3. Squat Supervised Baseline | 1/1 | Complete | 2026-05-20 |
 | 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
-| 5. Backend Inference Integration (Squat) | 0/TBD | Not started | - |
+| 5. Backend Inference Integration (Squat) | 0/5 | Planned | - |
 | 6. Overhead Press | 0/TBD | Not started | - |
 | 7. Image-Based Errors (CVCSPC) | 0/TBD | Not started | - |
 | 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |
