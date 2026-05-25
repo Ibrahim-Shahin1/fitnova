@@ -65,10 +65,12 @@ SYSTEM_PROMPT = (
     "instead. NEVER ask how long they want to train per session.\n"
     "- Only ask a question if something is genuinely missing from the profile, or "
     "the user wants to change it.\n"
-    "- As soon as you have enough, CALL prepare_plan, passing ONLY the overrides the "
-    "user stated (e.g. workout_frequency=6, equipment=['Dumbbells']); everything "
-    "else comes from their profile. Do NOT build or list the plan yourself — "
-    "prepare_plan hands off to the live builder.\n"
+    "- The MOMENT the user is ready — 'yes', 'build it', 'give me the plan', or any "
+    "go-ahead — CALL prepare_plan immediately. Do NOT reply with 'how can I help', "
+    "do NOT re-ask anything. Pass ONLY the overrides they stated (e.g. "
+    "workout_frequency=6, equipment=['Dumbbells']); everything else comes from "
+    "their profile. Do NOT build or list the plan yourself — prepare_plan hands "
+    "off to the live builder.\n"
     "- After calling prepare_plan, tell the user in ONE short line that their plan "
     "is ready and to tap 'Generate Plan'. NEVER claim you already built it, and do "
     "not draw tables or list exercises.\n"
@@ -154,8 +156,30 @@ class CoachChatService:
         conv = conversation_repo.get_or_create_conversation(user_id)
         conv_id = conv["id"]
 
+        # Inject the KNOWN profile every turn so the coach actually has the data
+        # (not just told it does) and confirms instead of re-asking. The greeting
+        # is transient and not in the replayed history, so we also remind the
+        # model it already greeted + offered to build.
+        prof = profile_repo.get_profile(user_id) or {}
+        has_plan = bool(plan_repo.fetch_active(user_id))
+        profile_ctx = (
+            "KNOWN USER PROFILE — already collected; treat as given, CONFIRM, never "
+            "re-ask:\n"
+            f"- goal / training focus: {prof.get('training_focus') or 'not set'}\n"
+            f"- experience level (1-3): {prof.get('experience_level') or 'not set'}\n"
+            f"- weekly frequency: {prof.get('workout_frequency') or 'not set'}\n"
+            f"- injuries: {', '.join(prof.get('injuries') or []) or 'none'}\n"
+            f"- equipment: {', '.join(prof.get('equipment') or []) or 'not set'}\n"
+            f"- has active plan: {'yes' if has_plan else 'no'}\n"
+            "You have ALREADY greeted the user and offered to build their plan. If "
+            "they confirm readiness or ask for the plan ('yes', 'give me the plan', "
+            "'build it'), call prepare_plan NOW — do not deflect or re-ask."
+        )
         # Replay prior dialogue (text only — tool mechanics aren't re-fed).
-        messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+        messages: list[dict] = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": profile_ctx},
+        ]
         for m in conversation_repo.fetch_messages(user_id, conv_id):
             if m["role"] in ("user", "assistant") and m.get("content"):
                 messages.append({"role": m["role"], "content": m["content"]})
