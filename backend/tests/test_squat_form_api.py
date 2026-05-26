@@ -19,6 +19,7 @@ Plan 03 additions — REST integration tests:
 
 from __future__ import annotations
 
+import base64
 import os
 import tempfile
 
@@ -453,3 +454,121 @@ def test_upload_bad_exercise(squat_client):
     assert response.status_code == 400, (
         f"Expected 400 for unsupported exercise, got {response.status_code}: {response.text}"
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plan 04 — WS integration tests (API-04)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Uses Starlette's synchronous TestClient.websocket_connect — no pytest-asyncio
+# needed (RESEARCH §7 VALIDATION note).  The mock_services_squat fixture is
+# reused so the real lifespan (torch model load) is bypassed.
+
+
+@pytest.fixture()
+def client(mock_services_squat):
+    """TestClient with raise_server_exceptions=True so assertion errors surface cleanly."""
+    return TestClient(app, raise_server_exceptions=True)
+
+
+def test_ws_session_protocol(client):
+    """start_session -> session_started; end_session -> session_summary with exercise + rep_results.
+
+    Verifies the basic three-step WS protocol without sending any frames.
+    """
+    with client.websocket_connect("/ws/form-session") as ws:
+        # Step 1: start the session.
+        ws.send_json({"type": "start_session", "exercise_hint": "squat"})
+        started = ws.receive_json()
+        assert started["type"] == "session_started", (
+            f"Expected session_started, got {started}"
+        )
+
+        # Step 2: end the session immediately (no frames).
+        ws.send_json({"type": "end_session"})
+        summary = ws.receive_json()
+
+    assert summary["type"] == "session_summary", (
+        f"Expected session_summary as final message, got {summary}"
+    )
+    assert "exercise" in summary, "session_summary missing 'exercise' key"
+    assert "rep_results" in summary, "session_summary missing 'rep_results' key"
+    assert summary["exercise"] == "squat"
+    assert isinstance(summary["rep_results"], list)
+
+
+def test_ws_rep_result_schema(client):
+    """Sending enough frames causes the trigger to fire and emits a rep_result.
+
+    The LiveWindowTrigger fires when:
+      buffer_len >= LIVE_REP_WINDOW_FRAMES=32  AND
+      frames_since_last_trigger >= LIVE_MIN_GAP_FRAMES=45
+
+    Sending LIVE_MIN_GAP_FRAMES + 2 = 47 frames (each with a valid JPEG) guarantees
+    at least one trigger fire.  The mocked classify_clip_async returns _VALID_D05
+    (KIE detected=True) so the rep_result message will contain errors.
+
+    Starlette TestClient WS is synchronous — receive_json() BLOCKS until a message
+    arrives.  Because conditional-send means most frames produce NO server reply, we
+    send ALL frames first (no receive in the loop), then collect the one rep_result
+    that the server queued by calling receive_json() exactly once before end_session.
+    """
+    n_frames_to_send = LIVE_MIN_GAP_FRAMES + 2  # 47 frames — enough to guarantee one fire
+    jpeg_b64 = base64.b64encode(make_fake_jpeg()).decode()
+
+    with client.websocket_connect("/ws/form-session") as ws:
+        ws.send_json({"type": "start_session", "exercise_hint": "squat"})
+        started = ws.receive_json()
+        assert started["type"] == "session_started"
+
+        # Send all frames without receiving — server queues the rep_result internally.
+        # The trigger fires somewhere around frame 45; we do NOT block per-frame.
+        for i in range(n_frames_to_send):
+            ws.send_json({"type": "frame", "data": jpeg_b64, "timestamp_ms": i * 33})
+
+        # The server has queued exactly one rep_result by now — receive it.
+        rep = ws.receive_json()
+
+        # Then end the session and collect the summary.
+        ws.send_json({"type": "end_session"})
+        summary = ws.receive_json()
+
+    assert rep["type"] == "rep_result", (
+        f"Expected rep_result after {n_frames_to_send} frames, got {rep}"
+    )
+    assert rep["rep_number"] >= 1, "rep_number must be >= 1"
+    assert "errors" in rep, "rep_result missing 'errors' key"
+    for err in rep["errors"]:
+        assert err["type"] in {"KIE", "KFE"}, (
+            f"Unexpected error type in rep_result: {err['type']}"
+        )
+    # Also verify the summary arrived cleanly.
+    assert summary["type"] == "session_summary"
+    assert summary["total_reps"] >= 1
+
+
+def test_ws_malformed_frame(client):
+    """A frame with invalid JPEG data (T-05-10 None-guard) does not crash the session.
+
+    After the bad frame, end_session must still return a valid session_summary —
+    proving the session stays alive and the None-guard drops the frame gracefully.
+    """
+    # base64-encode a string that is NOT valid JPEG bytes.
+    bad_b64 = base64.b64encode(b"not-a-jpeg").decode()
+
+    with client.websocket_connect("/ws/form-session") as ws:
+        ws.send_json({"type": "start_session", "exercise_hint": "squat"})
+        started = ws.receive_json()
+        assert started["type"] == "session_started"
+
+        # Send the malformed frame — server must drop it silently (no crash, no error reply).
+        ws.send_json({"type": "frame", "data": bad_b64, "timestamp_ms": 0})
+        # No reply expected (conditional-send; None returned by add_frame).
+        # Send end_session immediately after to verify the session is still alive.
+        ws.send_json({"type": "end_session"})
+        summary = ws.receive_json()
+
+    assert summary["type"] == "session_summary", (
+        f"Expected session_summary after malformed frame, got {summary}"
+    )
+    assert "rep_results" in summary, "session_summary missing rep_results after malformed frame"
