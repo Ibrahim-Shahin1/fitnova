@@ -347,9 +347,10 @@ async def lifespan(app: FastAPI):
     )
     app.state.squat_form_service = SquatFormService(model_dir=_squat_dir)
     logger.info(
-        "SquatFormService ready: model_ready=%s, seeds_loaded=%d",
+        "SquatFormService ready: model_ready=%s, seeds_loaded=%d, onnx_enabled=%s",
         app.state.squat_form_service.model_ready,
         len(app.state.squat_form_service._models),
+        app.state.squat_form_service.onnx_enabled,
     )
     logger.info("FitNova backend ready.")
     yield
@@ -393,6 +394,7 @@ async def health_check(request: Request):
         "status": "healthy",
         "squat_model_ready": bool(svc.model_ready) if svc else False,
         "seeds_loaded":      len(svc._models) if svc else 0,
+        "onnx_enabled":      bool(getattr(svc, "onnx_enabled", False)) if svc else False,
         "kie_threshold":     svc.kie_threshold if svc else None,
         "kfe_threshold":     svc.kfe_threshold if svc else None,
     }

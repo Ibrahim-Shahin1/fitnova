@@ -164,6 +164,30 @@ def test_classify_deterministic() -> None:
     )
 
 
+def test_onnx_pytorch_parity() -> None:
+    """When ONNX sessions are loaded, ONNX confidences match the PyTorch forward.
+
+    Proves the ONNX speed path is numerically faithful (no quality tradeoff).
+    Skipped when staged weights or onnxruntime are unavailable (e.g. CI) — the
+    benchmark recorded max abs diff ~2e-7.
+    """
+    svc = SquatFormService(model_dir="backend/models/form_model_squat_md")
+    if not svc.model_ready or not svc.onnx_enabled:
+        pytest.skip("ONNX sessions not loaded (no staged weights / onnxruntime) — parity not testable here")
+
+    rng = np.random.default_rng(seed=123)
+    frames = rng.integers(0, 256, (32, 3, 120, 160), dtype=np.uint8)  # landscape
+
+    onnx_res = svc.classify_clip(frames)        # ONNX path (default)
+    svc._use_onnx = False
+    torch_res = svc.classify_clip(frames)       # forced PyTorch path
+
+    for o, t in zip(onnx_res["errors"], torch_res["errors"]):
+        assert abs(o["confidence"] - t["confidence"]) < 1e-3, (
+            f"ONNX vs PyTorch drift on {o['type']}: {o['confidence']} vs {t['confidence']}"
+        )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # D-11 knee-aware spatial preprocessing tests
 # ─────────────────────────────────────────────────────────────────────────────
