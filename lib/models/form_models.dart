@@ -219,3 +219,161 @@ class FormSessionSummary {
       exercise.replaceAll('_', ' ').split(' ').map((w) =>
           w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
 }
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// D-05 schema models — Phase 5 PyTorch Squat backend.
+//
+// These replace the live/upload path's use of the old MediaPipe-era models
+// above (FormFrameResult / FormSessionSummary), which are kept ONLY so the
+// now-unreachable FormReplayScreen + /form-replay route still compile.
+// Backend contract: 05-CONTEXT.md D-05.
+//   - upload  POST /analyze-form-video → UploadResponse{exercise,total_reps,reps[...]}
+//   - live    WS  /ws/form-session     → rep_result / session_summary
+// No percentages are shown to the user; severity_word is a confidence-derived
+// estimate, not a measured result.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One detected (or not-detected) form error from the D-05 schema.
+class FormError {
+  final String type;          // "KIE" (knees caving inward) | "KFE" (knees too far forward)
+  final bool detected;
+  final double confidence;    // 0.0–1.0 sigmoid score (not shown as a % in the UI)
+  final String severityWord;  // none | possible | moderate | strong
+  final List<List<double>> intervals; // [[startSec, endSec], ...] for detected errors
+
+  const FormError({
+    required this.type,
+    required this.detected,
+    required this.confidence,
+    required this.severityWord,
+    this.intervals = const [],
+  });
+
+  factory FormError.fromJson(Map<String, dynamic> json) => FormError(
+        type: json['type'] as String? ?? '',
+        detected: json['detected'] as bool? ?? false,
+        confidence: (json['confidence'] as num? ?? 0.0).toDouble(),
+        severityWord: json['severity_word'] as String? ?? 'none',
+        intervals: (json['intervals'] as List<dynamic>? ?? [])
+            .map((pair) => (pair as List<dynamic>)
+                .map((v) => (v as num).toDouble())
+                .toList())
+            .toList(),
+      );
+
+  /// Human-readable error name for the UI.
+  String get label => switch (type) {
+        'KIE' => 'Knees caving inward',
+        'KFE' => 'Knees too far forward',
+        _ => type,
+      };
+
+  /// "Knees caving inward — moderate" (detected) or "… — not detected".
+  String get summary =>
+      detected ? '$label — $severityWord' : '$label — not detected';
+}
+
+/// One rep's result: a list of error detections. Upload reps carry no repNumber;
+/// live `rep_result` messages carry a 1-based repNumber — a periodic "form check"
+/// fired on a sliding-window clock, NOT a true rep count (see PLAN D2).
+class FormRep {
+  final String exercise;
+  final int? repNumber;
+  final List<FormError> errors;
+
+  const FormRep({
+    required this.exercise,
+    this.repNumber,
+    this.errors = const [],
+  });
+
+  factory FormRep.fromJson(Map<String, dynamic> json) => FormRep(
+        exercise: json['exercise'] as String? ?? 'squat',
+        repNumber: json['rep_number'] as int?,
+        errors: (json['errors'] as List<dynamic>? ?? [])
+            .map((e) => FormError.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  /// Detected errors only (for chip display).
+  List<FormError> get detectedErrors =>
+      errors.where((e) => e.detected).toList();
+}
+
+/// Unified form report rendered by FormResultsScreen — built from either the
+/// upload UploadResponse or the live session_summary.
+class FormReport {
+  final String exercise;
+  final int totalReps;          // upload: total_reps; live: number of form checks
+  final List<FormRep> reps;
+  final String sessionFeedback; // live: from backend; upload: synthesized client-side
+
+  const FormReport({
+    required this.exercise,
+    required this.totalReps,
+    required this.reps,
+    required this.sessionFeedback,
+  });
+
+  /// From POST /analyze-form-video → UploadResponse.
+  factory FormReport.fromUpload(Map<String, dynamic> json) {
+    final reps = (json['reps'] as List<dynamic>? ?? [])
+        .map((r) => FormRep.fromJson(r as Map<String, dynamic>))
+        .toList();
+    return FormReport(
+      exercise: json['exercise'] as String? ?? 'squat',
+      totalReps: json['total_reps'] as int? ?? reps.length,
+      reps: reps,
+      sessionFeedback: _synthFeedback(reps),
+    );
+  }
+
+  /// From WS /ws/form-session → session_summary.
+  factory FormReport.fromSession(Map<String, dynamic> json) {
+    final reps = (json['rep_results'] as List<dynamic>? ?? [])
+        .map((r) => FormRep.fromJson(r as Map<String, dynamic>))
+        .toList();
+    return FormReport(
+      exercise: json['exercise'] as String? ?? 'squat',
+      totalReps: json['total_reps'] as int? ?? reps.length,
+      reps: reps,
+      sessionFeedback:
+          json['session_feedback'] as String? ?? _synthFeedback(reps),
+    );
+  }
+
+  String get exerciseDisplay => exercise
+      .replaceAll('_', ' ')
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+
+  /// Count of reps where the given error type was detected.
+  int detectedCount(String type) => reps
+      .where((r) => r.errors.any((e) => e.type == type && e.detected))
+      .length;
+
+  /// Deterministic summary for the upload path (backend sends none). Mirrors the
+  /// live session_feedback style — no percentages (D-05).
+  static String _synthFeedback(List<FormRep> reps) {
+    if (reps.isEmpty) {
+      return 'No reps were analyzed — try a longer clip with your full body in frame.';
+    }
+    final n = reps.length;
+    final kie = reps
+        .where((r) => r.errors.any((e) => e.type == 'KIE' && e.detected))
+        .length;
+    final kfe = reps
+        .where((r) => r.errors.any((e) => e.type == 'KFE' && e.detected))
+        .length;
+    final parts = <String>['Analyzed $n rep${n == 1 ? '' : 's'}.'];
+    parts.add(kie > 0
+        ? 'Knees caving inward on $kie of $n — drive your knees out in line with your toes.'
+        : 'Good knee tracking — no inward caving detected.');
+    parts.add(kfe > 0
+        ? 'Knees travelling too far forward on $kfe of $n — initiate by pushing your hips back.'
+        : 'Good depth control — no forward-knee error detected.');
+    return parts.join(' ');
+  }
+}
