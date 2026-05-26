@@ -9,7 +9,6 @@ import 'screens/registration_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/plan_screen.dart';
-import 'screens/form_check_screen.dart';
 import 'screens/form_results_screen.dart';
 import 'models/exercise_meta.dart';
 import 'screens/exercise_selection_screen.dart';
@@ -73,13 +72,6 @@ class FitNovaApp extends StatelessWidget {
             '/form-results':      (_) => const FormResultsScreen(),
           },
           onGenerateRoute: (settings) {
-            if (settings.name == '/form-check') {
-              final hint = settings.arguments as String?;
-              return MaterialPageRoute(
-                builder: (_) => FormCheckScreen(exerciseHint: hint),
-                settings: settings,
-              );
-            }
             if (settings.name == '/guidelines') {
               final meta = settings.arguments as ExerciseMeta;
               return MaterialPageRoute(
@@ -99,7 +91,7 @@ class FitNovaApp extends StatelessWidget {
               return MaterialPageRoute(
                 builder: (_) => FormReplayScreen(
                   videoPath: args['videoPath'] as String,
-                  summary:   args['summary']  as FormSessionSummary,
+                  report:    args['report']   as FormReport,
                 ),
                 settings: settings,
               );

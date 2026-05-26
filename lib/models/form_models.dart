@@ -305,27 +305,39 @@ class FormRep {
 /// upload UploadResponse or the live session_summary.
 class FormReport {
   final String exercise;
-  final int totalReps;          // upload: total_reps; live: number of form checks
+  final int totalReps;          // upload: total_reps (1 for single-rep)
   final List<FormRep> reps;
-  final String sessionFeedback; // live: from backend; upload: synthesized client-side
+  final String sessionFeedback; // upload: synthesized client-side
+  final List<String> modelViewFrames; // base64 JPEGs the model actually analyzed (upload)
+  final double durationS;       // clip duration in seconds (upload)
 
   const FormReport({
     required this.exercise,
     required this.totalReps,
     required this.reps,
     required this.sessionFeedback,
+    this.modelViewFrames = const [],
+    this.durationS = 0.0,
   });
 
-  /// From POST /analyze-form-video → UploadResponse.
+  /// The single analyzed rep (single-rep upload), or null if none.
+  FormRep? get rep => reps.isNotEmpty ? reps.first : null;
+
+  /// From POST /analyze-form-video → UploadResponse (single-rep).
   factory FormReport.fromUpload(Map<String, dynamic> json) {
     final reps = (json['reps'] as List<dynamic>? ?? [])
         .map((r) => FormRep.fromJson(r as Map<String, dynamic>))
         .toList();
+    final mv = json['model_view'] as Map<String, dynamic>?;
     return FormReport(
       exercise: json['exercise'] as String? ?? 'squat',
       totalReps: json['total_reps'] as int? ?? reps.length,
       reps: reps,
       sessionFeedback: _synthFeedback(reps),
+      modelViewFrames: ((mv?['frames']) as List<dynamic>? ?? [])
+          .map((f) => f as String)
+          .toList(),
+      durationS: (json['duration_s'] as num? ?? 0.0).toDouble(),
     );
   }
 

@@ -51,9 +51,11 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
       );
       provider.setReport(report);
       if (!mounted) return;
-      // D-05 backend returns no per-frame timeline/skeleton, so go straight to
-      // the results screen (the replay screen is unreachable now).
-      Navigator.of(context).pushReplacementNamed('/form-results');
+      // Single-rep replay: play the clip back with the model's view + exact KIE/KFE.
+      Navigator.of(context).pushReplacementNamed(
+        '/form-replay',
+        arguments: {'videoPath': _videoPath!, 'report': report},
+      );
     } catch (e) {
       provider.setError(e.toString());
       if (!mounted) return;

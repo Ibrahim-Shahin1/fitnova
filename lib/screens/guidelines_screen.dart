@@ -111,23 +111,20 @@ class GuidelinesScreen extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
           ],
 
-          // CTA Buttons
+          // CTA — upload only (live feedback removed; the model analyzes single reps).
           ElevatedButton.icon(
-            icon: const Icon(Icons.videocam),
-            label: const Text('Live Feedback'),
-            onPressed: () {
-              Navigator.of(context)
-                  .pushNamed('/form-check', arguments: meta.name);
-            },
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          OutlinedButton.icon(
             icon: const Icon(Icons.upload_file),
-            label: const Text('Upload Video'),
+            label: const Text('Upload a single-rep video'),
             onPressed: () {
               Navigator.of(context)
                   .pushNamed('/video-upload', arguments: meta);
             },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Record one rep, side-on, full body in frame.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
