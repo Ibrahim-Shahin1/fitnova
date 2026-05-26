@@ -7,6 +7,12 @@ Addresses:
     print KIE/KFE confidences + raw ensemble sigmoid scores for domain-shift
     diagnosis before Plan 03 polishes the full API.
 
+D-11 UPDATE (2026-05-26):
+  The per-seed path now uses `kneeaware_spatial_val` (from `backend.services.clip_decode`)
+  instead of the raw `spatial_val` call.  This matches `SquatFormService.classify_clip`
+  exactly: portrait lower-body pre-crop applied, landscape unchanged.  The "FULL D-05
+  RESPONSE via classify_clip" sanity check (Section B bottom) will therefore agree with
+  the per-seed scores printed above it.
 
 Usage:
     python -m backend.scripts.probe_squat_inference               # latency only (synthetic clip)
@@ -181,11 +187,12 @@ def main() -> None:
     print("Running per-seed forwards (fp32 only - no .half()) ...")
 
     # Reuse the service's preprocessing via classify_clip internals - but we need
-    # raw per-seed scores. Use spatial_val directly here.
-    from backend.training.aqa.datasets.transforms import spatial_val
+    # raw per-seed scores.  Use kneeaware_spatial_val (the same path classify_clip uses
+    # after the D-11 fix) so the per-seed numbers here match the classify_clip output.
+    from backend.services.clip_decode import kneeaware_spatial_val
 
-    clip_tensor = spatial_val(frames_tchw)          # [3, 32, 112, 112] float32
-    batch = clip_tensor.unsqueeze(0)                 # [1, 3, 32, 112, 112]
+    clip_tensor = kneeaware_spatial_val(frames_tchw)  # [3, 32, 112, 112] float32
+    batch = clip_tensor.unsqueeze(0)                   # [1, 3, 32, 112, 112]
 
     per_seed_logits: list[np.ndarray] = []
     per_seed_sigmoid: list[tuple[float, float]] = []

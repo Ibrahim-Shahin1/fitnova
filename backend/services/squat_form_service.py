@@ -10,7 +10,8 @@ no side effects.
 
 Preprocessing parity (D-02) is the #1 correctness risk.  The service reuses the EXACT
 Phase-2/3 contract:
-  - spatial_val  (center crop — the deterministic val/test pipeline, not the train pipeline)
+  - kneeaware_spatial_val (D-11 fix: portrait lower-body pre-crop → spatial_val center crop;
+    landscape input passes through to spatial_val unchanged — offline-eval parity)
   - uniform_sample_indices with jitter=0
   - decode_clip
   - KINETICS_MEAN / KINETICS_STD
@@ -41,7 +42,7 @@ from starlette.concurrency import run_in_threadpool
 from torchvision.models.video import r2plus1d_18
 
 from backend.training.aqa.eval.ensemble import aggregate_sigmoid_mean
-from backend.training.aqa.datasets.transforms import spatial_val
+from backend.services.clip_decode import kneeaware_spatial_val
 
 logger = logging.getLogger(__name__)
 
@@ -218,11 +219,14 @@ class SquatFormService:
         if not self._model_ready:
             return self._neutral_response()
 
-        # ANTI-PATTERN GUARD (Pitfall 1): use the deterministic center-crop pipeline
-        # (spatial_val), not the random-crop augmentation pipeline used during training.
+        # ANTI-PATTERN GUARD (Pitfall 1): use the deterministic center-crop pipeline,
+        # not the random-crop augmentation pipeline used during training.
         # Random crop at serve time = non-deterministic results = B6-class train/serve skew.
+        # D-11 FIX: kneeaware_spatial_val applies a portrait lower-body pre-crop so the
+        # knees land inside the 112² crop on phone video; landscape input passes through
+        # to spatial_val UNCHANGED (preserves offline-eval parity on dataset clips).
         # INPUT: [T, 3, H, W] uint8 tensor → OUTPUT: [3, T, 112, 112] float32 Kinetics-norm.
-        clip = spatial_val(torch.from_numpy(frames_tchw_uint8))
+        clip = kneeaware_spatial_val(torch.from_numpy(frames_tchw_uint8))
         batch = clip.unsqueeze(0)  # [1, 3, T, 112, 112]
 
         n = n_seeds if n_seeds is not None else self._default_n_seeds

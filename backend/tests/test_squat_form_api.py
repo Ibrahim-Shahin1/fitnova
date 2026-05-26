@@ -26,6 +26,8 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from backend.services.squat_form_service import SquatFormService, _severity
+from backend.services.clip_decode import kneeaware_spatial_val
+from backend.training.aqa.datasets.transforms import spatial_val
 from backend.services.rep_segmenter import (
     LiveWindowTrigger,
     LIVE_MIN_GAP_FRAMES,
@@ -154,6 +156,67 @@ def test_classify_deterministic() -> None:
     )
     assert result1["errors"][1]["confidence"] == result2["errors"][1]["confidence"], (
         "KFE confidence differs between calls — spatial_train (random crop) may be used"
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# D-11 knee-aware spatial preprocessing tests
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_kneeaware_landscape_is_spatial_val() -> None:
+    """kneeaware_spatial_val on LANDSCAPE input is element-equal to spatial_val.
+
+    Parity guard: landscape input must pass through unchanged so the serving path
+    reproduces the offline-eval 0.6304 F1 (Fitness-AQA dataset clips are landscape).
+    Synthetic clip [8, 3, 120, 200] — W > H → landscape.
+    """
+    rng = np.random.default_rng(seed=7)
+    frames_uint8 = rng.integers(0, 256, (8, 3, 120, 200), dtype=np.uint8)
+    clip_tensor = torch.from_numpy(frames_uint8)
+
+    out_kneeaware = kneeaware_spatial_val(clip_tensor)
+    out_spatial_val = spatial_val(clip_tensor)
+
+    assert out_kneeaware.shape == out_spatial_val.shape, (
+        f"Shape mismatch: kneeaware={out_kneeaware.shape}, spatial_val={out_spatial_val.shape}"
+    )
+    assert torch.equal(out_kneeaware, out_spatial_val), (
+        "kneeaware_spatial_val on landscape input is NOT element-equal to spatial_val — "
+        "offline-eval parity broken"
+    )
+
+
+def test_kneeaware_portrait_differs_and_shape() -> None:
+    """kneeaware_spatial_val on PORTRAIT input returns [3, T, 112, 112] and differs from spatial_val.
+
+    Two assertions:
+      1. Output shape is [3, 8, 112, 112] float32 — correct output contract.
+      2. Output is NOT element-equal to spatial_val on the same input — proves the
+         lower-body pre-crop is applied and produces a different crop window.
+
+    Synthetic clip [8, 3, 200, 120] — H > W → portrait.
+    """
+    rng = np.random.default_rng(seed=13)
+    frames_uint8 = rng.integers(0, 256, (8, 3, 200, 120), dtype=np.uint8)
+    clip_tensor = torch.from_numpy(frames_uint8)
+
+    out_kneeaware = kneeaware_spatial_val(clip_tensor)
+
+    # Shape check
+    assert out_kneeaware.shape == (3, 8, 112, 112), (
+        f"kneeaware_spatial_val portrait output shape is {out_kneeaware.shape}, "
+        f"expected (3, 8, 112, 112)"
+    )
+    assert out_kneeaware.dtype == torch.float32, (
+        f"Expected float32 output, got {out_kneeaware.dtype}"
+    )
+
+    # NOT equal to plain spatial_val (proves the lower-body crop is applied)
+    out_spatial_val = spatial_val(clip_tensor)
+    assert not torch.equal(out_kneeaware, out_spatial_val), (
+        "kneeaware_spatial_val on portrait input is unexpectedly element-equal to spatial_val "
+        "— the lower-body pre-crop is not being applied"
     )
 
 
