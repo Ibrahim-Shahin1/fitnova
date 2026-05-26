@@ -45,26 +45,15 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
     setState(() => _uploading = true);
 
     try {
-      final summary = await ApiService.uploadFormVideo(
+      final report = await ApiService.uploadFormVideo(
         filePath: _videoPath!,
         exerciseName: widget.meta.name,
       );
-      provider.setSummary(summary);
+      provider.setReport(report);
       if (!mounted) return;
-      // Replay screen plays the user's video back with skeleton + joint
-      // overlays synced to playback. Falls back to the static results
-      // screen if the backend didn't return a per-frame timeline.
-      if (summary.timeline.isNotEmpty) {
-        Navigator.of(context).pushReplacementNamed(
-          '/form-replay',
-          arguments: {
-            'videoPath': _videoPath!,
-            'summary':   summary,
-          },
-        );
-      } else {
-        Navigator.of(context).pushReplacementNamed('/form-results');
-      }
+      // D-05 backend returns no per-frame timeline/skeleton, so go straight to
+      // the results screen (the replay screen is unreachable now).
+      Navigator.of(context).pushReplacementNamed('/form-results');
     } catch (e) {
       provider.setError(e.toString());
       if (!mounted) return;

@@ -4,15 +4,18 @@ import 'package:provider/provider.dart';
 import '../models/form_models.dart';
 import '../providers/form_session_provider.dart';
 
+/// Renders a completed [FormReport] (D-05): per-rep KIE/KFE detections + a
+/// plain-language session feedback line. No percentages, no quality gauge — the
+/// backend produces binary detections + a confidence-derived severity word only.
 class FormResultsScreen extends StatelessWidget {
   const FormResultsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<FormSessionProvider>();
-    final summary  = provider.summary;
+    final report = provider.report;
 
-    if (summary == null) {
+    if (report == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
@@ -23,64 +26,45 @@ class FormResultsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1A2E),
         foregroundColor: Colors.white,
-        title: Text('${summary.exerciseDisplay} — Results'),
+        title: Text('${report.exerciseDisplay} — Results'),
         automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // ── Overall score ──────────────────────────────────────────────
-          _ScoreCard(summary: summary),
+          _SummaryCard(report: report),
           const SizedBox(height: 20),
 
-          // ── Per-rep breakdown ──────────────────────────────────────────
-          if (summary.perRepDetails.isNotEmpty) ...[
-            _SectionHeader('Per-Rep Breakdown'),
-            const SizedBox(height: 10),
-            ...summary.perRepDetails.map((rep) => _RepDetailCard(rep: rep)),
-            const SizedBox(height: 20),
-          ] else if (summary.perRepScores.isNotEmpty) ...[
-            // Legacy fallback: just a row of bars without per-rep error names
-            _SectionHeader('Per-Rep Breakdown'),
-            const SizedBox(height: 10),
-            ...List.generate(summary.perRepScores.length, (i) {
-              final score = summary.perRepScores[i];
-              return _RepBar(repIndex: i + 1, score: score);
-            }),
-            const SizedBox(height: 20),
-          ],
-
-          // ── Common errors ──────────────────────────────────────────────
-          if (summary.commonErrors.isNotEmpty) ...[
-            _SectionHeader('Areas to Improve'),
-            const SizedBox(height: 10),
-            ...summary.commonErrors.entries.map(
-              (e) => _ErrorChip(joint: e.key, repCount: e.value),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // ── LLM feedback ───────────────────────────────────────────────
           _SectionHeader("Coach's Feedback"),
           const SizedBox(height: 10),
-          _FeedbackCard(feedback: summary.llmFeedback),
-          const SizedBox(height: 32),
+          _FeedbackCard(feedback: report.sessionFeedback),
+          const SizedBox(height: 20),
 
-          // ── Back button ────────────────────────────────────────────────
+          if (report.reps.isNotEmpty) ...[
+            _SectionHeader('Per-Rep Breakdown'),
+            const SizedBox(height: 10),
+            ...report.reps.asMap().entries.map(
+                  (entry) => _RepCard(index: entry.key + 1, rep: entry.value),
+                ),
+            const SizedBox(height: 20),
+          ],
+
           ElevatedButton.icon(
             onPressed: () {
               provider.reset();
-              Navigator.of(context).popUntil((r) => r.isFirst ||
-                  r.settings.name == '/plan');
+              Navigator.of(context).popUntil(
+                (r) => r.isFirst || r.settings.name == '/plan',
+              );
             },
             icon: const Icon(Icons.arrow_back),
-            label: const Text('Back to Plan'),
+            label: const Text('Done'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF38BDF8),
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
@@ -107,221 +91,128 @@ class _SectionHeader extends StatelessWidget {
       );
 }
 
-class _ScoreCard extends StatelessWidget {
-  final FormSessionSummary summary;
-  const _ScoreCard({required this.summary});
-
-  Color get _scoreColor {
-    if (summary.averageQuality >= 0.7) return Colors.green;
-    if (summary.averageQuality >= 0.4) return Colors.amber;
-    return Colors.red;
-  }
+class _SummaryCard extends StatelessWidget {
+  final FormReport report;
+  const _SummaryCard({required this.report});
 
   @override
   Widget build(BuildContext context) {
+    final kie = report.detectedCount('KIE');
+    final kfe = report.detectedCount('KFE');
+    final clean = kie == 0 && kfe == 0;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Circular score gauge
-          SizedBox(
-            width: 90,
-            height: 90,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: summary.averageQuality,
-                  strokeWidth: 8,
-                  backgroundColor: Colors.white12,
-                  valueColor: AlwaysStoppedAnimation<Color>(_scoreColor),
-                ),
-                Text(
-                  summary.qualityPercent,
-                  style: TextStyle(
-                    color: _scoreColor,
-                    fontWeight: FontWeight.bold,
+          Row(
+            children: [
+              Icon(
+                clean ? Icons.check_circle : Icons.warning_amber_rounded,
+                color: clean ? Colors.green : Colors.amber,
+                size: 28,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  report.exerciseDisplay,
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 20),
-          // Stats column
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  summary.exerciseDisplay,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                _statRow(Icons.repeat,         'Reps: ${summary.totalReps}'),
-                _statRow(Icons.timer,           'Duration: ${summary.durationSeconds}s'),
-                _statRow(Icons.trending_up,     'Trend: ${summary.qualityTrend}'),
-              ],
-            ),
+          const SizedBox(height: 12),
+          _statRow(Icons.fact_check, '${report.totalReps} analyzed'),
+          _statRow(
+            Icons.compare_arrows,
+            'Knees caving inward: ${kie > 0 ? "$kie flagged" : "none"}',
+            color: kie > 0 ? Colors.redAccent : Colors.white70,
+          ),
+          _statRow(
+            Icons.swap_vert,
+            'Knees too far forward: ${kfe > 0 ? "$kfe flagged" : "none"}',
+            color: kfe > 0 ? Colors.redAccent : Colors.white70,
           ),
         ],
       ),
     );
   }
 
-  Widget _statRow(IconData icon, String text) => Padding(
-        padding: const EdgeInsets.only(top: 4),
+  Widget _statRow(IconData icon, String text, {Color color = Colors.white70}) =>
+      Padding(
+        padding: const EdgeInsets.only(top: 6),
         child: Row(
           children: [
-            Icon(icon, color: Colors.white54, size: 14),
-            const SizedBox(width: 5),
-            Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            Icon(icon, color: Colors.white54, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(text, style: TextStyle(color: color, fontSize: 13)),
+            ),
           ],
         ),
       );
 }
 
-class _RepBar extends StatelessWidget {
-  final int repIndex;
-  final double score;
-  const _RepBar({required this.repIndex, required this.score});
-
-  Color get _color {
-    if (score >= 0.7) return Colors.green;
-    if (score >= 0.4) return Colors.amber;
-    return Colors.red;
-  }
+class _RepCard extends StatelessWidget {
+  final int index;
+  final FormRep rep;
+  const _RepCard({required this.index, required this.rep});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 50,
-            child: Text('Rep $repIndex',
-                style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          ),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: score,
-                backgroundColor: Colors.white12,
-                valueColor: AlwaysStoppedAnimation<Color>(_color),
-                minHeight: 10,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 38,
-            child: Text(
-              '${(score * 100).round()}%',
-              style: TextStyle(color: _color, fontSize: 12, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.right,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final detected = rep.detectedErrors;
+    final clean = detected.isEmpty;
+    final borderColor =
+        clean ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3);
 
-class _RepDetailCard extends StatelessWidget {
-  final RepResult rep;
-  const _RepDetailCard({required this.rep});
-
-  Color get _color {
-    if (rep.quality >= 0.7) return Colors.green;
-    if (rep.quality >= 0.4) return Colors.amber;
-    return Colors.red;
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _color.withValues(alpha: 0.25)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row — rep number + quality bar + percentage
           Row(
             children: [
-              SizedBox(
-                width: 50,
-                child: Text(
-                  'Rep ${rep.repIdx}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+              Text(
+                'Rep ${rep.repNumber ?? index}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: rep.quality,
-                    backgroundColor: Colors.white12,
-                    valueColor: AlwaysStoppedAnimation<Color>(_color),
-                    minHeight: 8,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 38,
-                child: Text(
-                  rep.qualityPercent,
+              const Spacer(),
+              if (clean)
+                const Text(
+                  'Clean',
                   style: TextStyle(
-                    color: _color,
+                    color: Colors.greenAccent,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
-                  textAlign: TextAlign.right,
                 ),
-              ),
             ],
           ),
-          // Top errors row
-          if (rep.topErrors.isNotEmpty) ...[
-            const SizedBox(height: 6),
+          if (!clean) ...[
+            const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 4,
-              children: rep.topErrors.map((e) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(
-                    '${e.name} ${(e.value * 100).round()}%',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                    ),
-                  ),
-                );
-              }).toList(),
+              children: detected.map((e) => _ErrorChip(error: e)).toList(),
             ),
           ],
         ],
@@ -330,36 +221,27 @@ class _RepDetailCard extends StatelessWidget {
   }
 }
 
-
 class _ErrorChip extends StatelessWidget {
-  final String joint;
-  final int repCount;
-  const _ErrorChip({required this.joint, required this.repCount});
+  final FormError error;
+  const _ErrorChip({required this.error});
 
   @override
   Widget build(BuildContext context) {
-    final color = repCount >= 3 ? Colors.red : Colors.amber;
+    final color = switch (error.severityWord) {
+      'strong' => Colors.redAccent.shade400,
+      'moderate' => Colors.orangeAccent.shade400,
+      _ => Colors.amberAccent.shade400,
+    };
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.12),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha:0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded, color: color, size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(joint,
-                style: const TextStyle(color: Colors.white, fontSize: 13)),
-          ),
-          Text(
-            '$repCount rep${repCount > 1 ? "s" : ""}',
-            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-        ],
+      child: Text(
+        '${error.label} (${error.severityWord})',
+        style: const TextStyle(color: Colors.white, fontSize: 11),
       ),
     );
   }
@@ -376,19 +258,21 @@ class _FeedbackCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha:0.4)),
+        border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.fitness_center,
-              color: Color(0xFF38BDF8), size: 20),
+          const Icon(Icons.fitness_center, color: Color(0xFF38BDF8), size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               feedback.isNotEmpty ? feedback : 'Great work! Keep it up.',
               style: const TextStyle(
-                  color: Colors.white70, fontSize: 14, height: 1.5),
+                color: Colors.white70,
+                fontSize: 14,
+                height: 1.5,
+              ),
             ),
           ),
         ],

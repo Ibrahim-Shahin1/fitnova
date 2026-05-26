@@ -57,7 +57,9 @@ class ApiService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  static Future<FormSessionSummary> uploadFormVideo({
+  /// Upload a clip to POST /analyze-form-video and parse the D-05 UploadResponse
+  /// into a [FormReport] (exercise, total_reps, per-rep KIE/KFE detections).
+  static Future<FormReport> uploadFormVideo({
     required String filePath,
     required String exerciseName,
   }) async {
@@ -71,7 +73,7 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Upload failed: ${response.statusCode} ${response.body}');
     }
-    return FormSessionSummary.fromJson(
+    return FormReport.fromUpload(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
   }

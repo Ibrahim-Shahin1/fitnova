@@ -9,9 +9,14 @@ import 'package:provider/provider.dart';
 import '../models/form_models.dart';
 import '../providers/form_session_provider.dart';
 import '../services/form_session_service.dart';
-import '../widgets/mismatch_banner.dart';
-import '../widgets/skeleton_painter.dart';
 
+/// Live squat form analysis (D-05 backend).
+///
+/// The PyTorch backend produces NO pose/skeleton/quality — only periodic KIE/KFE
+/// detections. The server fires a `rep_result` on a sliding-window clock (~every
+/// few seconds once enough frames buffer), NOT once per actual rep — so these are
+/// surfaced as periodic "form checks", not a rep counter (honesty: the model does
+/// not detect rep boundaries live).
 class FormCheckScreen extends StatefulWidget {
   final String? exerciseHint;
   const FormCheckScreen({super.key, this.exerciseHint});
@@ -25,30 +30,17 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
   final _formService = FormSessionService();
   StreamSubscription<dynamic>? _wsSub;
 
-  bool _cameraReady  = false;
+  bool _cameraReady = false;
   bool _sessionActive = false;
   String? _cameraError;
 
-  // Periodic JPEG capture timer.
-  // We do NOT use `startImageStream`: on Android it delivers YUV regardless of
-  // the requested ImageFormatGroup, and the backend's cv2.imdecode silently
-  // fails on YUV bytes (decode_error → empty UI). Polling `takePicture()`
-  // returns real JPEG-encoded files that the backend can actually decode.
-  //
-  // ResolutionPreset.medium (480×640) — bumped up from low on 2026-05-11
-  // because the .low preview looked pixelated when stretched to fullscreen
-  // (BoxFit.cover). takePicture() latency is ~150 ms at medium vs ~70 ms at
-  // low — still feasible, and the preview looks dramatically better.
+  // Periodic JPEG capture via takePicture() (NOT startImageStream — that delivers
+  // YUV on Android which the backend's cv2.imdecode can't decode).
   Timer? _frameTimer;
   bool _capturingFrame = false;
-  // Interval dropped from 150ms to 100ms (target 10 fps) to make the
-  // skeleton+metrics overlay feel less laggy. takePicture() is the
-  // bottleneck — the timer fires but actual captures gate on
-  // _capturingFrame and isTakingPicture so we never queue.
-  static const _frameIntervalMs = 100;
+  static const _frameIntervalMs = 100; // ~10 fps capture
   int _framesSent = 0;
   int _framesFailed = 0;
-  bool _isFrontCamera = false;
 
   @override
   void initState() {
@@ -74,7 +66,7 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
       return;
     }
 
-    // Prefer front camera for self-recording; fall back to first available
+    // Prefer front camera for self-recording; fall back to first available.
     final camera = cameras.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.front,
       orElse: () => cameras.first,
@@ -82,7 +74,7 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
 
     final controller = CameraController(
       camera,
-      ResolutionPreset.medium,    // 480×640 — better preview for fullscreen UI
+      ResolutionPreset.medium,
       enableAudio: false,
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
@@ -93,8 +85,6 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
         setState(() {
           _cameraController = controller;
           _cameraReady = true;
-          _isFrontCamera =
-              camera.lensDirection == CameraLensDirection.front;
         });
       }
     } catch (e) {
@@ -102,7 +92,7 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
     }
   }
 
-  // ── Session control ────────────────────────────────────────────────────────
+  // ── Session control ──────────────────────────────────────────────────────────
 
   void _startSession() {
     final provider = context.read<FormSessionProvider>();
@@ -114,9 +104,6 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
       onError: (e) => provider.setError(e.toString()),
     );
 
-    // Periodic JPEG capture via takePicture(). This is the reliable cross-
-    // platform path — startImageStream delivers YUV which the backend can't
-    // decode without metadata. 4 fps is plenty for our analysis cadence.
     _framesSent = 0;
     _framesFailed = 0;
     _frameTimer = Timer.periodic(
@@ -138,7 +125,7 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
   Future<void> _captureAndSendFrame() async {
     if (!_sessionActive) return;
     if (_cameraController == null || !_cameraController!.value.isInitialized) return;
-    if (_capturingFrame) return; // skip if previous still pending
+    if (_capturingFrame) return;
     if (_cameraController!.value.isTakingPicture) return;
 
     _capturingFrame = true;
@@ -147,7 +134,6 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
       final bytes = await File(xfile.path).readAsBytes();
       _formService.sendFrame(bytes, DateTime.now().millisecondsSinceEpoch);
       _framesSent += 1;
-      // Best-effort cleanup of the temp JPEG file
       try {
         await File(xfile.path).delete();
       } catch (_) {}
@@ -164,22 +150,19 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
     final type = msg['type'] as String?;
     final provider = context.read<FormSessionProvider>();
 
-    if (type == 'frame_result') {
-      provider.updateFrame(FormFrameResult.fromJson(msg));
-      // Parse mismatch warning if present
-      if (msg.containsKey('mismatch_warning')) {
-        final warning = msg['mismatch_warning'] as Map<String, dynamic>;
-        provider.setMismatchWarning(
-          selected: warning['selected'] as String? ?? '',
-          predicted: warning['predicted'] as String? ?? '',
-          confidence: (warning['confidence'] as num?)?.toDouble() ?? 0.0,
-        );
-      }
-    } else if (type == 'session_summary') {
-      provider.setSummary(FormSessionSummary.fromJson(msg));
-      Navigator.of(context).pushReplacementNamed('/form-results');
-    } else if (type == 'error') {
-      provider.setError(msg['message'] as String? ?? 'Unknown error');
+    switch (type) {
+      case 'rep_result':
+        // A periodic form check fired (NOT a per-rep boundary).
+        provider.addLiveRep(FormRep.fromJson(msg));
+        break;
+      case 'session_summary':
+        provider.setReport(FormReport.fromSession(msg));
+        Navigator.of(context).pushReplacementNamed('/form-results');
+        break;
+      case 'error':
+        provider.setError(msg['message'] as String? ?? 'Unknown error');
+        break;
+      // 'session_started' and any unknown types are ignored.
     }
   }
 
@@ -197,8 +180,6 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      // Full-screen camera: AppBar floats over the preview with transparent
-      // background. extendBodyBehindAppBar lets the camera fill behind it.
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.black.withValues(alpha: 0.35),
@@ -210,12 +191,8 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Layer 1: full-screen camera preview (cover-fit) ────────────────
           _buildFullScreenCamera(),
-          // ── Layer 2: skeleton overlay (matches camera coords) ──────────────
-          _buildSkeletonOverlay(),
-          // ── Layer 3: floating UI overlays ──────────────────────────────────
-          // Top-center: BIG REP COUNTER (the headline metric)
+          // Top-center: form-check counter (periodic checks, NOT reps).
           Positioned(
             top: kToolbarHeight + MediaQuery.of(context).padding.top + 12,
             left: 0,
@@ -223,54 +200,23 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
             child: Center(
               child: Consumer<FormSessionProvider>(
                 builder: (ctx, provider, _) =>
-                    _RepCounterPill(count: provider.liveRepCount),
+                    _FormChecksPill(count: provider.formCheckCount),
               ),
             ),
           ),
-          // Top-left: exercise label (small chip, doesn't compete with rep counter)
+          // Below counter: latest form-check result banner.
           Positioned(
-            top: kToolbarHeight + MediaQuery.of(context).padding.top + 8,
+            top: kToolbarHeight + MediaQuery.of(context).padding.top + 72,
             left: 12,
+            right: 12,
             child: Consumer<FormSessionProvider>(
-              builder: (ctx, provider, _) => _LabelChip(
-                text: provider.liveExercise.replaceAll('_', ' '),
+              builder: (ctx, provider, _) => _LatestCheckBanner(
+                rep: provider.lastRep,
+                active: _sessionActive,
               ),
             ),
           ),
-          // Top-right: small phase indicator (STANDING / DESCENDING / ASCENDING)
-          // Only shown when geometry has calibrated.
-          Positioned(
-            top: kToolbarHeight + MediaQuery.of(context).padding.top + 8,
-            right: 12,
-            child: Consumer<FormSessionProvider>(
-              builder: (ctx, provider, _) {
-                if (!provider.liveGeometricReady || provider.livePhase == null) {
-                  return const SizedBox.shrink();
-                }
-                return _PhasePill(phase: provider.livePhase!);
-              },
-            ),
-          ),
-          // Top (below counter): mismatch warning banner
-          Positioned(
-            top: kToolbarHeight + MediaQuery.of(context).padding.top + 80,
-            left: 12,
-            right: 12,
-            child: Consumer<FormSessionProvider>(
-              builder: (ctx, provider, _) {
-                if (!provider.hasMismatchWarning) {
-                  return const SizedBox.shrink();
-                }
-                return MismatchBanner(
-                  selected: provider.mismatchSelected,
-                  predicted: provider.mismatchPredicted,
-                  confidence: provider.mismatchConfidence,
-                  onDismiss: () => provider.dismissMismatch(),
-                );
-              },
-            ),
-          ),
-          // Bottom: floating controls + metrics
+          // Bottom: floating controls.
           Positioned(
             left: 0,
             right: 0,
@@ -285,7 +231,6 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
     );
   }
 
-  // ── Camera preview filling the entire screen (BoxFit.cover) ──────────────
   Widget _buildFullScreenCamera() {
     if (_cameraError != null) {
       return Center(
@@ -306,11 +251,6 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
       return const Center(child: CircularProgressIndicator(color: Colors.white));
     }
 
-    // The camera plugin reports previewSize in landscape (sensor) orientation.
-    // For portrait UI we swap width/height. FittedBox(fit: cover) then scales
-    // the natural-aspect preview to FILL the screen (cropping sides if the
-    // camera is more square than the screen). This is the standard pattern
-    // for full-screen camera preview in Flutter.
     return ClipRect(
       child: SizedBox.expand(
         child: FittedBox(
@@ -325,134 +265,41 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
     );
   }
 
-  // ── Skeleton overlay aligned to the same FittedBox crop ──────────────────
-  Widget _buildSkeletonOverlay() {
-    if (!_cameraReady || _cameraController == null) {
-      return const SizedBox.shrink();
-    }
-    final preview = _cameraController!;
-    final size = preview.value.previewSize;
-    if (size == null) return const SizedBox.shrink();
-
-    return Consumer<FormSessionProvider>(
-      builder: (context, provider, _) {
-        final jointErrorMap = buildJointErrorMap(provider.liveJointErrors);
-        return ClipRect(
-          child: SizedBox.expand(
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: size.height,
-                height: size.width,
-                child: provider.liveLandmarks == null
-                    ? const SizedBox.shrink()
-                    : CustomPaint(
-                        painter: SkeletonPainter(
-                          landmarks: provider.liveLandmarks,
-                          jointErrors: jointErrorMap,
-                          mirror: _isFrontCamera,
-                        ),
-                      ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // ── Floating bottom controls: active flags + quality LABEL + Start/Stop ──
-  // No percentages. Active flags are shown as severity-coloured chips
-  // (e.g. "Small Knee Caving"). The quality scalar collapses to a single
-  // categorical label (e.g. "Good Form"). All visual signals come from
-  // the backend's geometric rule layer.
   Widget _buildFloatingControls() {
-    return Consumer<FormSessionProvider>(
-      builder: (context, provider, _) {
-        final qualityLabel = provider.liveQualityLabel
-            ?? _qualityFallbackLabel(provider.liveQuality);
-        final qualityColor = _qualityColor(provider.liveQuality);
-        final flags = provider.liveActiveFlags;
-
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.85),
-              ],
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            Colors.black.withValues(alpha: 0.85),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _sessionActive
+                ? 'Checking your form every few seconds…'
+                : 'Stand side-on, full body in frame, then start.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          Center(
+            child: _StartStopButton(
+              isActive: _sessionActive,
+              onStart: _startSession,
+              onStop: _stopSession,
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Active red-flag chips (categorical labels). Empty when form
-              // is clean. Scrollable horizontally if many flags fire at once.
-              if (flags.isNotEmpty)
-                SizedBox(
-                  height: 32,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: flags.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 6),
-                    itemBuilder: (_, i) => _FlagChip(flag: flags[i]),
-                  ),
-                ),
-              if (flags.isNotEmpty) const SizedBox(height: 10),
-              // Quality label — single line, single colour, no number
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: qualityColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: qualityColor, width: 1.5),
-                  ),
-                  child: Text(
-                    qualityLabel,
-                    style: TextStyle(
-                      color: qualityColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Big start/stop button (centered)
-              Center(
-                child: _StartStopButton(
-                  isActive: _sessionActive,
-                  onStart: _startSession,
-                  onStop: _stopSession,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+        ],
+      ),
     );
-  }
-
-  // Fallback when backend doesn't send a quality_label (e.g. v6 only, no
-  // geometric layer for the selected exercise). Same buckets as backend.
-  static String _qualityFallbackLabel(double q) {
-    if (q >= 0.85) return 'Excellent Form';
-    if (q >= 0.70) return 'Good Form';
-    if (q >= 0.50) return 'Fair Form';
-    if (q >= 0.30) return 'Needs Work';
-    return 'Bad Form';
-  }
-
-  static Color _qualityColor(double q) {
-    if (q >= 0.70) return Colors.greenAccent.shade400;
-    if (q >= 0.40) return Colors.amberAccent.shade400;
-    return Colors.redAccent.shade400;
   }
 }
 
@@ -460,21 +307,141 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
 // Helper widgets
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _LabelChip extends StatelessWidget {
-  final String text;
-  const _LabelChip({required this.text});
+/// Top pill: number of periodic form checks completed this session.
+/// Labelled "CHECKS" (not "REPS") — the backend fires on a clock, not per rep.
+class _FormChecksPill extends StatelessWidget {
+  final int count;
+  const _FormChecksPill({required this.count});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$count',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              fontFeatures: [FontFeature.tabularFigures()],
+              height: 1.0,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Text(
+              'CHECKS',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Banner showing the most recent form check's KIE/KFE result.
+class _LatestCheckBanner extends StatelessWidget {
+  final FormRep? rep;
+  final bool active;
+  const _LatestCheckBanner({required this.rep, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!active && rep == null) return const SizedBox.shrink();
+
+    if (rep == null) {
+      return _wrap(
+        color: Colors.white24,
+        child: const Text(
+          'Analyzing your form…',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+      );
+    }
+
+    final detected = rep!.detectedErrors;
+    if (detected.isEmpty) {
+      return _wrap(
+        color: Colors.greenAccent.shade400,
+        child: const Text(
+          'Form looks clean',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    return _wrap(
+      color: Colors.redAccent.shade400,
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        alignment: WrapAlignment.center,
+        children: detected.map((e) => _ErrorChip(error: e)).toList(),
+      ),
+    );
+  }
+
+  Widget _wrap({required Color color, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Center(child: child),
+    );
+  }
+}
+
+/// Severity-coloured chip for a single detected error (no percentages — D-05).
+class _ErrorChip extends StatelessWidget {
+  final FormError error;
+  const _ErrorChip({required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (error.severityWord) {
+      'strong' => Colors.redAccent.shade400,
+      'moderate' => Colors.orangeAccent.shade400,
+      _ => Colors.amberAccent.shade400,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: color, size: 14),
+          const SizedBox(width: 5),
+          Text(
+            '${error.label} (${error.severityWord})',
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -492,7 +459,8 @@ class _StartStopButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = isActive ? Colors.redAccent.shade400 : Colors.greenAccent.shade400;
+    final bgColor =
+        isActive ? Colors.redAccent.shade400 : Colors.greenAccent.shade400;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -519,136 +487,6 @@ class _StartStopButton extends StatelessWidget {
             size: 38,
           ),
         ),
-      ),
-    );
-  }
-}
-
-
-/// Big top-of-screen rep counter pill. The headline number — visible from
-/// across the room. Uses a monospace digit slot so the number doesn't
-/// wobble when transitioning from 9 → 10.
-class _RepCounterPill extends StatelessWidget {
-  final int count;
-  const _RepCounterPill({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-            color: Colors.white.withValues(alpha: 0.25), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$count',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 38,
-              fontWeight: FontWeight.w900,
-              fontFeatures: [FontFeature.tabularFigures()],
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 4),
-            child: Text(
-              'REPS',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-/// Small status pill showing the current rep phase from the geometric layer.
-class _PhasePill extends StatelessWidget {
-  final String phase;
-  const _PhasePill({required this.phase});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (phase) {
-      'DESCENDING' => Colors.orangeAccent,
-      'ASCENDING'  => Colors.lightBlueAccent,
-      _            => Colors.white70,
-    };
-    // Friendly label
-    final label = switch (phase) {
-      'STANDING'   => 'READY',
-      'DESCENDING' => 'GOING DOWN',
-      'ASCENDING'  => 'COMING UP',
-      _            => phase,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1),
-      ),
-    );
-  }
-}
-
-
-/// Severity-coloured pill that shows a single active form flag's label
-/// (e.g. "Small Knee Caving"). Sized for horizontal scroll layout.
-class _FlagChip extends StatelessWidget {
-  final ActiveFlag flag;
-  const _FlagChip({required this.flag});
-
-  @override
-  Widget build(BuildContext context) {
-    // Three-tier colour: < 0.55 amber, < 0.85 orange, >= 0.85 red
-    final color = flag.severity >= 0.85
-        ? Colors.redAccent.shade400
-        : flag.severity >= 0.55
-            ? Colors.orangeAccent.shade400
-            : Colors.amberAccent.shade400;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color, width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.warning_amber_rounded, color: color, size: 14),
-          const SizedBox(width: 5),
-          Text(
-            flag.label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
       ),
     );
   }
