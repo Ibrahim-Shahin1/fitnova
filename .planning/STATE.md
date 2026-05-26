@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 Phase: 5 (Backend Inference Integration — Squat) COMPLETE + verified (passed). Next: Phase 6 (Overhead Press) — not started.
 Plan: Phase 5 = 5/5 plans. Squat detector served via upload (POST /analyze-form-video) + live (WS /ws/form-session), D-05 schema, knee-aware crop (D-11 fix). 24/24 tests + real-endpoint E2E green. Open follow-up: serving-threshold calibration (05-HUMAN-UAT.md, non-blocking).
-Status: executing (between phases — Phase 6 next)
-Last activity: 2026-05-26
+Status: executing (between phases — Phase 6 next; demo-prep on the Squat slice in progress)
+Last activity: 2026-05-26 — quick task 260526-wi7: Flutter form UI adapted to D-05 schema + exercise picker trimmed to three (demo-prep; awaiting on-device BlueStacks check + threshold calibration)
 
 Progress: [██████░░░░] 63%
 
@@ -98,6 +98,12 @@ None yet.
 ### Blockers/Concerns
 
 None yet.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260526-wi7 | Flutter form D-05 UI shim + exercise picker trim to three (demo-prep, 05-HUMAN-UAT #2) | 2026-05-26 | ab9fea1 | [260526-wi7-flutter-form-d05-ui-shim-and-exercise-pi](./quick/260526-wi7-flutter-form-d05-ui-shim-and-exercise-pi/) |
 
 ## Deferred Items
 
