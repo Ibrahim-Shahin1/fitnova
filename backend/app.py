@@ -19,9 +19,13 @@ from __future__ import annotations
 import base64
 import io
 import logging
+from collections import deque
 from contextlib import asynccontextmanager
 
 import os
+
+import cv2
+import numpy as np
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +38,11 @@ from backend.services.chat_service import ChatService
 from backend.services.llm_adapter import LLMAdapter
 from backend.services.recommender import Recommender
 from backend.services.coach_service import CoachChatService
+from backend.services.rep_segmenter import (
+    LiveWindowTrigger,
+    LIVE_REP_WINDOW_FRAMES,
+    LIVE_BUFFER_MAX_FRAMES,
+)
 
 from backend.deps.auth import AuthUser, require_user
 from backend.routers.plan import router as plan_router
@@ -168,6 +177,152 @@ class SessionSummary(BaseModel):
     total_reps: int
     rep_results: list[RepResult]
     session_feedback: str
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Live WebSocket session — SquatLiveSession (Plan 04, API-04)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Deterministic feedback templates (D-10, NO LLM).
+_ERROR_FEEDBACK = {
+    "KIE": {
+        True: "Knees caving inward — {severity} signal detected.",
+        False: "Knees inward error not detected.",
+    },
+    "KFE": {
+        True: "Knees traveling too far forward — {severity} signal detected.",
+        False: "Knee forward error not detected.",
+    },
+}
+
+
+class SquatLiveSession:
+    """Per-WebSocket-connection session for live squat form analysis (API-04).
+
+    Buffers incoming base64-decoded JPEG frames in a rolling deque, fires the
+    LiveWindowTrigger sliding-window gate, classifies each triggered window
+    single-seed (low-latency — D-08), and accumulates per-rep results.
+
+    Thread safety: NOT thread-safe.  Each WebSocket connection must use its own
+    SquatLiveSession instance (constructed fresh in the WS handler).
+    Model is read-only — no shared mutable inference state (T-05-15).
+
+    Buffer cap: deque(maxlen=LIVE_BUFFER_MAX_FRAMES=90) — evicts old frames,
+    caps per-session memory at ~3 s of frames (T-05-14).
+    """
+
+    def __init__(self, service) -> None:
+        self._service = service
+        # Raw RGB np.ndarray frames from cv2; LIVE_BUFFER_MAX_FRAMES caps memory (T-05-14).
+        self._buffer: deque = deque(maxlen=LIVE_BUFFER_MAX_FRAMES)
+        self._trigger = LiveWindowTrigger()
+        self._rep_results: list[dict] = []
+        self._rep_number: int = 0
+
+    async def add_frame(self, jpeg_bytes: bytes, timestamp_ms: int) -> dict | None:
+        """Decode a JPEG, buffer it, and classify if the sliding-window trigger fires.
+
+        Args:
+            jpeg_bytes:    raw JPEG bytes (decoded from base64 by the WS handler).
+            timestamp_ms:  client-side timestamp in milliseconds (unused internally
+                           but accepted for protocol compatibility).
+
+        Returns:
+            A rep_result dict when the trigger fires (classification complete), or
+            None when the trigger has not fired (frame buffered only).
+
+        Security (T-05-10):
+            If cv2.imdecode returns None (malformed JPEG), the frame is silently
+            dropped and None is returned — the session stays alive.
+        """
+        # T-05-10: malformed-JPEG guard — never pass None into the model.
+        frame = cv2.imdecode(np.frombuffer(jpeg_bytes, np.uint8), cv2.IMREAD_COLOR)
+        if frame is None:
+            return None
+
+        # BGR→RGB conversion before buffering (model trained on RGB).
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self._buffer.append(frame_rgb)
+
+        if self._trigger.should_fire(len(self._buffer)):
+            # Stack the last LIVE_REP_WINDOW_FRAMES frames: [32, H, W, 3] HWC.
+            window_frames = list(self._buffer)[-LIVE_REP_WINDOW_FRAMES:]
+            stacked = np.stack(window_frames)  # [32, H, W, 3] HWC uint8
+
+            # Permute HWC → TCHW: [32, H, W, 3] → [32, 3, H, W].
+            # classify_clip_async (kneeaware_spatial_val path) expects [T, C, H, W].
+            import torch  # lazy import — torch is heavy; keep module-level imports slim
+            frames_tchw = torch.from_numpy(stacked).permute(0, 3, 1, 2).numpy()
+
+            self._rep_number += 1
+            # Single-seed for live latency (D-08 — ~0.93 s; T-05-11 offloaded to thread).
+            result = await self._service.classify_clip_async(frames_tchw, n_seeds=1)
+            self._rep_results.append(result)
+            return {"type": "rep_result", "rep_number": self._rep_number, **result}
+
+        return None
+
+    def end_session(self) -> dict:
+        """Finalize the session and return a deterministic session_summary dict (D-10).
+
+        session_feedback is assembled from per-rep KIE/KFE detections using
+        _ERROR_FEEDBACK templates — no LLM call (D-10).
+
+        Returns:
+            Dict matching the SessionSummary D-05 shape:
+              type, exercise, total_reps, rep_results, session_feedback.
+        """
+        n_reps = self._rep_number
+        feedback = self._build_feedback()
+        return {
+            "type": "session_summary",
+            "exercise": "squat",
+            "total_reps": n_reps,
+            "rep_results": self._rep_results,
+            "session_feedback": feedback,
+        }
+
+    def _build_feedback(self) -> str:
+        """Build deterministic session feedback from per-rep detections (D-10, NO LLM)."""
+        if not self._rep_results:
+            return (
+                "Session complete. No reps were classified — try recording for longer "
+                "or ensure your full body is visible."
+            )
+
+        n = len(self._rep_results)
+
+        # Count reps where each error type was detected.
+        kie_count = sum(
+            1 for r in self._rep_results
+            for e in r.get("errors", [])
+            if e.get("type") == "KIE" and e.get("detected")
+        )
+        kfe_count = sum(
+            1 for r in self._rep_results
+            for e in r.get("errors", [])
+            if e.get("type") == "KFE" and e.get("detected")
+        )
+
+        lines: list[str] = [f"Session complete — {n} rep(s) analyzed."]
+
+        if kie_count > 0:
+            lines.append(
+                f"Knees caving inward detected on {kie_count} of {n} rep(s). "
+                "Focus on pushing your knees out in line with your toes throughout the squat."
+            )
+        else:
+            lines.append("Good knee tracking — no inward caving detected.")
+
+        if kfe_count > 0:
+            lines.append(
+                f"Knees traveling too far forward detected on {kfe_count} of {n} rep(s). "
+                "Try initiating the squat by pushing your hips back first."
+            )
+        else:
+            lines.append("Good depth control — knee forward error not detected.")
+
+        return " ".join(lines)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -342,20 +497,68 @@ async def chat(req: ChatRequest, request: Request):
 
 @app.websocket("/ws/form-session")
 async def form_session_ws(websocket: WebSocket):
-    """
-    Real-time form analysis via WebSocket.
-    Full implementation wired in Plan 04 (SquatLiveSession).
+    """Real-time squat form analysis via WebSocket (API-04).
+
+    Protocol:
+      1. Client sends {"type": "start_session", "exercise_hint": "squat"}
+         Server replies {"type": "session_started"}
+
+      2. Client streams frames:
+         {"type": "frame", "data": "<base64-JPEG>", "timestamp_ms": <int>}
+         Server replies {"type": "rep_result", "rep_number": N, "exercise": "squat",
+                         "errors": [...]} ONLY when the sliding-window trigger fires
+         (i.e. NOT on every frame — conditional-send).
+
+      3. Client sends {"type": "end_session"}
+         Server replies {"type": "session_summary", "exercise": "squat",
+                         "total_reps": N, "rep_results": [...], "session_feedback": "..."}
+         and closes the loop.
+
+    Per-connection isolation: a fresh SquatLiveSession is constructed for each
+    accepted WebSocket (T-05-15 — no shared mutable state).
+    Malformed JPEG frames are silently dropped; the session continues (T-05-10).
     """
     await websocket.accept()
+    session: SquatLiveSession | None = None
     try:
         while True:
             data = await websocket.receive_json()
             msg_type = data.get("type")
-            if msg_type == "end_session":
-                await websocket.send_json({"type": "error", "message": "Live session not yet available — see Plan 04"})
+
+            if msg_type == "start_session":
+                # Construct a fresh per-connection session (T-05-15).
+                session = SquatLiveSession(websocket.app.state.squat_form_service)
+                await websocket.send_json({"type": "session_started"})
+
+            elif msg_type == "frame":
+                if session is None:
+                    await websocket.send_json(
+                        {"type": "error", "message": "Send start_session before frame"}
+                    )
+                    continue
+                jpeg_bytes = base64.b64decode(data["data"])
+                result = await session.add_frame(
+                    jpeg_bytes, int(data.get("timestamp_ms", 0))
+                )
+                # Conditional-send: emit rep_result ONLY when the trigger fired
+                # (add_frame returns None on buffered-only frames).
+                if result is not None:
+                    await websocket.send_json(result)
+
+            elif msg_type == "end_session":
+                if session is None:
+                    await websocket.send_json(
+                        {"type": "error", "message": "No active session to end"}
+                    )
+                else:
+                    await websocket.send_json(session.end_session())
                 break
+
             else:
-                await websocket.send_json({"type": "error", "message": "Live session not yet available — see Plan 04"})
+                await websocket.send_json(
+                    {"type": "error", "message": f"Unknown message type: {msg_type!r}"}
+                )
+
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected.")
     except Exception as exc:
