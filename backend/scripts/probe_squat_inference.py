@@ -137,18 +137,20 @@ def main() -> None:
     print("-" * 70)
     print(f"Clip path: {clip_path}")
 
+    import cv2
     import torch
-    from backend.training.aqa.datasets.transforms import (
-        decode_clip,
-        uniform_sample_indices,
-    )
-    import torchvision.io
+    from backend.training.aqa.datasets.transforms import uniform_sample_indices
+    from backend.services.clip_decode import decode_clip_cv2
 
-    # Probe frame count
-    print("Probing frame count via read_video_timestamps ...")
-    pts_list, video_fps = torchvision.io.read_video_timestamps(clip_path, pts_unit="sec")
-    total_frames = len(pts_list)
-    fps = float(video_fps) if video_fps else 30.0
+    # Frame count via cv2 — torchvision 0.27 removed read_video / read_video_timestamps,
+    # so the training decode_clip is unusable on the serving machine. cv2 is the only
+    # available decoder (see backend/services/clip_decode.py).
+    print("Probing frame count via cv2.VideoCapture ...")
+    _cap = cv2.VideoCapture(clip_path)
+    total_frames = int(_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    video_fps = float(_cap.get(cv2.CAP_PROP_FPS))
+    _cap.release()
+    fps = video_fps if video_fps else 30.0
     duration_s = total_frames / fps if fps > 0 else 0.0
     print(f"  total_frames: {total_frames}  |  fps: {fps:.1f}  |  duration: {duration_s:.2f} s")
 
@@ -161,9 +163,10 @@ def main() -> None:
     indices = uniform_sample_indices(total_frames, target=32, jitter=0)
     print(f"  indices[:8]: {indices[:8].tolist()} ... {indices[-4:].tolist()}")
 
-    # Decode
-    print("Decoding clip window ...")
-    frames_tchw = decode_clip(clip_path, indices)  # uint8 [32, 3, H, W]
+    # Decode via cv2 (BGR->RGB, same sampled indices) — parity-approx of the training
+    # read_video decode; spatial_val (resize/crop/Kinetics-norm) runs identically downstream.
+    print("Decoding clip via cv2 (decode_clip_cv2) ...")
+    frames_tchw = decode_clip_cv2(clip_path, indices)  # uint8 [32, 3, H, W] RGB
     print(f"  decoded shape: {tuple(frames_tchw.shape)}  dtype: {frames_tchw.dtype}")
 
     frames_np = frames_tchw.numpy()  # [32, 3, H, W] uint8
