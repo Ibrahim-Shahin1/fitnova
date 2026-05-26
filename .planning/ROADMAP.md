@@ -10,7 +10,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 - [x] **Phase 2: Squat Data Pipeline & Colab Harness** - PyTorch loaders + a resumable Colab training harness  *(complete 2026-05-20)*
 - [x] **Phase 3: Squat Supervised Baseline** - R(2+1)D-18 baseline for KIE/KFE, F1 on the official split  *(complete 2026-05-20)*
 - [x] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison  *(complete 2026-05-25)*
-- [ ] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API
+- [x] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API (completed 2026-05-26)
 - [ ] **Phase 6: Overhead Press** - Extend the video pipeline to OHP Elbow/Knees errors
 - [ ] **Phase 7: Image-Based Errors (CVCSPC)** - Shallow-Squat and Barbell Row detectors
 - [ ] **Phase 8: Ensemble, Evaluation & Visualization Pack** - Final integration and the comparison deliverable
@@ -127,7 +127,7 @@ Plans:
 
 **Wave 4**
 
-- [ ] 05-05-PLAN.md (wave 4) — archive the old TF+MediaPipe form subsystem (D-06, git mv, reversible) + visualization (Squat KIE/KFE overlay on a sample clip)
+- [x] 05-05-PLAN.md (wave 4) — archive the old TF+MediaPipe form subsystem (D-06, git mv, reversible) + visualization (Squat KIE/KFE overlay on a sample clip)
 
 ### Phase 6: Overhead Press
 
@@ -179,7 +179,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Squat Data Pipeline & Colab Harness | 1/1 | Complete | 2026-05-20 |
 | 3. Squat Supervised Baseline | 1/1 | Complete | 2026-05-20 |
 | 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
-| 5. Backend Inference Integration (Squat) | 4/5 | In Progress|  |
+| 5. Backend Inference Integration (Squat) | 5/5 | Complete   | 2026-05-26 |
 | 6. Overhead Press | 0/TBD | Not started | - |
 | 7. Image-Based Errors (CVCSPC) | 0/TBD | Not started | - |
 | 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |

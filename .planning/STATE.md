@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Completed 05-02: kneeaware_spatial_val wired; D-11 fix validated; 8/8 tests green"
-last_updated: "2026-05-26T14:44:44.631Z"
+status: verifying
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-05-26T15:06:58.296Z"
 last_activity: 2026-05-26
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 13
-  completed_plans: 11
-  percent: 38
+  completed_plans: 12
+  percent: 50
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 Phase: 05 (Backend Inference Integration (Squat)) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-26
 
 Progress: [█████░░░░░] 50%
@@ -55,6 +55,7 @@ Progress: [█████░░░░░] 50%
 | Phase 05 P01 | 437 | 3 tasks | 3 files |
 | Phase 05 P02 | 60 | 3 tasks | 4 files |
 | Phase 05 P03 | 15 | 2 tasks | 3 files |
+| Phase 05-backend-inference-integration-squat P05 | 65 | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Per-connection SquatLiveSession per WebSocket accept — fresh instance isolates mutable buffer state
 - [Phase ?]: Single-seed classify_clip_async(n_seeds=1) for low-latency live inference (~0.93s per rep — D-08)
 - [Phase ?]: Deterministic session_summary feedback from KIE/KFE counts, no LLM (D-10)
+- [Phase ?]: git rm --cached after git mv to untrack archived weights — gitignore only applies to untracked files
+- [Phase ?]: render_squat_result.py uses decode_clip_cv2 (cv2 backend) — torchvision 0.27 removed read_video; KFE detected=True on BadSquat_45 confidence=0.4817
+- [Phase ?]: API-01 closed: old TF+MediaPipe form subsystem reversibly archived; new PyTorch SquatFormService is the sole form-correction runtime
 
 ### Pending Todos
 
@@ -105,6 +109,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-26T14:44:44.624Z
-Stopped at: Completed 05-02: kneeaware_spatial_val wired; D-11 fix validated; 8/8 tests green
+Last session: 2026-05-26T15:06:58.290Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
