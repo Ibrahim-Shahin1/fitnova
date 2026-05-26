@@ -151,8 +151,11 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
     final provider = context.read<FormSessionProvider>();
 
     switch (type) {
+      case 'analyzing':
+        // A rep ended; the backend is running the ~1.5s classification.
+        provider.setAnalyzing();
+        break;
       case 'rep_result':
-        // A periodic form check fired (NOT a per-rep boundary).
         provider.addLiveRep(FormRep.fromJson(msg));
         break;
       case 'session_summary':
@@ -213,6 +216,7 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
               builder: (ctx, provider, _) => _LatestCheckBanner(
                 rep: provider.lastRep,
                 active: _sessionActive,
+                analyzing: provider.analyzing,
               ),
             ),
           ),
@@ -284,7 +288,7 @@ class _FormCheckScreenState extends State<FormCheckScreen> {
         children: [
           Text(
             _sessionActive
-                ? 'Checking your form every few seconds…'
+                ? 'Do a rep, then pause — you\'ll get feedback after each rep.'
                 : 'Stand side-on, full body in frame, then start.',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70, fontSize: 13),
@@ -358,17 +362,41 @@ class _FormChecksPill extends StatelessWidget {
 class _LatestCheckBanner extends StatelessWidget {
   final FormRep? rep;
   final bool active;
-  const _LatestCheckBanner({required this.rep, required this.active});
+  final bool analyzing;
+  const _LatestCheckBanner({
+    required this.rep,
+    required this.active,
+    required this.analyzing,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (!active && rep == null) return const SizedBox.shrink();
 
+    if (analyzing) {
+      return _wrap(
+        color: Colors.lightBlueAccent,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 10),
+            Text('Analyzing rep…',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
+    }
+
     if (rep == null) {
       return _wrap(
         color: Colors.white24,
         child: const Text(
-          'Analyzing your form…',
+          "Do a squat rep, then pause — I'll analyze it.",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       );

@@ -43,8 +43,18 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 LIVE_REP_WINDOW_FRAMES: int = 32     # clip window sent to the classifier per trigger
-LIVE_MIN_GAP_FRAMES: int = 45        # ~1.5 s @ 30fps minimum gap between triggers
+LIVE_MIN_GAP_FRAMES: int = 45        # (legacy LiveWindowTrigger) min gap between triggers
 LIVE_BUFFER_MAX_FRAMES: int = 90     # rolling deque depth (~3 s of frames)
+
+# Live rep-end detection (motion-energy state machine — replaces the fixed clock so
+# feedback fires right after the rep, on the rep's frames, not on a timer).
+LIVE_REP_ACTIVE_FACTOR: float = 1.8   # "moving" when energy > factor x running baseline
+LIVE_REP_MIN_ENERGY: float = 4.0      # abs floor (0-255 gray) so sensor noise never fires
+LIVE_REP_MIN_ACTIVE_FRAMES: int = 12  # min motion span to count as a rep (~0.4-0.5 s)
+LIVE_REP_SETTLE_FRAMES: int = 5       # frames settled below threshold => rep ended
+LIVE_REP_COOLDOWN_FRAMES: int = 8     # ignore frames right after firing (no double-fire)
+LIVE_REP_MAX_WINDOW_FRAMES: int = 64  # cap the classified rep window
+LIVE_BASELINE_DECAY: float = 0.9      # EMA decay for the resting-energy baseline
 
 DEFAULT_MIN_REP_FRAMES: int = 60     # minimum frame span to count as a valid rep region
 ENERGY_THRESHOLD_FACTOR: float = 0.5 # threshold = factor × mean(smoothed_energy)
@@ -234,3 +244,99 @@ class LiveWindowTrigger:
             self._frames_since_last = 0
             return True
         return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Live rep-end detector (motion-energy state machine) — the rep-aware trigger
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class LiveRepDetector:
+    """Streaming motion-energy rep-end detector for the live WS path (no pose).
+
+    Replaces the fixed-clock LiveWindowTrigger. The clock fired every N frames and
+    classified whatever was in the rolling window at that tick — so pausing after a
+    rep made it analyze the standing pose (lag + wrong-window bug). This detector
+    fires right when a rep *ends*, returning the rep's frame span so the caller
+    classifies exactly the rep's frames.
+
+    State machine over per-frame frame-difference energy (downscaled grayscale):
+      IDLE   --energy rises above adaptive threshold-->  MOVING
+      MOVING --energy settles below threshold for SETTLE frames-->  fire (if the
+              active span >= MIN_ACTIVE), enter COOLDOWN, back to IDLE
+
+    Adaptive threshold = max(ACTIVE_FACTOR x running baseline, MIN_ENERGY). The
+    baseline is an EMA of resting energy (updated while idle / in cooldown), so it
+    adapts to lighting/camera without firing on sensor noise.
+
+    NOTE: the thresholds are reasonable defaults but are genuinely device-dependent
+    (camera, distance, lighting). They need calibration on the user's real squats —
+    flagged as a human-verify item. Best results when the user starts the session
+    standing still (establishes a low baseline) then squats and pauses between reps.
+
+    Thread safety: NOT thread-safe — one instance per SquatLiveSession.
+    """
+
+    def __init__(self) -> None:
+        self._prev_gray: np.ndarray | None = None
+        self._baseline: float | None = None
+        self._moving: bool = False
+        self._active_len: int = 0
+        self._below: int = 0
+        self._cooldown: int = 0
+
+    def push(self, frame_rgb: np.ndarray) -> int | None:
+        """Feed one RGB frame; return the rep's frame span on rep-end, else None.
+
+        Args:
+            frame_rgb: HxWx3 uint8 RGB frame.
+
+        Returns:
+            The rep window length (number of frames, capped at LIVE_REP_MAX_WINDOW_FRAMES)
+            when a rep just ended; None otherwise.
+        """
+        small = cv2.resize(frame_rgb, (64, 64))
+        gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY).astype(np.float32)
+
+        if self._prev_gray is None:
+            self._prev_gray = gray
+            return None
+
+        energy = float(np.mean(np.abs(gray - self._prev_gray)))
+        self._prev_gray = gray
+
+        if self._baseline is None:
+            self._baseline = energy
+        threshold = max(LIVE_REP_ACTIVE_FACTOR * self._baseline, LIVE_REP_MIN_ENERGY)
+
+        # Cooldown: ignore motion right after a fire; keep the baseline fresh.
+        if self._cooldown > 0:
+            self._cooldown -= 1
+            self._baseline = LIVE_BASELINE_DECAY * self._baseline + (1 - LIVE_BASELINE_DECAY) * energy
+            return None
+
+        if not self._moving:
+            if energy > threshold:
+                self._moving = True
+                self._active_len = 1
+                self._below = 0
+            else:
+                # Resting — adapt the baseline toward the quiet energy level.
+                self._baseline = LIVE_BASELINE_DECAY * self._baseline + (1 - LIVE_BASELINE_DECAY) * energy
+            return None
+
+        # Moving: accumulate the active span; watch for a settle.
+        self._active_len += 1
+        if energy <= threshold:
+            self._below += 1
+            if self._below >= LIVE_REP_SETTLE_FRAMES:
+                span = self._active_len
+                self._moving = False
+                self._below = 0
+                self._cooldown = LIVE_REP_COOLDOWN_FRAMES
+                if span >= LIVE_REP_MIN_ACTIVE_FRAMES:
+                    return min(span, LIVE_REP_MAX_WINDOW_FRAMES)
+                return None  # too short to be a rep — discard
+        else:
+            self._below = 0
+        return None

@@ -71,6 +71,13 @@ def make_fake_jpeg(size: tuple[int, int] = (112, 112)) -> bytes:
     return buf.tobytes()
 
 
+def make_solid_jpeg(value: int, size: tuple[int, int] = (112, 112)) -> bytes:
+    """Return a JPEG filled with a single gray `value` — drives the live motion-energy
+    rep detector deterministically (alternating values = motion; repeated = settle)."""
+    _, buf = cv2.imencode(".jpg", np.full((*size, 3), value, dtype=np.uint8))
+    return buf.tobytes()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Task 1 — SquatFormService unit tests
 # ─────────────────────────────────────────────────────────────────────────────
@@ -522,51 +529,46 @@ def test_ws_session_protocol(client):
 
 
 def test_ws_rep_result_schema(client):
-    """Sending enough frames causes the trigger to fire and emits a rep_result.
+    """A motion burst followed by a settle fires the rep-end detector, which emits
+    'analyzing' then 'rep_result'.
 
-    The LiveWindowTrigger fires when:
-      buffer_len >= LIVE_REP_WINDOW_FRAMES=32  AND
-      frames_since_last_trigger >= LIVE_MIN_GAP_FRAMES=45
+    The live trigger is now motion-energy based (LiveRepDetector), not a frame clock:
+    alternating-brightness frames = motion (the rep), repeated frames = settle (done).
+    Sequence: static (baseline) -> motion (>= MIN_ACTIVE) -> static (>= SETTLE) => one
+    rep-end fire. The mocked classify_clip_async returns _VALID_D05 (KIE detected).
 
-    Sending LIVE_MIN_GAP_FRAMES + 2 = 47 frames (each with a valid JPEG) guarantees
-    at least one trigger fire.  The mocked classify_clip_async returns _VALID_D05
-    (KIE detected=True) so the rep_result message will contain errors.
-
-    Starlette TestClient WS is synchronous — receive_json() BLOCKS until a message
-    arrives.  Because conditional-send means most frames produce NO server reply, we
-    send ALL frames first (no receive in the loop), then collect the one rep_result
-    that the server queued by calling receive_json() exactly once before end_session.
+    Starlette TestClient WS is synchronous; send all frames, then receive the two
+    queued messages (analyzing, rep_result), then end the session.
     """
-    n_frames_to_send = LIVE_MIN_GAP_FRAMES + 2  # 47 frames — enough to guarantee one fire
-    jpeg_b64 = base64.b64encode(make_fake_jpeg()).decode()
+    static = base64.b64encode(make_solid_jpeg(50)).decode()
+    mot_a = base64.b64encode(make_solid_jpeg(30)).decode()
+    mot_b = base64.b64encode(make_solid_jpeg(140)).decode()
+    # 6 static (baseline) + 18 motion (alternating) + 8 static (settle) = one rep-end.
+    seq = (
+        [static] * 6
+        + [mot_a if i % 2 else mot_b for i in range(18)]
+        + [static] * 8
+    )
 
     with client.websocket_connect("/ws/form-session") as ws:
         ws.send_json({"type": "start_session", "exercise_hint": "squat"})
-        started = ws.receive_json()
-        assert started["type"] == "session_started"
+        assert ws.receive_json()["type"] == "session_started"
 
-        # Send all frames without receiving — server queues the rep_result internally.
-        # The trigger fires somewhere around frame 45; we do NOT block per-frame.
-        for i in range(n_frames_to_send):
-            ws.send_json({"type": "frame", "data": jpeg_b64, "timestamp_ms": i * 33})
+        for i, frame_b64 in enumerate(seq):
+            ws.send_json({"type": "frame", "data": frame_b64, "timestamp_ms": i * 33})
 
-        # The server has queued exactly one rep_result by now — receive it.
+        analyzing = ws.receive_json()
         rep = ws.receive_json()
 
-        # Then end the session and collect the summary.
         ws.send_json({"type": "end_session"})
         summary = ws.receive_json()
 
-    assert rep["type"] == "rep_result", (
-        f"Expected rep_result after {n_frames_to_send} frames, got {rep}"
-    )
+    assert analyzing["type"] == "analyzing", f"Expected 'analyzing' first, got {analyzing}"
+    assert rep["type"] == "rep_result", f"Expected rep_result, got {rep}"
     assert rep["rep_number"] >= 1, "rep_number must be >= 1"
     assert "errors" in rep, "rep_result missing 'errors' key"
     for err in rep["errors"]:
-        assert err["type"] in {"KIE", "KFE"}, (
-            f"Unexpected error type in rep_result: {err['type']}"
-        )
-    # Also verify the summary arrived cleanly.
+        assert err["type"] in {"KIE", "KFE"}, f"Unexpected error type: {err['type']}"
     assert summary["type"] == "session_summary"
     assert summary["total_reps"] >= 1
 

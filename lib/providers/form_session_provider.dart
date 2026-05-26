@@ -18,6 +18,7 @@ class FormSessionProvider extends ChangeNotifier {
   final List<FormRep> _liveReps = [];
   FormRep? _lastRep;
   int _formCheckCount = 0;
+  bool _analyzing = false;
 
   // Completed report (live session_summary OR upload UploadResponse).
   FormReport? _report;
@@ -30,6 +31,7 @@ class FormSessionProvider extends ChangeNotifier {
   List<FormRep> get liveReps => List.unmodifiable(_liveReps);
   FormRep? get lastRep => _lastRep;
   int get formCheckCount => _formCheckCount;
+  bool get analyzing => _analyzing;
 
   FormReport? get report => _report;
 
@@ -44,15 +46,23 @@ class FormSessionProvider extends ChangeNotifier {
     _liveReps.clear();
     _lastRep = null;
     _formCheckCount = 0;
+    _analyzing = false;
     _report = null;
     notifyListeners();
   }
 
-  /// Append a live `rep_result` (a periodic form check).
+  /// A rep just ended; the backend is running the (~1.5s) classification.
+  void setAnalyzing() {
+    _analyzing = true;
+    notifyListeners();
+  }
+
+  /// Append a live `rep_result` (one completed rep) and clear the analyzing flag.
   void addLiveRep(FormRep rep) {
     _liveReps.add(rep);
     _lastRep = rep;
     _formCheckCount += 1;
+    _analyzing = false;
     notifyListeners();
   }
 
@@ -80,6 +90,7 @@ class FormSessionProvider extends ChangeNotifier {
     _liveReps.clear();
     _lastRep = null;
     _formCheckCount = 0;
+    _analyzing = false;
     _report = null;
     notifyListeners();
   }

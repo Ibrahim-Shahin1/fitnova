@@ -39,8 +39,7 @@ from backend.services.llm_adapter import LLMAdapter
 from backend.services.recommender import Recommender
 from backend.services.coach_service import CoachChatService
 from backend.services.rep_segmenter import (
-    LiveWindowTrigger,
-    LIVE_REP_WINDOW_FRAMES,
+    LiveRepDetector,
     LIVE_BUFFER_MAX_FRAMES,
 )
 
@@ -215,52 +214,63 @@ class SquatLiveSession:
         self._service = service
         # Raw RGB np.ndarray frames from cv2; LIVE_BUFFER_MAX_FRAMES caps memory (T-05-14).
         self._buffer: deque = deque(maxlen=LIVE_BUFFER_MAX_FRAMES)
-        self._trigger = LiveWindowTrigger()
+        self._detector = LiveRepDetector()
         self._rep_results: list[dict] = []
         self._rep_number: int = 0
+        self._pending_span: int = 0
 
-    async def add_frame(self, jpeg_bytes: bytes, timestamp_ms: int) -> dict | None:
-        """Decode a JPEG, buffer it, and classify if the sliding-window trigger fires.
+    @property
+    def next_rep_number(self) -> int:
+        """Rep number the next classify_pending() will assign (for the 'analyzing' msg)."""
+        return self._rep_number + 1
 
-        Args:
-            jpeg_bytes:    raw JPEG bytes (decoded from base64 by the WS handler).
-            timestamp_ms:  client-side timestamp in milliseconds (unused internally
-                           but accepted for protocol compatibility).
+    def push_frame(self, jpeg_bytes: bytes) -> bool:
+        """Decode + buffer a frame and run rep-end detection (fast — no inference).
 
-        Returns:
-            A rep_result dict when the trigger fires (classification complete), or
-            None when the trigger has not fired (frame buffered only).
+        Returns True when a rep just ended (caller should send 'analyzing' then await
+        classify_pending()); False otherwise.
 
-        Security (T-05-10):
-            If cv2.imdecode returns None (malformed JPEG), the frame is silently
-            dropped and None is returned — the session stays alive.
+        Security (T-05-10): a malformed JPEG (cv2.imdecode -> None) is dropped and
+        False is returned — the session stays alive.
         """
-        # T-05-10: malformed-JPEG guard — never pass None into the model.
         frame = cv2.imdecode(np.frombuffer(jpeg_bytes, np.uint8), cv2.IMREAD_COLOR)
         if frame is None:
-            return None
-
-        # BGR→RGB conversion before buffering (model trained on RGB).
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            return False
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # model trained on RGB
         self._buffer.append(frame_rgb)
+        span = self._detector.push(frame_rgb)
+        if span:
+            self._pending_span = min(span, len(self._buffer))
+            return True
+        return False
 
-        if self._trigger.should_fire(len(self._buffer)):
-            # Stack the last LIVE_REP_WINDOW_FRAMES frames: [32, H, W, 3] HWC.
-            window_frames = list(self._buffer)[-LIVE_REP_WINDOW_FRAMES:]
-            stacked = np.stack(window_frames)  # [32, H, W, 3] HWC uint8
+    async def classify_pending(self) -> dict:
+        """Classify the just-finished rep's frames and return a rep_result dict.
 
-            # Permute HWC → TCHW: [32, H, W, 3] → [32, 3, H, W].
-            # classify_clip_async (kneeaware_spatial_val path) expects [T, C, H, W].
-            import torch  # lazy import — torch is heavy; keep module-level imports slim
-            frames_tchw = torch.from_numpy(stacked).permute(0, 3, 1, 2).numpy()
+        Samples the rep's frame span to the 32-frame model window, then runs the FULL
+        ensemble off the event loop (no quality tradeoff; ~1.5 s on CPU with ONNX).
+        SQUAT_INFERENCE_SEEDS=1 drops to single-seed (~0.5 s) without a rebuild.
+        """
+        from backend.training.aqa.datasets.transforms import uniform_sample_indices
 
+        frames = (
+            list(self._buffer)[-self._pending_span:]
+            if self._pending_span
+            else list(self._buffer)
+        )
+        if not frames:
             self._rep_number += 1
-            # Single-seed for live latency (D-08 — ~0.93 s; T-05-11 offloaded to thread).
-            result = await self._service.classify_clip_async(frames_tchw, n_seeds=1)
-            self._rep_results.append(result)
-            return {"type": "rep_result", "rep_number": self._rep_number, **result}
+            return {"type": "rep_result", "rep_number": self._rep_number,
+                    "exercise": "squat", "errors": []}
 
-        return None
+        idx = uniform_sample_indices(len(frames), 32, jitter=0)
+        stacked = np.stack([frames[int(i)] for i in idx])   # [32, H, W, 3] HWC uint8
+        frames_tchw = stacked.transpose(0, 3, 1, 2)          # [32, 3, H, W]
+
+        self._rep_number += 1
+        result = await self._service.classify_clip_async(frames_tchw)  # ensemble default
+        self._rep_results.append(result)
+        return {"type": "rep_result", "rep_number": self._rep_number, **result}
 
     def end_session(self) -> dict:
         """Finalize the session and return a deterministic session_summary dict (D-10).
@@ -507,9 +517,11 @@ async def form_session_ws(websocket: WebSocket):
 
       2. Client streams frames:
          {"type": "frame", "data": "<base64-JPEG>", "timestamp_ms": <int>}
-         Server replies {"type": "rep_result", "rep_number": N, "exercise": "squat",
-                         "errors": [...]} ONLY when the sliding-window trigger fires
-         (i.e. NOT on every frame — conditional-send).
+         Motion-energy rep-end detection runs per frame (no inference). When a rep
+         ends the server replies {"type": "analyzing", "rep_number": N} immediately,
+         then {"type": "rep_result", "rep_number": N, "exercise": "squat",
+               "errors": [...]} once classification (~1.5s) completes. Most frames
+         get no reply (buffered only).
 
       3. Client sends {"type": "end_session"}
          Server replies {"type": "session_summary", "exercise": "squat",
@@ -539,12 +551,13 @@ async def form_session_ws(websocket: WebSocket):
                     )
                     continue
                 jpeg_bytes = base64.b64decode(data["data"])
-                result = await session.add_frame(
-                    jpeg_bytes, int(data.get("timestamp_ms", 0))
-                )
-                # Conditional-send: emit rep_result ONLY when the trigger fired
-                # (add_frame returns None on buffered-only frames).
-                if result is not None:
+                # push_frame is fast (decode + motion rep-end detection, no inference).
+                if session.push_frame(jpeg_bytes):
+                    # A rep just ended — tell the UI we're analyzing, then classify it.
+                    await websocket.send_json(
+                        {"type": "analyzing", "rep_number": session.next_rep_number}
+                    )
+                    result = await session.classify_pending()
                     await websocket.send_json(result)
 
             elif msg_type == "end_session":
