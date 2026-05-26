@@ -164,10 +164,18 @@ class RepResult(BaseModel):
     errors: list[ErrorDetection]
 
 
+class ModelView(BaseModel):
+    """The actual 112x112 frames the model analyzed (kneeaware crop, denormalized),
+    as base64-encoded JPEGs — 'what the model sees' for the upload replay viz."""
+    frames: list[str] = Field(default_factory=list)
+
+
 class UploadResponse(BaseModel):
     exercise: str
     total_reps: int
     reps: list[RepResult]
+    duration_s: float = 0.0
+    model_view: ModelView | None = None
 
 
 class SessionSummary(BaseModel):
@@ -592,6 +600,29 @@ async def form_session_ws(websocket: WebSocket):
 MAX_UPLOAD_BYTES: int = 100 * 1024 * 1024  # 100 MB
 
 
+def _model_view_frames(frames_tchw_uint8, n_show: int = 6) -> list[str]:
+    """Base64 JPEGs of the actual 112x112 frames the model analyzes (kneeaware crop,
+    denormalized) — the literal 'eyes of the model' for the replay. Independent of
+    whether the model loaded (it's just the preprocessing)."""
+    import torch
+    from backend.services.clip_decode import kneeaware_spatial_val
+    from backend.training.aqa.datasets.transforms import KINETICS_MEAN, KINETICS_STD
+
+    clip = kneeaware_spatial_val(torch.from_numpy(frames_tchw_uint8))  # [3,T,112,112] norm
+    mean = torch.as_tensor(KINETICS_MEAN).view(-1, 1, 1, 1)
+    std = torch.as_tensor(KINETICS_STD).view(-1, 1, 1, 1)
+    vis = ((clip * std + mean).clamp(0, 1) * 255).to(torch.uint8)      # [3,T,112,112]
+    n_t = vis.shape[1]
+    picks = sorted({int(round(i)) for i in np.linspace(0, n_t - 1, min(n_show, n_t))})
+    out: list[str] = []
+    for t in picks:
+        rgb = vis[:, t].permute(1, 2, 0).numpy()                       # [112,112,3] RGB
+        ok, buf = cv2.imencode(".jpg", cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+        if ok:
+            out.append(base64.b64encode(buf.tobytes()).decode())
+    return out
+
+
 @app.post("/analyze-form-video", tags=["Form"])
 async def analyze_form_video(
     request: Request,
@@ -599,9 +630,10 @@ async def analyze_form_video(
     exercise: str = Form(default="squat"),
 ):
     """
-    Upload a pre-recorded squat video for form analysis.
-    Segments reps by motion energy, classifies each rep through the PyTorch
-    R(2+1)D-18 ensemble, and returns the D-05 binary+timing schema.
+    Upload a pre-recorded SINGLE-REP squat video for form analysis.
+    The clip is treated as one rep (the model's training distribution — no
+    segmentation), classified through the PyTorch R(2+1)D-18 ensemble, and returned
+    with the exact KIE/KFE scores + the 112x112 frames the model actually analyzed.
     """
     import tempfile
 
@@ -635,47 +667,45 @@ async def analyze_form_video(
                 tmp.write(chunk)
 
         from backend.services.clip_decode import decode_clip_cv2, get_frame_count_and_fps
-        from backend.services.rep_segmenter import segment_reps_by_motion_energy
         from backend.training.aqa.datasets.transforms import uniform_sample_indices
 
         total_frames, fps = get_frame_count_and_fps(tmp_path)
-
         svc = request.app.state.squat_form_service
 
-        # If model is not loaded, classify_clip_async returns the neutral dict (200, not 500).
-        rep_intervals = segment_reps_by_motion_energy(tmp_path)
-
-        reps: list[RepResult] = []
+        # SINGLE-REP: the uploaded clip IS one rep (the model's training distribution).
+        # Classify the whole clip directly — no segmentation, no rep-counting.
         try:
-            for start, end in rep_intervals:
-                span = end - start + 1
-                raw_idx = uniform_sample_indices(span, 32, jitter=0)
-                # Offset into the full clip and clamp to valid range.
-                idx = (raw_idx + start).clamp(0, max(total_frames - 1, 0))
-                frames = decode_clip_cv2(tmp_path, idx)  # uint8 [32,3,H,W] RGB tensor
-                result = await svc.classify_clip_async(frames.numpy())
+            idx = uniform_sample_indices(total_frames, 32, jitter=0).clamp(
+                0, max(total_frames - 1, 0)
+            )
+            frames = decode_clip_cv2(tmp_path, idx)          # uint8 [32,3,H,W] RGB
+            result = await svc.classify_clip_async(frames.numpy())
+            duration_s = total_frames / fps if fps else 0.0
 
-                # Attach timing intervals to each detected error.
-                t_start = start / fps
-                t_end = (end + 1) / fps
-                errors: list[ErrorDetection] = []
-                for err in result.get("errors", []):
-                    intervals = [[t_start, t_end]] if err.get("detected") else []
-                    errors.append(ErrorDetection(
-                        type=err["type"],
-                        detected=err["detected"],
-                        confidence=err["confidence"],
-                        severity_word=err["severity_word"],
-                        intervals=intervals,
-                    ))
-                reps.append(RepResult(exercise="squat", errors=errors))
+            errors: list[ErrorDetection] = []
+            for err in result.get("errors", []):
+                intervals = [[0.0, round(duration_s, 2)]] if err.get("detected") else []
+                errors.append(ErrorDetection(
+                    type=err["type"],
+                    detected=err["detected"],
+                    confidence=err["confidence"],
+                    severity_word=err["severity_word"],
+                    intervals=intervals,
+                ))
+            model_view = ModelView(frames=_model_view_frames(frames.numpy()))
         except HTTPException:
             raise
         except Exception as exc:
             logger.exception("Form analysis inference failed")
             raise HTTPException(status_code=500, detail=f"Form analysis failed: {exc}")
 
-        return UploadResponse(exercise="squat", total_reps=len(rep_intervals), reps=reps)
+        return UploadResponse(
+            exercise="squat",
+            total_reps=1,
+            reps=[RepResult(exercise="squat", errors=errors)],
+            duration_s=round(duration_s, 2),
+            model_view=model_view,
+        )
 
     finally:
         # T-05-08: clean up temp file; guard against None if NamedTemporaryFile raised.
