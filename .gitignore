@@ -173,3 +173,22 @@ Fitness-AQA-Code/
 backend/models/form_model_squat_md/seed*/
 backend/models/form_model_squat_md/**/*.pt
 !backend/models/form_model_squat_md/README.md
+
+# -- Phase-5 archive: old TF+MediaPipe form subsystem (D-06, API-01) --
+# Archived for dissertation-appendix evidence; keep the README tracked.
+# Archived .weights.h5 files and large binary model artifacts stay gitignored.
+backend/_archive_form_v4_v6/models/**/*.weights.h5
+backend/_archive_form_v4_v6/models/**/*.h5
+backend/_archive_form_v4_v6/models/**/*.task
+backend/_archive_form_v4_v6/models/**/seed*/
+backend/_archive_form_v4_v6/models/**/*.pt
+# Gitignored smoke dirs and backup dirs in archive
+backend/_archive_form_v4_v6/models/form_model_v6_smoke/
+backend/_archive_form_v4_v6/models/form_model_v6_1_smoke/
+backend/_archive_form_v4_v6/models/form_model_v*_backup_*/
+backend/_archive_form_v4_v6/models/form_model_*_backup_*/
+# Keep the archive README + JSON/NPY metadata tracked (small, evidence)
+!backend/_archive_form_v4_v6/README.md
+!backend/_archive_form_v4_v6/models/**/*.json
+!backend/_archive_form_v4_v6/models/**/*.npy
+!backend/_archive_form_v4_v6/models/**/*.png
