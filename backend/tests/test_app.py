@@ -77,6 +77,9 @@ def mock_services():
 
     app.state.recommender = mock_rec
     app.state.llm_adapter = mock_llm
+    # Provide a bare mock for the new squat form service so /health and other
+    # endpoints that read app.state.squat_form_service do not AttributeError.
+    app.state.squat_form_service = MagicMock()
     yield mock_rec, mock_llm
 
 
@@ -93,7 +96,9 @@ def client():
 def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert "squat_model_ready" in data
 
 
 def test_generate_plan_valid_request(client):

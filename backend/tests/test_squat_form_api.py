@@ -8,9 +8,13 @@ Wave 0 scaffold — covers:
   - RepSegmenter single-rep fallback (API-02, D-03)
   - LiveWindowTrigger gate arithmetic (D-03)
 
-REST/WebSocket integration tests (test_upload_response_schema, test_ws_session_protocol,
-etc.) are added by Plan 03 when app.py is rewritten.  No test in this file connects to
-/analyze-form-video or /ws/form-session.
+Plan 03 additions — REST integration tests:
+  - mock_services_squat fixture (autouse=False — scoped to squat API tests)
+  - test_health_schema: squat_model_ready/seeds_loaded/kie_threshold/kfe_threshold present; no model_version
+  - test_upload_response_schema: synthetic mp4 + exercise=squat -> 200 + D-05 shape
+  - test_upload_no_model: neutral dict -> 200 (not 500)
+  - test_upload_too_large: Content-Length > MAX_UPLOAD_BYTES -> 413
+  - test_upload_bad_exercise: exercise=bench -> 400
 """
 
 from __future__ import annotations
@@ -264,4 +268,188 @@ def test_live_window_trigger() -> None:
     assert fire_count == 1, (
         f"Expected exactly 1 fire across {LIVE_MIN_GAP_FRAMES} calls with full buffer, "
         f"got {fire_count}"
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plan 03 — REST integration tests
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# These tests require the FastAPI app with mocked services so they are import-
+# and network-free while still exercising the real endpoint routing + Pydantic
+# validation.
+
+import asyncio
+from io import BytesIO
+from unittest.mock import MagicMock
+
+from fastapi.testclient import TestClient
+
+from backend.app import MAX_UPLOAD_BYTES, app
+
+
+# ── Valid D-05 dict returned by the mock service ──────────────────────────────
+
+_VALID_D05 = {
+    "exercise": "squat",
+    "errors": [
+        {
+            "type": "KIE",
+            "detected": True,
+            "confidence": 0.72,
+            "severity_word": "moderate",
+            "intervals": [],
+        },
+        {
+            "type": "KFE",
+            "detected": False,
+            "confidence": 0.25,
+            "severity_word": "none",
+            "intervals": [],
+        },
+    ],
+}
+
+_NEUTRAL_D05 = {
+    "exercise": "squat",
+    "errors": [
+        {"type": "KIE", "detected": False, "confidence": 0.0, "severity_word": "none", "intervals": []},
+        {"type": "KFE", "detected": False, "confidence": 0.0, "severity_word": "none", "intervals": []},
+    ],
+    "model_not_loaded": True,
+}
+
+
+# ── Fixtures ──────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture()
+def mock_services_squat():
+    """Wire mocked services onto app.state for REST integration tests.
+
+    classify_clip_async is a REAL coroutine (not a MagicMock awaitable) returning
+    a valid D-05 dict — required so `await svc.classify_clip_async(...)` works with
+    the real endpoint code.
+    """
+
+    async def _classify_async(frames, *, n_seeds=None):
+        return _VALID_D05
+
+    mock_svc = MagicMock()
+    mock_svc.model_ready = True
+    mock_svc.kie_threshold = 0.614
+    mock_svc.kfe_threshold = 0.385
+    mock_svc._models = [1, 2, 3]  # len=3 → seeds_loaded=3
+    mock_svc.classify_clip_async = _classify_async
+
+    app.state.squat_form_service = mock_svc
+    app.state.recommender = MagicMock()
+    app.state.llm_adapter = MagicMock()
+    app.state.chat_service = MagicMock()
+    app.state.coach_service = MagicMock()
+
+    yield mock_svc
+
+    # Teardown — reset to a bare MagicMock so other test modules are unaffected.
+    app.state.squat_form_service = MagicMock()
+
+
+@pytest.fixture()
+def squat_client(mock_services_squat):
+    return TestClient(app, raise_server_exceptions=False)
+
+
+# ── /health ───────────────────────────────────────────────────────────────────
+
+
+def test_health_schema(squat_client):
+    """GET /health returns status 200 with all D-05 squat fields and NO model_version."""
+    response = squat_client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert "squat_model_ready" in data, "squat_model_ready missing from /health"
+    assert "seeds_loaded" in data, "seeds_loaded missing from /health"
+    assert "kie_threshold" in data, "kie_threshold missing from /health"
+    assert "kfe_threshold" in data, "kfe_threshold missing from /health"
+    assert "model_version" not in data, "model_version must be removed from /health (old field)"
+    assert data["squat_model_ready"] is True
+    assert data["seeds_loaded"] == 3
+
+
+# ── /analyze-form-video ───────────────────────────────────────────────────────
+
+
+def test_upload_response_schema(squat_client):
+    """POST /analyze-form-video with a synthetic mp4 + exercise=squat returns 200 + D-05 shape."""
+    mp4_bytes = make_synthetic_mp4(n_frames=90, size=(112, 112))
+    response = squat_client.post(
+        "/analyze-form-video",
+        files={"file": ("test.mp4", BytesIO(mp4_bytes), "video/mp4")},
+        data={"exercise": "squat"},
+    )
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    data = response.json()
+    assert data["exercise"] == "squat"
+    assert data["total_reps"] >= 1
+    assert isinstance(data["reps"], list)
+    assert len(data["reps"]) >= 1
+    rep = data["reps"][0]
+    assert rep["exercise"] == "squat"
+    assert isinstance(rep["errors"], list)
+    for err in rep["errors"]:
+        assert err["type"] in {"KIE", "KFE"}, f"Unexpected error type: {err['type']}"
+        assert isinstance(err["detected"], bool)
+        assert 0.0 <= err["confidence"] <= 1.0
+        assert err["severity_word"] in {"none", "possible", "moderate", "strong"}
+        assert isinstance(err["intervals"], list)
+
+
+def test_upload_no_model(mock_services_squat, squat_client):
+    """When model returns neutral dict (model_not_loaded=True), endpoint returns 200 (not 500)."""
+
+    async def _neutral_async(frames, *, n_seeds=None):
+        return _NEUTRAL_D05
+
+    mock_services_squat.model_ready = False
+    mock_services_squat.classify_clip_async = _neutral_async
+
+    mp4_bytes = make_synthetic_mp4(n_frames=90, size=(112, 112))
+    response = squat_client.post(
+        "/analyze-form-video",
+        files={"file": ("test.mp4", BytesIO(mp4_bytes), "video/mp4")},
+        data={"exercise": "squat"},
+    )
+    assert response.status_code == 200, (
+        f"No-model path returned {response.status_code} — expected 200 (graceful degradation)"
+    )
+    data = response.json()
+    assert data["exercise"] == "squat"
+    assert data["total_reps"] >= 1
+
+
+def test_upload_too_large(squat_client):
+    """POST /analyze-form-video with Content-Length > MAX_UPLOAD_BYTES returns 413."""
+    oversized = MAX_UPLOAD_BYTES + 1
+    response = squat_client.post(
+        "/analyze-form-video",
+        files={"file": ("big.mp4", BytesIO(b"x"), "video/mp4")},
+        data={"exercise": "squat"},
+        headers={"content-length": str(oversized)},
+    )
+    assert response.status_code == 413, (
+        f"Expected 413 for oversized upload, got {response.status_code}: {response.text}"
+    )
+
+
+def test_upload_bad_exercise(squat_client):
+    """POST /analyze-form-video with exercise=bench returns 400 (allowlist)."""
+    mp4_bytes = make_synthetic_mp4(n_frames=30, size=(64, 64))
+    response = squat_client.post(
+        "/analyze-form-video",
+        files={"file": ("test.mp4", BytesIO(mp4_bytes), "video/mp4")},
+        data={"exercise": "bench"},
+    )
+    assert response.status_code == 400, (
+        f"Expected 400 for unsupported exercise, got {response.status_code}: {response.text}"
     )
