@@ -33,8 +33,8 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 ### Inference API
 
-- [ ] **API-01**: Old form-analysis subsystem removed; PyTorch form-inference service loaded in FastAPI
-- [ ] **API-02**: Rep-segmentation component for the live and upload inference paths
+- [x] **API-01**: Old form-analysis subsystem removed; PyTorch form-inference service loaded in FastAPI
+- [x] **API-02**: Rep-segmentation component for the live and upload inference paths
 - [ ] **API-03**: Video-upload REST endpoint returning binary error detections with timing
 - [ ] **API-04**: Live WebSocket endpoint returning per-rep error feedback
 
@@ -78,8 +78,8 @@ Deferred to a future milestone.
 | SQUAT-03 | Phase 3 | Complete |
 | SQUAT-04 | Phase 4 | Pending |
 | SQUAT-05 | Phase 4 | Pending |
-| API-01 | Phase 5 | Pending |
-| API-02 | Phase 5 | Pending |
+| API-01 | Phase 5 | Complete |
+| API-02 | Phase 5 | Complete |
 | API-03 | Phase 5 | Pending |
 | API-04 | Phase 5 | Pending |
 | OHP-01 | Phase 6 | Pending |
@@ -91,6 +91,7 @@ Deferred to a future milestone.
 | EVAL-03 | Phase 8 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 19 total
 - Mapped to phases: 19
 - Unmapped: 0 ✓

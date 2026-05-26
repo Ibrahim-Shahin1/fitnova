@@ -114,7 +114,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md (wave 1) — SquatFormService (3-seed MD-SSL ensemble, EXACT inference path: spatial_val + mean-of-sigmoids + 0.614/0.385 thresholds) + RepSegmenter (motion-energy upload + live sliding-window) + Wave 0 test scaffold
+- [x] 05-01-PLAN.md (wave 1) — SquatFormService (3-seed MD-SSL ensemble, EXACT inference path: spatial_val + mean-of-sigmoids + 0.614/0.385 thresholds) + RepSegmenter (motion-energy upload + live sliding-window) + Wave 0 test scaffold
 
 **Wave 2**
 
@@ -179,7 +179,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Squat Data Pipeline & Colab Harness | 1/1 | Complete | 2026-05-20 |
 | 3. Squat Supervised Baseline | 1/1 | Complete | 2026-05-20 |
 | 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
-| 5. Backend Inference Integration (Squat) | 0/5 | Planned | - |
+| 5. Backend Inference Integration (Squat) | 1/5 | In Progress|  |
 | 6. Overhead Press | 0/TBD | Not started | - |
 | 7. Image-Based Errors (CVCSPC) | 0/TBD | Not started | - |
 | 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |
