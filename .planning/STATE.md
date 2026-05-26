@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-05-26T15:06:58.296Z"
-last_activity: 2026-05-26
+status: executing
+stopped_at: "Phase 5 COMPLETE + verified (passed); real-endpoint E2E green. Next: Phase 6 (Overhead Press) — /gsd:discuss-phase 6."
+last_updated: "2026-05-26"
+last_activity: 2026-05-26 -- Phase 5 complete: Squat inference API (upload + live WS), D-11 knee-aware crop fix, old TF subsystem archived; 24/24 tests + real-endpoint E2E green
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 13
+  completed_phases: 5
+  total_plans: 12
   completed_plans: 12
-  percent: 50
+  percent: 63
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-19)
 
 **Core value:** A user can record/upload a lift and get trustworthy, plain-language form-error feedback grounded in a published dataset and method.
-**Current focus:** Phase 05 — Backend Inference Integration (Squat)
+**Current focus:** Phase 6 — Overhead Press (Phase 5 complete)
 
 ## Current Position
 
-Phase: 05 (Backend Inference Integration (Squat)) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
+Phase: 5 (Backend Inference Integration — Squat) COMPLETE + verified (passed). Next: Phase 6 (Overhead Press) — not started.
+Plan: Phase 5 = 5/5 plans. Squat detector served via upload (POST /analyze-form-video) + live (WS /ws/form-session), D-05 schema, knee-aware crop (D-11 fix). 24/24 tests + real-endpoint E2E green. Open follow-up: serving-threshold calibration (05-HUMAN-UAT.md, non-blocking).
+Status: executing (between phases — Phase 6 next)
 Last activity: 2026-05-26
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 7 (Phases 1–4)
+- Total plans completed: 12 (Phases 1–4)
 - Average duration: — (per-plan wall-time not tracked)
 - Total execution time: — (interactive Colab execution; heavy training spanned multiple sessions)
 
@@ -44,7 +44,7 @@ Progress: [█████░░░░░] 50%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 5 | 5 | - | - |
 
 **Recent Trend:**
 
