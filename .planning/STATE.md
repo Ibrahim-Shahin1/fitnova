@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 Phase: 5 (Backend Inference Integration — Squat) COMPLETE + verified (passed). Next: Phase 6 (Overhead Press) — not started.
 Plan: Phase 5 = 5/5 plans. Squat detector served via upload (POST /analyze-form-video) + live (WS /ws/form-session), D-05 schema, knee-aware crop (D-11 fix). 24/24 tests + real-endpoint E2E green. Open follow-up: serving-threshold calibration (05-HUMAN-UAT.md, non-blocking).
 Status: executing (between phases — Phase 6 next; demo-prep on the Squat slice in progress)
-Last activity: 2026-05-26 — quick task 260526-wi7: Flutter form UI adapted to D-05 schema + exercise picker trimmed to three (demo-prep; awaiting on-device BlueStacks check + threshold calibration)
+Last activity: 2026-05-27 — quick task 260527-2bt (PARTIAL): live latency fixed — ONNX inference (1.6x, parity exact) + motion-gated rep-end trigger (fires on the rep, not a 7s clock). Awaiting on-device test of the lag fix; Unit 3 (upload video replay) pending. Prior: 260526-wi7 D-05 UI shim + exercise trim.
 
 Progress: [██████░░░░] 63%
 
@@ -104,6 +104,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260526-wi7 | Flutter form D-05 UI shim + exercise picker trim to three (demo-prep, 05-HUMAN-UAT #2) | 2026-05-26 | ab9fea1 | [260526-wi7-flutter-form-d05-ui-shim-and-exercise-pi](./quick/260526-wi7-flutter-form-d05-ui-shim-and-exercise-pi/) |
+| 260527-2bt | Squat live latency: ONNX (1.6x, parity exact) + motion-gated rep-end trigger — **PARTIAL** (Units 1-2 done; Unit 3 upload replay pending) | 2026-05-27 | 1524082 | [260527-2bt-squat-live-latency-onnx-rep-aware-trigge](./quick/260527-2bt-squat-live-latency-onnx-rep-aware-trigge/) |
 
 ## Deferred Items
 
