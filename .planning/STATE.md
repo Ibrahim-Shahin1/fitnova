@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 5 context gathered (discuss-phase complete; decisions resolved from master plan + Phase 4 protocol). Next: /gsd:plan-phase 5."
-last_updated: "2026-05-26T00:42:31.667Z"
+stopped_at: "Completed 05-02: kneeaware_spatial_val wired; D-11 fix validated; 8/8 tests green"
+last_updated: "2026-05-26T14:08:49.171Z"
 last_activity: 2026-05-26
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 13
-  completed_plans: 8
+  completed_plans: 9
   percent: 38
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 ## Current Position
 
 Phase: 05 (Backend Inference Integration (Squat)) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-05-26
 
@@ -53,6 +53,7 @@ Progress: [█████░░░░░] 50%
 
 *Updated after each plan completion*
 | Phase 05 P01 | 437 | 3 tasks | 3 files |
+| Phase 05 P02 | 60 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,7 @@ Recent decisions affecting current work:
 - Phase 3: Supervised baseline closed — test KIE 0.286 / KFE 0.800 / macro 0.543 (within 2% of paper Kinetics row); end-to-end fine-tune overfits on 1136 clips → empirical motivation for Phase 4 SSL
 - Phase 4 (discuss): scope A+B+D+E locked, F (aux trajectory head) dropped; AdamW wd=1e-4/dropout=0.2 (50ep+patience, P3 recipe); 3-seed ensemble (42/1337/7, mean of sigmoids); val-tuned TTA (flip OOD-corrected); abort-seed+bump-reg overfit guard (lock recipe on seed 42); one-remediation no-lift policy
 - Phase 4 (Plan 02 run-1, 2026-05-22): md_pretrain_v1 (safe-core 4-aug, 60ep cosine) — SSL WORKS: ep5 frozen linear-probe macro 0.5708 vs Kinetics 0.4297 (+0.141; KIE 0.169->0.380 doubled, mirrors paper MD's KIE-concentrated lift). BUT probe peaks ep5 then declines (10:0.566, 15:0.551) with eff_rank collapse 11.8->3.3 = weak-aug contrastive collapse. Paper §3.2/Fig.5 require STRONG augs (we ran 4 mild). DECISION (D2-augs iteration): do NOT ride to 60, do NOT fine-tune v1; re-run paper-faithful md_pretrain_v2 — wire strong augs (translation+zoom+blur+channel-swap; rotation toggle default-OFF, KIE-risky) + 20ep cosine T_max=20; 5-epoch verification gate (probe>0.5708 AND KIE>=0.380 AND eff_rank healthy) BEFORE the full run. v1 backbone.pt kept as the weak-aug ablation datapoint. Exceed-path: 3-seed ensemble + per-head threshold_sweep + val-TTA on the v2 backbone vs paper MD-alone 0.6262.
+- [Phase ?]: D-11 knee-aware serving crop: portrait lower-body pre-crop (0.42*H) in kneeaware_spatial_val; landscape unchanged for offline-eval parity; validated on 4 real phone clips
 
 ### Pending Todos
 
@@ -99,6 +101,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-26T00:42:31.662Z
-Stopped at: Phase 5 context gathered (discuss-phase complete; decisions resolved from master plan + Phase 4 protocol). Next: /gsd:plan-phase 5.
+Last session: 2026-05-26T14:08:49.159Z
+Stopped at: Completed 05-02: kneeaware_spatial_val wired; D-11 fix validated; 8/8 tests green
 Resume file: None
