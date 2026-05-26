@@ -164,3 +164,12 @@ backend/training/diagnostics/references/input_clips/*.mp4
 
 # Fitness-AQA official Code_Release � cloned for inspection, not tracked
 Fitness-AQA-Code/
+
+# -- Phase-5 Squat MD-SSL weights -- staged from Drive, never committed (D-09) --
+# The 3 Phase-4 best.pt files (~358 MB each = ~1.07 GB total) are staged manually
+# from MyDrive/FitNova/checkpoints/phase04/md_finetune_seed{42,1337,7}/best.pt.
+# They live here for SquatFormService to load at runtime but are too large for git.
+# The README.md is KEPT (negation below) -- it documents the staging procedure.
+backend/models/form_model_squat_md/seed*/
+backend/models/form_model_squat_md/**/*.pt
+!backend/models/form_model_squat_md/README.md
