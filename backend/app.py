@@ -5,7 +5,7 @@ Pipeline layers:
   Layer 1: Content-Based Filter  (backend/services/content_filter.py)
   Layer 2: NeuMF Re-ranker       (backend/services/neumf_ranker.py)
   Layer 3: LLM Adaptation        (backend/services/llm_adapter.py)
-  Layer 4: Form Detection        (backend/services/form_analyzer.py)
+  Layer 4: Form Detection        (backend/services/squat_form_service.py)
 
 Run with:
     uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
@@ -28,11 +28,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+
 from backend.services.chat_service import ChatService
 from backend.services.llm_adapter import LLMAdapter
 from backend.services.recommender import Recommender
-from backend.services.form_analyzer import FormAnalyzer
-from backend.services.form_session import FormSession
 from backend.services.coach_service import CoachChatService
 
 from backend.deps.auth import AuthUser, require_user
@@ -141,28 +141,33 @@ class ChatResponse(BaseModel):
     )
 
 
-# ── Form detection models ──────────────────────────────────────────────────────
+# ── Form detection models (D-05 schema) ───────────────────────────────────────
 
-class FormFrameResult(BaseModel):
-    timestamp_ms: int
-    landmarks: list[list[float]] | None = None
-    joint_errors: list[float]            # 10 values, 0-1
-    quality_score: float
-    rep_count: int
-    exercise_detected: str
-    confidence: float
-    status: str
+class ErrorDetection(BaseModel):
+    type: str = Field(..., pattern=r"^(KIE|KFE)$")
+    detected: bool
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    severity_word: str = Field(..., pattern=r"^(none|possible|moderate|strong)$")
+    intervals: list[list[float]] = Field(default_factory=list)
 
 
-class FormSessionSummary(BaseModel):
+class RepResult(BaseModel):
+    exercise: str
+    errors: list[ErrorDetection]
+
+
+class UploadResponse(BaseModel):
     exercise: str
     total_reps: int
-    duration_seconds: int
-    average_quality: float
-    per_rep_scores: list[float]
-    common_errors: dict[str, int]
-    quality_trend: str
-    llm_feedback: str
+    reps: list[RepResult]
+
+
+class SessionSummary(BaseModel):
+    type: str = "session_summary"
+    exercise: str
+    total_reps: int
+    rep_results: list[RepResult]
+    session_feedback: str
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -180,40 +185,20 @@ async def lifespan(app: FastAPI):
     app.state.chat_service = ChatService()
     logger.info("Loading coach service...")
     app.state.coach_service = CoachChatService()
-    logger.info("Loading form analyzer (Layer 4)...")
-    # Auto-detection priority: v6 -> v5.2 -> v4. Override with FITNOVA_MODEL_DIR
-    # env var. The form_analyzer itself does file-presence detection inside the
-    # chosen dir; this just picks WHICH dir to scan.
-    _override = os.environ.get("FITNOVA_MODEL_DIR")
-    if _override:
-        _model_dir = _override
-        logger.info("FITNOVA_MODEL_DIR override -> %s", _model_dir)
-    else:
-        _v6_dir   = os.path.join(os.path.dirname(__file__), "models", "form_model_v6")
-        _v5_2_dir = os.path.join(os.path.dirname(__file__), "models", "form_model_v5_2")
-        _v4_dir   = os.path.join(os.path.dirname(__file__), "models", "form_model")
-        if os.path.isfile(os.path.join(_v6_dir, "v6_supervised.weights.h5")):
-            _model_dir = _v6_dir
-            logger.info("v6 weights detected -> using %s", _model_dir)
-        elif os.path.isfile(os.path.join(_v5_2_dir, "v5_2_supervised.weights.h5")):
-            _model_dir = _v5_2_dir
-            logger.info("v5.2 weights detected -> using %s", _model_dir)
-        else:
-            _model_dir = _v4_dir
-            logger.info("falling back to v4 -> using %s", _model_dir)
-
-    if not os.path.isdir(_model_dir):
-        logger.warning(
-            "model_dir=%s does not exist; falling back to legacy v4 form_model/",
-            _model_dir,
-        )
-        _model_dir = os.path.join(os.path.dirname(__file__), "models", "form_model")
-    app.state.form_analyzer = FormAnalyzer(model_dir=_model_dir)
+    logger.info("Loading squat form service (Layer 4 — PyTorch R(2+1)D-18 ensemble)...")
+    from backend.services.squat_form_service import SquatFormService
+    _squat_dir = os.environ.get("FITNOVA_MODEL_DIR") or os.path.join(
+        os.path.dirname(__file__), "models", "form_model_squat_md"
+    )
+    app.state.squat_form_service = SquatFormService(model_dir=_squat_dir)
+    logger.info(
+        "SquatFormService ready: model_ready=%s, seeds_loaded=%d",
+        app.state.squat_form_service.model_ready,
+        len(app.state.squat_form_service._models),
+    )
     logger.info("FitNova backend ready.")
     yield
     logger.info("Shutting down FitNova backend.")
-    if hasattr(app.state, "form_analyzer") and app.state.form_analyzer.mp_pose:
-        app.state.form_analyzer.mp_pose.close()
 
 
 app = FastAPI(
@@ -247,16 +232,15 @@ app.include_router(logs_router)
 
 @app.get("/health", tags=["Health"])
 async def health_check(request: Request):
-    """Liveness check — also exposes the loaded model version so callers can
-    verify v6/v5.2/v4 detection without parsing boot logs."""
-    analyzer = getattr(request.app.state, "form_analyzer", None)
-    model_info = {
-        "model_version": getattr(analyzer, "_model_version", None) if analyzer else None,
-        "model_ready":   bool(analyzer.model_ready) if analyzer else False,
-        "model_dir":     getattr(analyzer, "model_dir", None) if analyzer else None,
-        "n_exercises":   len(getattr(analyzer, "_exercise_labels", {})) if analyzer else 0,
+    """Liveness check — reports PyTorch squat model status and per-head thresholds."""
+    svc = getattr(request.app.state, "squat_form_service", None)
+    return {
+        "status": "healthy",
+        "squat_model_ready": bool(svc.model_ready) if svc else False,
+        "seeds_loaded":      len(svc._models) if svc else 0,
+        "kie_threshold":     svc.kie_threshold if svc else None,
+        "kfe_threshold":     svc.kfe_threshold if svc else None,
     }
-    return {"status": "healthy", **model_info}
 
 
 @app.get("/api/exercises", tags=["Form"])
@@ -353,60 +337,29 @@ async def chat(req: ChatRequest, request: Request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Form Detection — WebSocket (live streaming)
+# Form Detection — WebSocket (live streaming) — redefined in Plan 04
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.websocket("/ws/form-session")
 async def form_session_ws(websocket: WebSocket):
     """
     Real-time form analysis via WebSocket.
-
-    Protocol (client → server):
-        {"type": "start_session", "exercise_hint": "squat"}
-        {"type": "frame", "data": "<base64_jpeg>", "timestamp_ms": 12345}
-        {"type": "end_session"}
-
-    Protocol (server → client):
-        per-frame: FormFrameResult JSON
-        on end:    FormSessionSummary JSON
+    Full implementation wired in Plan 04 (SquatLiveSession).
     """
     await websocket.accept()
-    session: FormSession | None = None
-
     try:
         while True:
             data = await websocket.receive_json()
             msg_type = data.get("type")
-
-            if msg_type == "start_session":
-                # Prefer new key; fall back to legacy exercise_hint
-                selected = data.get("selected_exercise") or data.get("exercise_hint")
-                session = FormSession(
-                    analyzer=websocket.app.state.form_analyzer,
-                    selected_exercise=selected,
-                )
-                await websocket.send_json({"type": "session_started"})
-
-            elif msg_type == "frame":
-                if session is None:
-                    session = FormSession(analyzer=websocket.app.state.form_analyzer)
-                jpeg_bytes   = base64.b64decode(data["data"])
-                timestamp_ms = int(data.get("timestamp_ms", 0))
-                result = session.add_frame(jpeg_bytes, timestamp_ms)
-                await websocket.send_json(result)
-
-            elif msg_type == "end_session":
-                if session is None:
-                    await websocket.send_json({"type": "error", "message": "No active session"})
-                else:
-                    summary = session.end_session()
-                    await websocket.send_json(summary)
+            if msg_type == "end_session":
+                await websocket.send_json({"type": "error", "message": "Live session not yet available — see Plan 04"})
                 break
-
+            else:
+                await websocket.send_json({"type": "error", "message": "Live session not yet available — see Plan 04"})
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected.")
     except Exception as exc:
-        logger.exception(f"WebSocket error: {exc}")
+        logger.exception("WebSocket error: %s", exc)
         try:
             await websocket.send_json({"type": "error", "message": str(exc)})
         except Exception:
@@ -417,61 +370,99 @@ async def form_session_ws(websocket: WebSocket):
 # Form Detection — REST (video upload)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# T-05-07: Reject uploads > 100 MB before buffering body into memory.
+MAX_UPLOAD_BYTES: int = 100 * 1024 * 1024  # 100 MB
+
+
 @app.post("/analyze-form-video", tags=["Form"])
 async def analyze_form_video(
     request: Request,
     file: UploadFile = File(...),
-    exercise: str = Form(default="unknown"),
+    exercise: str = Form(default="squat"),
 ):
     """
-    Upload a pre-recorded exercise video for form analysis.
-    Returns the same FormSessionSummary as the WebSocket end_session response.
+    Upload a pre-recorded squat video for form analysis.
+    Segments reps by motion energy, classifies each rep through the PyTorch
+    R(2+1)D-18 ensemble, and returns the D-05 binary+timing schema.
     """
-    import tempfile, cv2
+    import tempfile
 
-    analyzer: FormAnalyzer = request.app.state.form_analyzer
-    session = FormSession(analyzer=analyzer, selected_exercise=exercise)
+    # T-05-09: exercise allowlist — Phase 5 is squat-only.
+    if exercise not in {"squat"}:
+        raise HTTPException(status_code=400, detail="Only 'squat' supported in this phase")
 
-    # Write uploaded file to temp disk location so OpenCV can read it
-    contents = await file.read()
-    suffix = os.path.splitext(file.filename or ".mp4")[1] or ".mp4"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(contents)
-        tmp_path = tmp.name
+    # T-05-07: content-length pre-check (fast-path; defends well-behaved clients).
+    content_length_hdr = request.headers.get("content-length")
+    if content_length_hdr is not None:
+        try:
+            if int(content_length_hdr) > MAX_UPLOAD_BYTES:
+                raise HTTPException(status_code=413, detail="Video too large")
+        except ValueError:
+            pass  # non-numeric header — proceed to chunked read cap
 
-    timeline: list[dict] = []
+    # T-05-08: tmp_path None-guard so finally: never NameErrors on early exit.
+    tmp_path: str | None = None
     try:
-        cap = cv2.VideoCapture(tmp_path)
-        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-        frame_idx = 0
-        SKIP = max(1, int(fps / 10))  # sample ~10 fps
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+            tmp_path = tmp.name
+            total_read = 0
+            # T-05-07: chunked read cap — defends missing/forged content-length.
+            while True:
+                chunk = await file.read(1 << 20)  # 1 MB chunks
+                if not chunk:
+                    break
+                total_read += len(chunk)
+                if total_read > MAX_UPLOAD_BYTES:
+                    raise HTTPException(status_code=413, detail="Video too large")
+                tmp.write(chunk)
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if frame_idx % SKIP == 0:
-                _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-                ts_ms = int((frame_idx / fps) * 1000)
-                out = session.add_frame(jpeg.tobytes(), ts_ms)
-                # Capture per-frame state so the Flutter replay screen can
-                # overlay the skeleton + joint errors at each video timestamp.
-                # Only record frames where MediaPipe got a pose (raw or
-                # interpolated); skip "no_pose" frames to keep payload tight.
-                if out.get("status") in ("ok", "pose_interpolated"):
-                    timeline.append({
-                        "timestamp_ms":  ts_ms,
-                        "landmarks":     out.get("landmarks"),
-                        "joint_errors":  out.get("joint_errors"),
-                        "quality_score": out.get("quality_score"),
-                        "rep_count":     out.get("rep_count"),
-                    })
-            frame_idx += 1
+        from backend.services.clip_decode import decode_clip_cv2, get_frame_count_and_fps
+        from backend.services.rep_segmenter import segment_reps_by_motion_energy
+        from backend.training.aqa.datasets.transforms import uniform_sample_indices
 
-        cap.release()
+        total_frames, fps = get_frame_count_and_fps(tmp_path)
+
+        svc = request.app.state.squat_form_service
+
+        # If model is not loaded, classify_clip_async returns the neutral dict (200, not 500).
+        rep_intervals = segment_reps_by_motion_energy(tmp_path)
+
+        reps: list[RepResult] = []
+        try:
+            for start, end in rep_intervals:
+                span = end - start + 1
+                raw_idx = uniform_sample_indices(span, 32, jitter=0)
+                # Offset into the full clip and clamp to valid range.
+                idx = (raw_idx + start).clamp(0, max(total_frames - 1, 0))
+                frames = decode_clip_cv2(tmp_path, idx)  # uint8 [32,3,H,W] RGB tensor
+                result = await svc.classify_clip_async(frames.numpy())
+
+                # Attach timing intervals to each detected error.
+                t_start = start / fps
+                t_end = (end + 1) / fps
+                errors: list[ErrorDetection] = []
+                for err in result.get("errors", []):
+                    intervals = [[t_start, t_end]] if err.get("detected") else []
+                    errors.append(ErrorDetection(
+                        type=err["type"],
+                        detected=err["detected"],
+                        confidence=err["confidence"],
+                        severity_word=err["severity_word"],
+                        intervals=intervals,
+                    ))
+                reps.append(RepResult(exercise="squat", errors=errors))
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.exception("Form analysis inference failed")
+            raise HTTPException(status_code=500, detail=f"Form analysis failed: {exc}")
+
+        return UploadResponse(exercise="squat", total_reps=len(rep_intervals), reps=reps)
+
     finally:
-        os.unlink(tmp_path)
-
-    summary = session.end_session()
-    summary["timeline"] = timeline
-    return summary
+        # T-05-08: clean up temp file; guard against None if NamedTemporaryFile raised.
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
