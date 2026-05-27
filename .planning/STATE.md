@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 Phase: 5 (Backend Inference Integration — Squat) COMPLETE + verified (passed). Next: Phase 6 (Overhead Press) — not started.
 Plan: Phase 5 = 5/5 plans. Squat detector served via upload (POST /analyze-form-video) + live (WS /ws/form-session), D-05 schema, knee-aware crop (D-11 fix). 24/24 tests + real-endpoint E2E green. Open follow-up: serving-threshold calibration (05-HUMAN-UAT.md, non-blocking).
 Status: executing (between phases — Phase 6 next; demo-prep on the Squat slice in progress)
-Last activity: 2026-05-27 — quick task 260527-2bt (PARTIAL): live latency fixed — ONNX inference (1.6x, parity exact) + motion-gated rep-end trigger (fires on the rep, not a 7s clock). Awaiting on-device test of the lag fix; Unit 3 (upload video replay) pending. Prior: 260526-wi7 D-05 UI shim + exercise trim.
+Last activity: 2026-05-27 — Form-correction frontend (live + upload-on-own-video) CANCELLED: confirmed the model does not transfer to home/portrait phone clips (domain shift), though it reproduces the paper on the benchmark. Pivoted to the defensible deliverable — scored the Fitness-AQA official 244-clip test split (KFE 0.841 / KIE 0.420 / macro 0.6304, matches Parmar MD-SSL) + 5 figures + best-example findings (docs/figures/, docs/eval/FINDINGS.md). Backend ONNX speedup (260527-2bt) retained; live WS endpoint orphaned (cleanup pending).
 
 Progress: [██████░░░░] 63%
 
@@ -104,7 +104,8 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260526-wi7 | Flutter form D-05 UI shim + exercise picker trim to three (demo-prep, 05-HUMAN-UAT #2) | 2026-05-26 | ab9fea1 | [260526-wi7-flutter-form-d05-ui-shim-and-exercise-pi](./quick/260526-wi7-flutter-form-d05-ui-shim-and-exercise-pi/) |
-| 260527-2bt | Squat live latency: ONNX (1.6x, parity exact) + motion-gated rep-end trigger — **PARTIAL** (Units 1-2 done; Unit 3 upload replay pending) | 2026-05-27 | 1524082 | [260527-2bt-squat-live-latency-onnx-rep-aware-trigge](./quick/260527-2bt-squat-live-latency-onnx-rep-aware-trigge/) |
+| 260527-2bt | Squat live latency: ONNX (1.6x, parity exact) retained; live-trigger + upload-replay SUPERSEDED by frontend cancellation | 2026-05-27 | 1524082 | [260527-2bt-squat-live-latency-onnx-rep-aware-trigge](./quick/260527-2bt-squat-live-latency-onnx-rep-aware-trigge/) |
+| eval-bench | Benchmark eval visualizations (244-clip official test split) + best-example findings — EVAL-01 (comparison) + EVAL-03 (viz pack) partial; defense deliverable | 2026-05-27 | (eval commit) | docs/eval/FINDINGS.md + docs/figures/ |
 
 ## Deferred Items
 
