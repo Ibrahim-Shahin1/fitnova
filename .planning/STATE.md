@@ -106,6 +106,7 @@ None yet.
 | 260526-wi7 | Flutter form D-05 UI shim + exercise picker trim to three (demo-prep, 05-HUMAN-UAT #2) | 2026-05-26 | ab9fea1 | [260526-wi7-flutter-form-d05-ui-shim-and-exercise-pi](./quick/260526-wi7-flutter-form-d05-ui-shim-and-exercise-pi/) |
 | 260527-2bt | Squat live latency: ONNX (1.6x, parity exact) retained; live-trigger + upload-replay SUPERSEDED by frontend cancellation | 2026-05-27 | 1524082 | [260527-2bt-squat-live-latency-onnx-rep-aware-trigge](./quick/260527-2bt-squat-live-latency-onnx-rep-aware-trigge/) |
 | eval-bench | Benchmark eval visualizations (244-clip official test split) + best-example findings — EVAL-01 (comparison) + EVAL-03 (viz pack) partial; defense deliverable | 2026-05-27 | (eval commit) | docs/eval/FINDINGS.md + docs/figures/ |
+| squat-nbs | 4 executed Squat analysis notebooks: EDA, data-pipeline/balancing, training-diagnostics (over/underfit + SSL collapse), evaluation (PR/ROC/AUC/confusion) — defense visualization pack | 2026-05-27 | (nb commits) | docs/notebooks/ |
 
 ## Deferred Items
 
