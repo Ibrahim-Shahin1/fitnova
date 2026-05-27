@@ -138,9 +138,16 @@ Plans:
 
   1. OHP baseline and MD-SSL models train on the official OHP splits
   2. F1 per error is reported and compared to the published numbers
-  3. OHP is selectable through the inference API
+  3. ~~OHP is selectable through the inference API~~ — **DESCOPED** (CONTEXT D1, 2026-05-27): the form-correction frontend was cancelled, so OHP is not wired into the (UI-less) serving path. OHP-01 is satisfied by trained/evaluated models + the paper comparison + the visualization pack. If a future UI milestone revives serving, OHP integration goes there.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Wave 0: OHP dataset modules (ohp.py / ohp_ssl.py BBox loader) + splits.index_ohp + dataset_cls seam + colab staging + unit tests (CPU, no-regression gate)
+- [ ] 06-02-PLAN.md — Wave 1: gated trajectory-format/half-cycle-sign probe (blocking) + finalize ohp_ssl.py + supervised baseline (the SSL-lift control) F1 on the official test split
+- [ ] 06-03-PLAN.md — Wave 3: MD-SSL pretrain on 5,490 unlabeled OHP clips (v2 strong augs + linear-probe + collapse guard) -> backbone.pt
+- [ ] 06-04-PLAN.md — Wave 4: 3-seed fine-tune (42/1337/7) + mean-of-sigmoids ensemble + val-tuned threshold/TTA + test eval + F1-vs-paper + results.pkl
+- [ ] 06-05-PLAN.md — Wave 5: 4-notebook OHP deliverable pack + figures + FINDINGS.md + phase SUMMARY + ROADMAP/REQUIREMENTS/STATE reconciliation
 
 ### Phase 7: Image-Based Errors (CVCSPC)
 
