@@ -186,6 +186,7 @@ def _set_global_seed(seed: int) -> None:
 
 def _build_dataloaders(
     seed: int, config: SupervisedConfig, drive_root: str, videos_root: str,
+    *, dataset_cls=SquatKIEKFEDataset,  # NEW kwarg — OHP callers pass OHPElbowsKneesDataset (D6/RESEARCH §5)
 ) -> dict[str, DataLoader]:
     """Construct three DataLoaders directly (D4 — bypasses `build_loaders`).
 
@@ -219,9 +220,9 @@ def _build_dataloaders(
         "train_jitter_frames": config.train_jitter_frames,
         "seed": seed,
     }
-    train_ds = SquatKIEKFEDataset(split="train", train_aug=True, **common_kwargs)
-    val_ds = SquatKIEKFEDataset(split="val", train_aug=False, **common_kwargs)
-    test_ds = SquatKIEKFEDataset(split="test", train_aug=False, **common_kwargs)
+    train_ds = dataset_cls(split="train", train_aug=True,  **common_kwargs)
+    val_ds   = dataset_cls(split="val",   train_aug=False, **common_kwargs)
+    test_ds  = dataset_cls(split="test",  train_aug=False, **common_kwargs)
 
     g = torch.Generator()
     g.manual_seed(seed)

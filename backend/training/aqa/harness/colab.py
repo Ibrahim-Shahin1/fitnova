@@ -539,6 +539,221 @@ def stage_unlabeled_squat_videos(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Phase 6 OHP staging (D4 / RESEARCH §5 / Pitfall 4)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Phase 6 D4 verified: labeled zip holds 2,367 mp4s (2,260 official + 107 extra —
+# like Squat's 1,739-vs-1,623; the split JSONs are the id source of truth).
+_OHP_LABELED_VIDEOS_EXPECT_COUNT   = 2367
+# Phase 6 D4 verified: 5,490 unlabeled OHP clips.
+_OHP_UNLABELED_VIDEOS_EXPECT_COUNT = 5490
+
+
+def stage_ohp_videos(
+    drive_root: str,
+    *,
+    local_root: str = "/content/ohp_videos",
+    expect_count: int = _OHP_LABELED_VIDEOS_EXPECT_COUNT,
+) -> str:
+    """Copy OHP labeled videos.zip from Drive → /content/ohp_videos/, extract, verify. Idempotent.
+
+    Source: {drive_root}/Fitness-AQA_dataset_release/OHP/Labeled_Dataset/videos.zip
+    (in the -3-001 release folder alongside the OHP labeled data and trajectory zip).
+
+    Mirrors stage_squat_videos exactly with three-layer resume:
+      1. Cache hit: if local_root contains exactly expect_count .mp4s, return immediately.
+      2. Copy byte-level resume: _copy_with_resume_and_progress.
+      3. Extract per-member resume: _extract_with_resume_and_progress.
+
+    Args:
+        drive_root:   path to Drive MyDrive (typically "/content/drive/MyDrive").
+        local_root:   destination for the extracted .mp4 files (default /content/ohp_videos).
+        expect_count: Phase 6 D4 verified count (2367 for OHP labeled zip).
+
+    Returns:
+        Absolute path to local_root.
+
+    Raises:
+        FileNotFoundError: source zip missing from Drive.
+        RuntimeError:      post-extraction mp4 count doesn't match expect_count.
+    """
+    local_root_p = Path(local_root)
+
+    # Layer 1 — cache hit (flat layout).
+    if local_root_p.is_dir():
+        flat_existing = list(local_root_p.glob("*.mp4"))
+        if len(flat_existing) == expect_count:
+            logger.info(
+                "stage_ohp cache hit (flat): %d mp4s already at top of %s",
+                expect_count, local_root,
+            )
+            return str(local_root_p)
+
+        nested = [p for p in local_root_p.rglob("*.mp4") if p.parent != local_root_p]
+        if nested:
+            logger.info(
+                "stage_ohp migrate: %d mp4s found nested under %s — flattening to top",
+                len(nested), local_root,
+            )
+            _migrate_nested_mp4s_to_top(local_root_p)
+            flat_existing = list(local_root_p.glob("*.mp4"))
+            if len(flat_existing) == expect_count:
+                logger.info(
+                    "stage_ohp cache hit (post-migration): %d mp4s now flat at top of %s",
+                    expect_count, local_root,
+                )
+                return str(local_root_p)
+        else:
+            logger.info(
+                "stage_ohp cache miss: %s has %d top-level mp4s (expected %d); proceeding",
+                local_root, len(flat_existing), expect_count,
+            )
+
+    src_zip = (
+        Path(drive_root)
+        / "Fitness-AQA_dataset_release/OHP/Labeled_Dataset/videos.zip"
+    )
+    if not src_zip.is_file():
+        raise FileNotFoundError(f"OHP labeled videos zip not found on Drive: {src_zip}")
+
+    local_zip = Path("/content/ohp_videos.zip")
+    size_mb = src_zip.stat().st_size / 1e6
+
+    t_copy = _copy_with_resume_and_progress(src_zip, local_zip)
+    logger.info("copy %s -> %s (%.1f MB) in %.2fs", src_zip.name, local_zip, size_mb, t_copy)
+
+    local_root_p.mkdir(parents=True, exist_ok=True)
+    t_unzip = _extract_with_resume_and_progress(local_zip, local_root_p)
+    logger.info("unzip %s -> %s in %.2fs", local_zip.name, local_root, t_unzip)
+
+    # Flat-layout check.
+    mp4s = list(local_root_p.glob("*.mp4"))
+    if len(mp4s) != expect_count:
+        nested_count = sum(1 for _ in local_root_p.rglob("*.mp4")) - len(mp4s)
+        raise RuntimeError(
+            f"stage_ohp_videos: expected {expect_count} mp4s at top of {local_root}, "
+            f"got {len(mp4s)} flat + {nested_count} nested. "
+            f"Check Drive zip integrity: {src_zip}"
+        )
+
+    # Reclaim disk.
+    try:
+        local_zip.unlink()
+        logger.info("removed local zip %s", local_zip)
+    except OSError as exc:
+        logger.warning("could not remove local zip %s: %s", local_zip, exc)
+
+    logger.info(
+        "stage_ohp_videos: %d mp4s ready at %s (copy %.2fs + unzip %.2fs, %.1f MB source)",
+        expect_count, local_root, t_copy, t_unzip, size_mb,
+    )
+    return str(local_root_p)
+
+
+def stage_unlabeled_ohp_videos(
+    drive_root_3001: str,
+    drive_root_3002: str,
+    *,
+    local_videos_root: str = "/content/ohp_unlabeled_videos",
+    local_traj_root: str = "/content/ohp_trajectories",
+    expect_count: int = _OHP_UNLABELED_VIDEOS_EXPECT_COUNT,
+) -> tuple[str, str]:
+    """Stage OHP unlabeled videos.zip (from -3-002) + bar_trajectories_raw.zip (from -3-001).
+
+    OHP archive is SPLIT across two release folders (D4, Pitfall 4 / RESEARCH §5):
+      - videos.zip:               {drive_root_3002}/.../OHP/Unlabeled_Dataset/videos.zip
+      - bar_trajectories_raw.zip: {drive_root_3001}/.../OHP/Unlabeled_Dataset/bar_trajectories_raw.zip
+
+    Two separate drive_root parameters handle this split (OHP differs from Squat which has
+    all its data in one folder). Trajectory archive uses zipfile.extractall (JSON members,
+    flat layout: bar_trajectories_raw/{clip_id}.json) — NOT _extract_with_resume_and_progress
+    (mp4-only). D7 landmine #7: always use zipfile.extractall for JSON trajectory zips.
+
+    Mirrors stage_unlabeled_squat_videos body; only the source paths differ.
+
+    Args:
+        drive_root_3001: path to Drive root of the -3-001 release folder (has the trajectory zip).
+        drive_root_3002: path to Drive root of the -3-002 release folder (has unlabeled videos).
+        local_videos_root: destination for extracted unlabeled .mp4 files.
+        local_traj_root:   destination for extracted trajectory JSONs.
+        expect_count:      Phase 6 D4 verified count (5490 unlabeled OHP clips).
+
+    Returns:
+        ``(local_videos_root, local_traj_root)`` — paths to the staged assets.
+
+    Raises:
+        FileNotFoundError: a source zip is missing from Drive.
+        RuntimeError:      post-extraction mp4 count doesn't match expect_count.
+    """
+    videos_root_p = Path(local_videos_root)
+    traj_root_p   = Path(local_traj_root)
+
+    # Cache hit on the expensive asset (5,490 mp4s) + a populated trajectory dir.
+    if videos_root_p.is_dir():
+        flat = list(videos_root_p.glob("*.mp4"))
+        if (
+            len(flat) == expect_count
+            and traj_root_p.is_dir()
+            and any(traj_root_p.iterdir())
+        ):
+            logger.info(
+                "stage_unlabeled_ohp cache hit: %d mp4s + trajectories already staged",
+                expect_count,
+            )
+            return str(videos_root_p), str(traj_root_p)
+
+    # Two Drive roots — OHP archive is split across -3-001 (traj) and -3-002 (videos).
+    base_3001 = Path(drive_root_3001) / "Fitness-AQA_dataset_release/OHP/Unlabeled_Dataset"
+    base_3002 = Path(drive_root_3002) / "Fitness-AQA_dataset_release/OHP/Unlabeled_Dataset"
+    src_traj   = base_3001 / "bar_trajectories_raw.zip"
+    src_videos = base_3002 / "videos.zip"
+
+    if not src_videos.is_file():
+        raise FileNotFoundError(f"OHP unlabeled videos zip not found on Drive: {src_videos}")
+    if not src_traj.is_file():
+        raise FileNotFoundError(f"OHP trajectory zip not found on Drive: {src_traj}")
+
+    # Videos: byte-resume copy → per-member mp4 extract (reuse the existing primitives).
+    local_videos_zip = Path("/content/ohp_unlabeled_videos.zip")
+    vid_mb = src_videos.stat().st_size / 1e6
+    t_vcopy = _copy_with_resume_and_progress(src_videos, local_videos_zip)
+    logger.info("copy %s (%.1f MB) in %.2fs", src_videos.name, vid_mb, t_vcopy)
+    videos_root_p.mkdir(parents=True, exist_ok=True)
+    t_vextract = _extract_with_resume_and_progress(local_videos_zip, videos_root_p)
+    mp4s = list(videos_root_p.glob("*.mp4"))
+    if len(mp4s) != expect_count:
+        raise RuntimeError(
+            f"stage_unlabeled_ohp_videos: expected {expect_count} mp4s at top of "
+            f"{local_videos_root}, got {len(mp4s)}. Check Drive zip: {src_videos}"
+        )
+
+    # Trajectories: byte-resume copy → zipfile.extractall (JSON members, flat layout).
+    # D7 landmine #7: NOT _extract_with_resume_and_progress (mp4-only).
+    # OHP traj zip extracts to bar_trajectories_raw/{clip_id}.json (flat one-level).
+    local_traj_zip = Path("/content/ohp_trajectories.zip")
+    t_tcopy = _copy_with_resume_and_progress(src_traj, local_traj_zip)
+    traj_root_p.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(str(local_traj_zip), "r") as zf:
+        zf.extractall(traj_root_p)
+    n_traj_files = sum(1 for p in traj_root_p.rglob("*") if p.is_file())
+    logger.info(
+        "stage_unlabeled_ohp_videos: %d mp4s at %s + %d trajectory files at %s "
+        "(videos copy %.2fs + extract %.2fs, traj copy %.2fs)",
+        expect_count, local_videos_root, n_traj_files, local_traj_root,
+        t_vcopy, t_vextract, t_tcopy,
+    )
+
+    # Reclaim disk — both extractions succeeded.
+    for z in (local_videos_zip, local_traj_zip):
+        try:
+            z.unlink()
+        except OSError as exc:
+            logger.warning("could not remove %s: %s", z, exc)
+
+    return str(videos_root_p), str(traj_root_p)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Task 9 — RNG capture/restore. Required for Task 14's bitwise-resume assertion
 # (fresh-2-epoch vs. resumed-from-epoch-0-into-epoch-1 must produce byte-identical
 # epoch-1 loss trajectories). All 4 RNG sources captured so seed-restoration

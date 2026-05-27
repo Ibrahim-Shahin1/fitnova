@@ -141,6 +141,7 @@ def run_md_finetune_epoch(
     config: FinetuneConfig | None = None,
     resume: bool = True,
     max_epochs: int | None = None,
+    dataset_cls=SquatKIEKFEDataset,  # NEW kwarg — OHP callers pass OHPElbowsKneesDataset (D6/RESEARCH §5)
 ) -> dict:
     """Fine-tune the MD backbone on labeled Squat KIE/KFE (parallels run_supervised_epoch + 4 deltas).
 
@@ -190,7 +191,7 @@ def run_md_finetune_epoch(
     os.makedirs(run_dir, exist_ok=True)
     logger.info("run_dir: %s (config_hash=%s, md_backbone=%s)", run_dir, config_hash_str, md_backbone_path)
 
-    loaders = _build_dataloaders(seed, config, drive_root, videos_root)
+    loaders = _build_dataloaders(seed, config, drive_root, videos_root, dataset_cls=dataset_cls)
     train_loader = loaders["train"]
     val_loader = loaders["val"]
     pos_weight = train_loader.dataset.pos_weight  # type: ignore[attr-defined]
