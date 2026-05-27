@@ -143,10 +143,21 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 06-01-PLAN.md — Wave 0: OHP dataset modules (ohp.py / ohp_ssl.py BBox loader) + splits.index_ohp + dataset_cls seam + colab staging + unit tests (CPU, no-regression gate)
 - [ ] 06-02-PLAN.md — Wave 1: gated trajectory-format/half-cycle-sign probe (blocking) + finalize ohp_ssl.py + supervised baseline (the SSL-lift control) F1 on the official test split
+
+**Wave 3** *(blocked on Wave 1 completion)*
+
 - [ ] 06-03-PLAN.md — Wave 3: MD-SSL pretrain on 5,490 unlabeled OHP clips (v2 strong augs + linear-probe + collapse guard) -> backbone.pt
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 06-04-PLAN.md — Wave 4: 3-seed fine-tune (42/1337/7) + mean-of-sigmoids ensemble + val-tuned threshold/TTA + test eval + F1-vs-paper + results.pkl
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 06-05-PLAN.md — Wave 5: 4-notebook OHP deliverable pack + figures + FINDINGS.md + phase SUMMARY + ROADMAP/REQUIREMENTS/STATE reconciliation
 
 ### Phase 7: Image-Based Errors (CVCSPC)

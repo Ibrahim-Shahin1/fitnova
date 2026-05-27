@@ -4,12 +4,12 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: "Phase 6 (Overhead Press) context gathered — /gsd:discuss-phase 6 complete. Next: /gsd:plan-phase 6"
-last_updated: "2026-05-27T11:44:35.111Z"
-last_activity: "2026-05-27 — Phase 6 (Overhead Press) discuss-phase complete (06-CONTEXT.md). Verified Phase 5 holds (25 tests green, HEAD d72ea16). OHP data verified vs master plan: 2260 labeled (1582/339/339), 5490 unlabeled + trajectories, Elbow 25.7% / Knees 34.2%, errors near-independent (85/407 co-occur). Decisions: API integration DESCOPED (frontend cancelled) → deliverable = model + F1-vs-paper (Knees 0.845 / Elbow 0.455) + 4-notebook OHP pack; joint 2-output head retained. Next: /gsd:plan-phase 6."
+last_updated: "2026-05-27T12:47:19.781Z"
+last_activity: 2026-05-27 -- Phase 6 planning complete
 progress:
   total_phases: 8
   completed_phases: 5
-  total_plans: 12
+  total_plans: 17
   completed_plans: 12
   percent: 63
 ---
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 5 (Backend Inference Integration — Squat) COMPLETE + verified (passed). Next: Phase 6 (Overhead Press) — not started.
-Plan: Phase 5 = 5/5 plans. Squat detector served via upload (POST /analyze-form-video) + live (WS /ws/form-session), D-05 schema, knee-aware crop (D-11 fix). 24/24 tests + real-endpoint E2E green. Open follow-up: serving-threshold calibration (05-HUMAN-UAT.md, non-blocking).
-Status: executing (between phases — Phase 6 next; demo-prep on the Squat slice in progress)
-Last activity: 2026-05-27 — Form-correction frontend (live + upload-on-own-video) CANCELLED: confirmed the model does not transfer to home/portrait phone clips (domain shift), though it reproduces the paper on the benchmark. Pivoted to the defensible deliverable — scored the Fitness-AQA official 244-clip test split (KFE 0.841 / KIE 0.420 / macro 0.6304, matches Parmar MD-SSL) + 5 figures + best-example findings (docs/figures/, docs/eval/FINDINGS.md). Backend ONNX speedup (260527-2bt) retained; live WS endpoint orphaned (cleanup pending).
+Phase: 6 (Overhead Press) PLANNED — 5 plans (06-01..06-05), plan-checker PASSED (0 blockers), Ready to execute. Phases 1–5 COMPLETE. Next: execute-phase 6 (Plan 01 = local CPU scaffolds+tests; Plan 02+ = fresh L4 Colab, paste-back). API integration descoped (D1).
+Plan: Phase 6 = 0/5 executed. Phase 5 = 5/5 plans. Squat detector served via upload (POST /analyze-form-video) + live (WS /ws/form-session), D-05 schema, knee-aware crop (D-11 fix). 24/24 tests + real-endpoint E2E green. Open follow-up: serving-threshold calibration (05-HUMAN-UAT.md, non-blocking).
+Status: Ready to execute
+Last activity: 2026-05-27 -- Phase 6 planning complete
 
 Progress: [██████░░░░] 63%
 
