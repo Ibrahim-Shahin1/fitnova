@@ -149,6 +149,118 @@ def expected_counts() -> dict[str, int]:
     return dict(_EXPECTED_COUNTS)
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# OHP split constants (Phase 6 D4 verified counts + subdir paths)
+# ──────────────────────────────────────────────────────────────────────────────
+
+_OHP_EXPECTED_COUNTS: dict[str, int] = {"train": 1582, "val": 339, "test": 339}
+_OHP_LABELS_SUBDIR = "Fitness-AQA_dataset_release/OHP/Labeled_Dataset/Labels"
+_OHP_SPLITS_SUBDIR = "Fitness-AQA_dataset_release/OHP/Labeled_Dataset/Splits"
+_OHP_LABEL_ELBOWS_FILENAME = "error_elbows.json"
+_OHP_LABEL_KNEES_FILENAME  = "error_knees.json"
+
+
+@dataclass(frozen=True)
+class OHPClipRecord:
+    """One labeled OHP clip — frozen so records are hashable and safe in sets/dict keys.
+
+    Attributes:
+        clip_id:       stem of the .mp4 (e.g. "11681_3").
+        video_path:    absolute path under videos_root.
+        label_elbows:  0/1 — non-empty interval list in error_elbows.json => 1.
+        label_knees:   0/1 — non-empty interval list in error_knees.json => 1.
+    """
+
+    clip_id:      str
+    video_path:   str
+    label_elbows: int
+    label_knees:  int
+
+
+def index_ohp(
+    split: Literal["train", "val", "test"],
+    *,
+    drive_root: str,
+    videos_root: str,
+) -> list[OHPClipRecord]:
+    """Load the official OHP split and return OHPClipRecords in split-file order.
+
+    Mirrors index() exactly. Label files: error_elbows.json / error_knees.json.
+    Expected counts (D4 verified): train=1582, val=339, test=339.
+
+    Args:
+        split:       one of "train" / "val" / "test".
+        drive_root:  path to the folder containing
+                     ``Fitness-AQA_dataset_release/OHP/...`` (the -3-001 release
+                     folder parent — index_ohp prepends the release-subdir prefix).
+        videos_root: path where the unzipped ``.mp4`` files live.
+                     Used to construct ``video_path`` on each record; files are
+                     NOT opened here.
+
+    Returns:
+        Ordered list of ``OHPClipRecord``. Order matches the JSON list in
+        ``{split}_keys.json`` — load-bearing for deterministic indexing.
+
+    Raises:
+        ValueError:        unknown split name.
+        FileNotFoundError: missing split or label JSON file.
+        KeyError:          a split clip_id is missing from one of the label dicts.
+        TypeError:         a JSON value has unexpected schema.
+    """
+    if split not in _OHP_EXPECTED_COUNTS:
+        raise ValueError(f"split must be one of {sorted(_OHP_EXPECTED_COUNTS)}; got '{split}'")
+
+    drive_root_p = Path(drive_root)
+    splits_dir = drive_root_p / _OHP_SPLITS_SUBDIR
+    labels_dir = drive_root_p / _OHP_LABELS_SUBDIR
+
+    split_keys_path = splits_dir / f"{split}_keys.json"
+    label_elbows_path = labels_dir / _OHP_LABEL_ELBOWS_FILENAME
+    label_knees_path  = labels_dir / _OHP_LABEL_KNEES_FILENAME
+
+    split_keys = _load_json(split_keys_path)
+    if not isinstance(split_keys, list):
+        raise TypeError(f"{split_keys_path} must contain a JSON list of clip_id strings")
+
+    elbows_dict = _load_json(label_elbows_path)
+    knees_dict  = _load_json(label_knees_path)
+    if not isinstance(elbows_dict, dict) or not isinstance(knees_dict, dict):
+        raise TypeError("error_elbows.json / error_knees.json must each be a JSON object")
+
+    records: list[OHPClipRecord] = []
+    for clip_id in split_keys:
+        if not isinstance(clip_id, str):
+            raise TypeError(
+                f"clip_id in {split_keys_path} is {type(clip_id).__name__}, expected str"
+            )
+        label_elbows = _label_value(elbows_dict, clip_id)
+        label_knees  = _label_value(knees_dict,  clip_id)
+        video_path = os.path.join(videos_root, f"{clip_id}.mp4")
+        records.append(
+            OHPClipRecord(
+                clip_id=clip_id,
+                video_path=video_path,
+                label_elbows=label_elbows,
+                label_knees=label_knees,
+            )
+        )
+
+    expected = _OHP_EXPECTED_COUNTS[split]
+    if len(records) != expected:
+        logger.warning(
+            "OHP split '%s' count drift: got %d records, D4 verified %d",
+            split, len(records), expected,
+        )
+
+    logger.info("loaded OHP split '%s': %d records", split, len(records))
+    return records
+
+
+def ohp_expected_counts() -> dict[str, int]:
+    """Return Phase 6 D4 verified OHP split counts. Used by the notebook for reconciliation."""
+    return dict(_OHP_EXPECTED_COUNTS)
+
+
 if __name__ == "__main__":
     # Standalone smoke-check — set DRIVE_ROOT below to your Drive mount path (Colab) or
     # local snapshot path, and uncomment the run block. Off by default so
