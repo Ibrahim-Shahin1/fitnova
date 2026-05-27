@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../fitness_planning/planning_tab.dart';
-import '../form_correction/form_correction_tab.dart';
 import '../home/home_tab.dart';
 import '../nutrition/nutrition_tab.dart';
 import '../profile/profile_tab.dart';
@@ -29,7 +28,6 @@ class _AppShellState extends State<AppShell> {
       HomeTab(onOpenPlanning: () => _goTo(1)),
       const PlanningTab(),
       const ProgressTab(),
-      const FormCorrectionTab(),
       const NutritionTab(),
       const ProfileTab(),
     ];
@@ -54,11 +52,6 @@ class _AppShellState extends State<AppShell> {
             icon: Icon(Icons.insights_outlined),
             selectedIcon: Icon(Icons.insights),
             label: 'Progress',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.videocam_outlined),
-            selectedIcon: Icon(Icons.videocam),
-            label: 'Form',
           ),
           NavigationDestination(
             icon: Icon(Icons.restaurant_outlined),
