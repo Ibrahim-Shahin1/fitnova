@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 6 (Overhead Press) context gathered — /gsd:discuss-phase 6 complete. Next: /gsd:plan-phase 6"
-last_updated: "2026-05-27T12:47:19.781Z"
-last_activity: 2026-05-27 -- Phase 6 planning complete
+stopped_at: "Phase 6 Plan 01 (Wave 0) complete — OHP dataset modules + tests, pytest 29 green, Squat suite unbroken. Next: Plan 02 (gated trajectory/half-cycle probe + supervised baseline) on a fresh L4 Colab, cell-by-cell with paste-back."
+last_updated: "2026-05-27"
+last_activity: "2026-05-27 -- Phase 6 Plan 01 (Wave 0) executed locally: ohp.py + ohp_ssl.py (BBox trajectory parser, the one genuinely-new logic) + splits.index_ohp + dataset_cls seam + OHP colab staging + unit tests; pytest 29 green, Phase-3/4 Squat suite unbroken. OHP-01 NOT yet complete (phase-spanning — Wave 0 only)."
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 17
-  completed_plans: 12
+  completed_plans: 13
   percent: 63
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 6 (Overhead Press) PLANNED — 5 plans (06-01..06-05), plan-checker PASSED (0 blockers), Ready to execute. Phases 1–5 COMPLETE. Next: execute-phase 6 (Plan 01 = local CPU scaffolds+tests; Plan 02+ = fresh L4 Colab, paste-back). API integration descoped (D1).
-Plan: Phase 6 = 0/5 executed. Phase 5 = 5/5 plans. Squat detector served via upload (POST /analyze-form-video) + live (WS /ws/form-session), D-05 schema, knee-aware crop (D-11 fix). 24/24 tests + real-endpoint E2E green. Open follow-up: serving-threshold calibration (05-HUMAN-UAT.md, non-blocking).
-Status: Ready to execute
-Last activity: 2026-05-27 -- Phase 6 planning complete
+Phase: 6 (Overhead Press) IN PROGRESS — 1/5 plans executed. Plan 01 (Wave-0 OHP dataset modules + tests) DONE locally (pytest 29 green, Squat suite unbroken). Phases 1–5 COMPLETE. Next: Plan 02 (gated trajectory/half-cycle probe + supervised baseline) — fresh L4 Colab, cell-by-cell with paste-back. API integration descoped (D1).
+Plan: Phase 6 = 1/5 executed (06-01 Wave-0: splits.index_ohp + OHPClipRecord, ohp.py OHPElbowsKneesDataset + pos_weight, ohp_ssl.py BBox _load_trajectory + argMIN half-cycle, dataset_cls seam on supervised_train/md_finetune, OHP colab staging; 4 OHP unit tests + seam test green, conftest slow-marker). Plans 02-05 pending (Colab). Phase 5 = 5/5 plans (Squat API, archived).
+Status: executing — Phase 6 in progress (1/5 plans; Plan 02 next, on Colab)
+Last activity: 2026-05-27 -- Phase 6 Plan 01 (Wave 0) complete
 
 Progress: [██████░░░░] 63%
 

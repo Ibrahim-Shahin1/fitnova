@@ -145,7 +145,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 06-01-PLAN.md — Wave 0: OHP dataset modules (ohp.py / ohp_ssl.py BBox loader) + splits.index_ohp + dataset_cls seam + colab staging + unit tests (CPU, no-regression gate)
+- [x] 06-01-PLAN.md — Wave 0: OHP dataset modules (ohp.py / ohp_ssl.py BBox loader) + splits.index_ohp + dataset_cls seam + colab staging + unit tests (CPU, no-regression gate)
 - [ ] 06-02-PLAN.md — Wave 1: gated trajectory-format/half-cycle-sign probe (blocking) + finalize ohp_ssl.py + supervised baseline (the SSL-lift control) F1 on the official test split
 
 **Wave 3** *(blocked on Wave 1 completion)*
@@ -198,6 +198,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Squat Supervised Baseline | 1/1 | Complete | 2026-05-20 |
 | 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
 | 5. Backend Inference Integration (Squat) | 5/5 | Complete    | 2026-05-26 |
-| 6. Overhead Press | 0/TBD | Not started | - |
+| 6. Overhead Press | 1/5 | In Progress|  |
 | 7. Image-Based Errors (CVCSPC) | 0/TBD | Not started | - |
 | 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |
