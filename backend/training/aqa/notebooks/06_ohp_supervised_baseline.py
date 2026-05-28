@@ -517,3 +517,37 @@ try:
     print("ckpt keys ok:", {"model_state_dict", "best_thresholds", "config_hash", "rng_state"} <= set(payload.keys()))
 except Exception as e:  # noqa: BLE001
     print("checkpoint inspect skipped:", repr(e), "| result keys:", list(result.keys()))
+
+
+# %% [markdown]
+# ## Step 5 — full OHP baseline training (resume-safe; ~3 h, multi-session)
+#
+# Single cell = the whole run. resume=True: a Colab disconnect is recovered by
+# re-running this cell (picks up from latest.txt). Checkpoints every epoch +
+# best.pt on val-macro-F1 improvement + 8-epoch early-stop.
+
+# %%
+import os
+
+from backend.training.aqa.datasets.ohp import OHPElbowsKneesDataset
+from backend.training.aqa.harness.supervised_train import SupervisedConfig, run_supervised_epoch
+
+cfg = SupervisedConfig()
+RUN_NAME = "ohp_supervised_v1"
+result = run_supervised_epoch(
+    run_name=RUN_NAME,
+    drive_root=MYDRIVE,
+    videos_root=VIDEOS_ROOT,
+    seed=42,
+    config=cfg,
+    resume=True,
+    max_epochs=cfg.max_epochs,
+    dataset_cls=OHPElbowsKneesDataset,
+    checkpoint_phase="phase06",
+)
+mh = result["metrics_history"]
+print(f"epochs trained: {len(mh)} | best_f1_val: {result.get('best_f1_val')}")
+for i, m in enumerate(mh):
+    print(f"  epoch {i:2d}: val_macro_f1={m['val_macro_f1']:.4f}")
+best_pt = os.path.join(MYDRIVE, "FitNova/checkpoints/phase06", RUN_NAME, "best.pt")
+print("best.pt:", best_pt, "| exists:", os.path.exists(best_pt))
