@@ -139,11 +139,12 @@ assert "L4" in _gpu_name or _vram_gb >= 22.0, (
     f"Phase 6 expects L4 (>=22 GB); got {_gpu_name} {_vram_gb:.1f} GB."
 )
 
-# Decode-backend report. transforms.decode_clip + count_frames are version-robust:
+# Decode-backend report (computed INLINE — does not import from transforms, so a stale
+# module can't break it). transforms.decode_clip + count_frames are version-robust:
 # torchvision < 0.26 uses read_video; torchvision >= 0.26 (which REMOVED read_video)
-# transparently falls back to cv2 (opencv-python-headless). Just confirm a backend exists.
-from backend.training.aqa.datasets.transforms import _HAS_TV_READ_VIDEO
-if _HAS_TV_READ_VIDEO:
+# transparently falls back to cv2 (opencv-python-headless).
+_has_rv = hasattr(torchvision.io, "read_video") and hasattr(torchvision.io, "read_video_timestamps")
+if _has_rv:
     print(f"decode backend: torchvision.read_video (tv {torchvision.__version__}, PyAV {av.__version__})")
 else:
     import cv2
