@@ -551,3 +551,122 @@ for i, m in enumerate(mh):
     print(f"  epoch {i:2d}: val_macro_f1={m['val_macro_f1']:.4f}")
 best_pt = os.path.join(MYDRIVE, "FitNova/checkpoints/phase06", RUN_NAME, "best.pt")
 print("best.pt:", best_pt, "| exists:", os.path.exists(best_pt))
+
+
+# %% [markdown]
+# ## Step 6 — val threshold sweep (per-error, F1-maximizing) -> best_thresholds
+
+# %%
+import os
+
+import torch
+
+from backend.training.aqa.datasets.ohp import OHPElbowsKneesDataset
+from backend.training.aqa.eval.metrics import f1_per_error, threshold_sweep
+from backend.training.aqa.harness.colab import atomic_save_checkpoint
+from backend.training.aqa.harness.supervised_train import (
+    SupervisedConfig,
+    _build_dataloaders,
+    _val_pass,
+    build_model,
+)
+
+config = SupervisedConfig()
+RUN_NAME = "ohp_supervised_v1"
+run_dir = os.path.join(MYDRIVE, "FitNova/checkpoints/phase06", RUN_NAME)
+best_path = os.path.join(run_dir, "best.pt")
+latest_path = os.path.join(run_dir, "latest.txt")
+
+payload = torch.load(best_path, map_location="cpu", weights_only=False)
+print(f"best epoch={payload['epoch']} | best_f1_val(macro@0.5)={payload['best_f1_val']:.4f}")
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = build_model().to(device)
+model.load_state_dict(payload["model_state_dict"])
+model.eval()
+
+loaders = _build_dataloaders(
+    seed=42, config=config, drive_root=MYDRIVE, videos_root=VIDEOS_ROOT,
+    dataset_cls=OHPElbowsKneesDataset,
+)
+val_loader = loaders["val"]
+criterion = torch.nn.BCEWithLogitsLoss(pos_weight=val_loader.dataset.pos_weight.to(device))
+val_loss, val_scores, val_labels = _val_pass(model, val_loader, criterion, device)
+print(f"val pass: scores {val_scores.shape}, labels {val_labels.shape}, val_loss {val_loss:.4f}")
+
+t_elbows, f1_elbows_val = threshold_sweep(val_labels[:, 0], val_scores[:, 0])
+t_knees, f1_knees_val = threshold_sweep(val_labels[:, 1], val_scores[:, 1])
+print(f"Elbows: threshold={t_elbows:.4f}  val_F1={f1_elbows_val:.4f}")
+print(f"Knees : threshold={t_knees:.4f}  val_F1={f1_knees_val:.4f}")
+print(f"val macro F1 (swept) = {(f1_elbows_val + f1_knees_val) / 2:.4f}")
+
+with open(latest_path, encoding="utf-8") as f:
+    latest_before = f.read()
+payload["best_thresholds"] = {"elbows": t_elbows, "knees": t_knees}
+atomic_save_checkpoint(payload, best_path)
+with open(latest_path, "w", encoding="utf-8") as f:
+    f.write(latest_before)
+print("best_thresholds written:", payload["best_thresholds"], "| latest.txt restored:", latest_before.strip())
+
+del model
+torch.cuda.empty_cache()
+
+
+# %% [markdown]
+# ## Step 7 — test evaluation at val-tuned thresholds (baseline control F1)
+
+# %%
+import os
+
+import torch
+
+from backend.training.aqa.datasets.ohp import OHPElbowsKneesDataset
+from backend.training.aqa.eval.metrics import (
+    confusion_matrix_per_error,
+    f1_per_error,
+    pr_auc_per_error,
+)
+from backend.training.aqa.harness.supervised_train import (
+    SupervisedConfig,
+    _build_dataloaders,
+    _val_pass,
+    build_model,
+)
+
+config = SupervisedConfig()
+RUN_NAME = "ohp_supervised_v1"
+run_dir = os.path.join(MYDRIVE, "FitNova/checkpoints/phase06", RUN_NAME)
+payload = torch.load(os.path.join(run_dir, "best.pt"), map_location="cpu", weights_only=False)
+th = payload["best_thresholds"]
+print("thresholds:", th)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = build_model().to(device)
+model.load_state_dict(payload["model_state_dict"])
+model.eval()
+
+loaders = _build_dataloaders(
+    seed=42, config=config, drive_root=MYDRIVE, videos_root=VIDEOS_ROOT,
+    dataset_cls=OHPElbowsKneesDataset,
+)
+test_loader = loaders["test"]
+criterion = torch.nn.BCEWithLogitsLoss(pos_weight=test_loader.dataset.pos_weight.to(device))
+_, test_scores, test_labels = _val_pass(model, test_loader, criterion, device)
+print(f"test clips: {test_scores.shape[0]} (expected 339)")
+
+pred_elbows = (test_scores[:, 0] >= th["elbows"]).astype(int)
+pred_knees = (test_scores[:, 1] >= th["knees"]).astype(int)
+f1_elbows = f1_per_error(test_labels[:, 0], pred_elbows)
+f1_knees = f1_per_error(test_labels[:, 1], pred_knees)
+macro = (f1_elbows + f1_knees) / 2.0
+ap_elbows = pr_auc_per_error(test_labels[:, 0], test_scores[:, 0])
+ap_knees = pr_auc_per_error(test_labels[:, 1], test_scores[:, 1])
+
+print("\n=== OHP supervised baseline — official test split (SSL-lift CONTROL) ===")
+print(f"  Elbows : F1={f1_elbows:.4f}  AP={ap_elbows:.4f}  (pos rate {test_labels[:, 0].mean():.3f})")
+print(f"  Knees  : F1={f1_knees:.4f}  AP={ap_knees:.4f}  (pos rate {test_labels[:, 1].mean():.3f})")
+print(f"  macro  : F1={macro:.4f}")
+print(f"  confusion Elbows (tn,fp/fn,tp):\n{confusion_matrix_per_error(test_labels[:, 0], pred_elbows)}")
+print(f"  confusion Knees  (tn,fp/fn,tp):\n{confusion_matrix_per_error(test_labels[:, 1], pred_knees)}")
+print("\nNo paper Kinetics baseline exists for OHP — this is the control for the Plan-04 MD-SSL lift.")
+print("Paper Ours-MD targets (the Plan-04 fine-tune target, NOT a baseline comparison): Elbow 0.4552 / Knees 0.8452.")
