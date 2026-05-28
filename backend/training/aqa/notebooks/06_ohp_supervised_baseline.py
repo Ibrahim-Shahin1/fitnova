@@ -390,3 +390,130 @@ print(f"\n[6 multi-rep] {multi_rep}/{total_ok} trajectories have >1 prominent ex
       f"({100 * multi_rep / max(total_ok, 1):.1f}% — single-rep argmin/argmax covers the rest)")
 
 print("\n=== PROBE COMPLETE — paste back this report + ohp_traj_probe.png + the resolved sign. NO GPU yet. ===")
+
+
+# %% [markdown]
+# ## Step 2 — SSL dataset smoke (triplet shapes + descent/ascent sanity grid)
+
+# %%
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from pathlib import Path
+
+from backend.training.aqa.datasets.ohp_ssl import OHPSSLDataset, build_ssl_loader
+from backend.training.aqa.harness.md_pretrain import MDConfig
+from backend.training.aqa.datasets.transforms import KINETICS_MEAN, KINETICS_STD
+
+ssl_ds = OHPSSLDataset(
+    videos_root=UNLABELED_VIDEOS_ROOT,
+    trajectories_root=TRAJ_ROOT,
+    frames_per_half=16,
+    crop_size=112,
+)
+print("len(ssl_ds):", len(ssl_ds), "(expected ~5490)")
+
+ssl_loader = build_ssl_loader(ssl_ds, MDConfig(), seed=42)
+batch = next(iter(ssl_loader))
+for k in ("anchor", "positive", "negative"):
+    print(f"  {k}: {tuple(batch[k].shape)} {batch[k].dtype}")
+    assert batch[k].shape[1:] == (3, 16, 112, 112) and batch[k].dtype == torch.float32
+
+_mean = torch.tensor(KINETICS_MEAN).view(3, 1, 1)
+_std = torch.tensor(KINETICS_STD).view(3, 1, 1)
+
+def _strip(clip_cthw):
+    fr = clip_cthw.permute(1, 0, 2, 3)[:8]
+    fr = (fr * _std + _mean).clamp(0, 1)
+    return torch.cat([fr[i] for i in range(fr.shape[0])], dim=2).permute(1, 2, 0).numpy()
+
+fig, ax = plt.subplots(2, 1, figsize=(14, 4))
+ax[0].imshow(_strip(batch["anchor"][0])); ax[0].set_title("anchor — phase1 (shoulders -> overhead)"); ax[0].axis("off")
+ax[1].imshow(_strip(batch["negative"][0])); ax[1].set_title("negative — phase2 (overhead -> shoulders)"); ax[1].axis("off")
+_p = Path(".planning/phases/06-overhead-press/figures/ohp_ssl_triplet_sanity.png")
+_p.parent.mkdir(parents=True, exist_ok=True)
+fig.tight_layout(); fig.savefig(_p, dpi=110, bbox_inches="tight"); print("saved", _p); plt.show()
+
+
+# %% [markdown]
+# ## Step 3 — baseline model + VRAM probe (OHP joint Elbows/Knees head)
+
+# %%
+import torch
+
+from backend.training.aqa.datasets.ohp import OHPElbowsKneesDataset
+from backend.training.aqa.harness.supervised_train import (
+    SupervisedConfig,
+    _build_dataloaders,
+    build_model,
+)
+
+model = build_model().to("cuda")
+total_params = sum(p.numel() for p in model.parameters())
+print("total_params:", f"{total_params:_}")
+assert 30_000_000 < total_params < 33_000_000
+
+cfg = SupervisedConfig()
+loaders = _build_dataloaders(42, cfg, MYDRIVE, VIDEOS_ROOT, dataset_cls=OHPElbowsKneesDataset)
+train_ds = loaders["train"].dataset
+print("sizes train/val/test:", len(loaders["train"].dataset), len(loaders["val"].dataset), len(loaders["test"].dataset), "(expected 1582/339/339)")
+print("pos_weight:", [round(x, 3) for x in train_ds.pos_weight.tolist()], "(expected ~[2.89, 1.92])")
+
+clip, label = next(iter(loaders["train"]))
+clip, label = clip.to("cuda"), label.to("cuda")
+with torch.no_grad():
+    logits = model(clip)
+print("logits.shape:", tuple(logits.shape), "(expected (16, 2))")
+assert tuple(logits.shape) == (16, 2)
+
+peak_fwd = torch.cuda.max_memory_allocated() / 1e9
+torch.cuda.reset_peak_memory_stats()
+criterion = torch.nn.BCEWithLogitsLoss(pos_weight=train_ds.pos_weight.to("cuda"))
+loss = criterion(model(clip), label); loss.backward()
+peak_bwd = torch.cuda.max_memory_allocated() / 1e9
+print(f"peak VRAM: forward {peak_fwd:.2f} GB | backward {peak_bwd:.2f} GB (expected ~15 GB, must be < 20)")
+assert peak_bwd < 20.0, f"VRAM {peak_bwd:.2f} GB exceeds 20 GB headroom — lower batch_size"
+
+del model, logits, loss, criterion
+torch.cuda.empty_cache()
+print("GPU freed; ready for Step 4.")
+
+
+# %% [markdown]
+# ## Step 4 — epoch-0 timing gate (one fresh epoch under the production code path)
+
+# %%
+import os
+import time
+
+import torch
+
+from backend.training.aqa.datasets.ohp import OHPElbowsKneesDataset
+from backend.training.aqa.harness.supervised_train import SupervisedConfig, run_supervised_epoch
+
+cfg = SupervisedConfig()
+t0 = time.perf_counter()
+result = run_supervised_epoch(
+    run_name="ohp_supervised_v1_timing",
+    drive_root=MYDRIVE,
+    videos_root=VIDEOS_ROOT,
+    seed=42,
+    config=cfg,
+    resume=False,
+    max_epochs=1,
+    dataset_cls=OHPElbowsKneesDataset,
+    checkpoint_phase="phase06",
+)
+wall_s = time.perf_counter() - t0
+epoch_0_time_s = result["metrics_history"][0]["epoch_wall_time_s"]
+estimated_total_h = epoch_0_time_s * cfg.max_epochs / 3600.0
+print(f"epoch_0_time_s     = {epoch_0_time_s:.1f}")
+print(f"estimated_total_h  = {estimated_total_h:.2f}  ({cfg.max_epochs} epochs)")
+print(f"val_macro_f1 (1ep) = {result['metrics_history'][0]['val_macro_f1']:.4f}")
+try:
+    ckpt = result["checkpoint_path"]
+    print("checkpoint:", ckpt, f"({os.path.getsize(ckpt) / 1e6:.0f} MB)")
+    payload = torch.load(ckpt, map_location="cpu", weights_only=False)
+    print("ckpt keys ok:", {"model_state_dict", "best_thresholds", "config_hash", "rng_state"} <= set(payload.keys()))
+except Exception as e:  # noqa: BLE001
+    print("checkpoint inspect skipped:", repr(e), "| result keys:", list(result.keys()))

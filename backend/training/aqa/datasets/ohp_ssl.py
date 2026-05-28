@@ -1,35 +1,11 @@
 """Unlabeled OHP SSL dataset for the Motion-Disentangling pretext task.
 
-Yields a ``{anchor, positive, negative}`` dict of three float32 clips
-``[3, 16, H, W]`` from the 5,490 unlabeled OHP clips + their pre-computed
-barbell BBox trajectories. Same triplet structure as SquatSSLDataset (anchor =
-augmented descent, positive = re-augmented descent, negative = augmented ascent).
-
-The ONE genuinely-new logic vs the Squat SSL dataset is ``_load_trajectory``:
-OHP trajectories are raw BBox arrays (NOT flat y-lists like Squat).
-
-OHP trajectory format (ReadMe.md.docx + offline inspection of 20 files, RESEARCH §3):
-  - Each JSON is a list of frames (length == video frame count, 1:1 [ASSUMED — confirmed
-    at Plan 02 Colab probe]).
-  - Each frame = [region_0, region_1, region_2] (always 3 regions, A6 guard applied).
-  - Each region is a list of 0 or 1 bboxes: [x1, y1, x2, y2, conf].
-  - Region 0 = barbell (wide horizontal bbox covering ~full image width).
-  - y_center = (y1 + y2) / 2 per ReadMe formula.
-  - Empty region-0 frames (~40% of files have some) → np.nan → linear interpolation.
-
-OHP trajectory archive extracts FLAT (bar_trajectories_raw/{clip_id}.json, one level).
-Use glob("*.json") NOT rglob — opposite of Squat which needed rglob due to nested subdir.
-
-``split_half_cycles`` is COPIED VERBATIM from squat_ssl.py — the argMIN sign
-(bottom_is_argmax=False) applies to OHP exactly as to Squat, for different physical
-reasons: overhead = barbell at lowest y pixel value = argMIN. Confirmed by offline
-inspection of 11681_3.json (y_center argMIN at frame 47, mid-rep). Re-confirmed
-visually in Plan 02's gated Colab probe before the SSL GPU burn.
-
-NOTE: The live 1:1 traj<->frame alignment is confirmed in Plan 02's gated probe BEFORE
-the SSL GPU burn. This module is Wave 0 (CPU-verified pure-function scaffold).
-
-See: .planning/phases/06-overhead-press/06-01-PLAN.md — Task 3 / D5 / RESEARCH §3.
+Yields {anchor, positive, negative} float32 clips [3, 16, H, W] from the unlabeled
+OHP clips + their barbell BBox trajectories. _load_trajectory parses the per-frame
+BBox JSON (frame = [region_0, region_1, region_2]; region_0 = barbell bbox
+[x1, y1, x2, y2, conf]; y_center = (y1 + y2) / 2; empty region_0 -> NaN -> interp).
+Trajectory index space is 1:1 with video frames; half-cycle split uses argMIN
+(overhead = lowest y pixel).
 """
 
 from __future__ import annotations
@@ -120,16 +96,7 @@ def split_half_cycles(
 
 
 class OHPSSLDataset(Dataset):
-    """Triplet dataset over the unlabeled OHP clips (anchor/positive/negative).
-
-    __getitem__ returns ``{"anchor", "positive", "negative"}`` — three float32
-    ``[3, 16, H, W]`` Kinetics-normalized clips. No labels, no ``pos_weight``
-    (SSL is unsupervised).
-
-    OHP trajectories are in a FLAT directory (one-level: clip_id.json).
-    Uses glob("*.json") NOT rglob — the OHP trajectory zip extracts flat,
-    unlike Squat's nested subdir structure that required rglob. (D7 landmine #4)
-    """
+    """Triplet dataset over the unlabeled OHP clips (anchor/positive/negative)."""
 
     def __init__(
         self,
@@ -153,11 +120,9 @@ class OHPSSLDataset(Dataset):
         self.aug_prob = aug_prob             # per-aug independent application probability
         self._spatial_fn: Callable[..., torch.Tensor] = spatial_train  # always train-aug in SSL
 
-        # OHP trajectories: FLAT dir — glob("*.json") NOT rglob (D7 landmine #4 / PATTERNS).
-        # Squat needed rglob because extractall nested the JSONs; OHP extracts flat.
         vid_stems = {p.stem for p in Path(videos_root).glob("*.mp4")}
         self._traj_paths: dict[str, Path] = {
-            p.stem: p for p in Path(trajectories_root).glob("*.json")  # flat dir — no rglob
+            p.stem: p for p in Path(trajectories_root).rglob("*.json")
         }
         self._clip_ids: list[str] = sorted(vid_stems & set(self._traj_paths))
         logger.info(

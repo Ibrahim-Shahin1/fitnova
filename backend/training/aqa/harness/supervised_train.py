@@ -339,6 +339,8 @@ def run_supervised_epoch(
     config: SupervisedConfig | None = None,
     resume: bool = True,
     max_epochs: int | None = None,
+    dataset_cls=SquatKIEKFEDataset,
+    checkpoint_phase: str = "phase03",
 ) -> dict:
     """Train through `effective_max_epochs - 1` from a checkpointed prior state (or fresh).
 
@@ -403,11 +405,11 @@ def run_supervised_epoch(
     }
     config_hash_str = hash_config(config_repr)
 
-    run_dir = os.path.join(drive_root, "FitNova/checkpoints/phase03", run_name)
+    run_dir = os.path.join(drive_root, "FitNova/checkpoints", checkpoint_phase, run_name)
     os.makedirs(run_dir, exist_ok=True)
     logger.info("run_dir: %s (config_hash=%s)", run_dir, config_hash_str)
 
-    loaders = _build_dataloaders(seed, config, drive_root, videos_root)
+    loaders = _build_dataloaders(seed, config, drive_root, videos_root, dataset_cls=dataset_cls)
     train_loader = loaders["train"]
     val_loader = loaders["val"]
 
