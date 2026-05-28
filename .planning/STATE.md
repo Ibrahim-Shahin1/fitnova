@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 6 Plan 01 (Wave 0) complete — OHP dataset modules + tests, pytest 29 green, Squat suite unbroken. Next: Plan 02 (gated trajectory/half-cycle probe + supervised baseline) on a fresh L4 Colab, cell-by-cell with paste-back."
-last_updated: "2026-05-27"
-last_activity: "2026-05-27 -- Phase 6 Plan 01 (Wave 0) executed locally: ohp.py + ohp_ssl.py (BBox trajectory parser, the one genuinely-new logic) + splits.index_ohp + dataset_cls seam + OHP colab staging + unit tests; pytest 29 green, Phase-3/4 Squat suite unbroken. OHP-01 NOT yet complete (phase-spanning — Wave 0 only)."
+stopped_at: "Phase 6 Plan 02 complete — gated trajectory probe (argMIN / 1:1 mapping / nested layout confirmed) + supervised baseline (test Elbows 0.4167 / Knees 0.8069 / macro 0.6118, the SSL-lift control). Next: Plan 03 (MD-SSL pretrain on 5,490 unlabeled OHP clips) — FRESH L4 notebook, ~15-26h; prompt user first."
+last_updated: "2026-05-29"
+last_activity: "2026-05-29 -- Phase 6 Plan 02: gated probe confirmed BBox format / 1:1 traj-frame / argMIN sign / NESTED traj layout; cv2 decode fallback (Colab tv 0.26 removed read_video); run_supervised_epoch dataset_cls+checkpoint_phase seam; OHP supervised baseline trained (best epoch 4, val macro 0.645) -> test macro 0.6118. OHP-01 still phase-spanning (SSL = Plans 03/04)."
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 17
-  completed_plans: 13
+  completed_plans: 14
   percent: 63
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 6 (Overhead Press) IN PROGRESS — 1/5 plans executed. Plan 01 (Wave-0 OHP dataset modules + tests) DONE locally (pytest 29 green, Squat suite unbroken). Phases 1–5 COMPLETE. Next: Plan 02 (gated trajectory/half-cycle probe + supervised baseline) — fresh L4 Colab, cell-by-cell with paste-back. API integration descoped (D1).
-Plan: Phase 6 = 1/5 executed (06-01 Wave-0: splits.index_ohp + OHPClipRecord, ohp.py OHPElbowsKneesDataset + pos_weight, ohp_ssl.py BBox _load_trajectory + argMIN half-cycle, dataset_cls seam on supervised_train/md_finetune, OHP colab staging; 4 OHP unit tests + seam test green, conftest slow-marker). Plans 02-05 pending (Colab). Phase 5 = 5/5 plans (Squat API, archived).
-Status: executing — Phase 6 in progress (1/5 plans; Plan 02 next, on Colab)
-Last activity: 2026-05-27 -- Phase 6 Plan 01 (Wave 0) complete
+Phase: 6 (Overhead Press) IN PROGRESS — 2/5 plans executed. Plan 01 (Wave-0 modules) + Plan 02 (gated probe + supervised baseline) DONE. Phases 1–5 COMPLETE. Next: Plan 03 (MD-SSL pretrain on 5,490 unlabeled OHP clips) — FRESH L4 notebook, ~15-26h heavy burn; prompt user before kicking off. API integration descoped (D1).
+Plan: Phase 6 = 2/5 executed. Plan 02: probe confirmed BBox format / 1:1 traj↔frame / argMIN sign / NESTED traj layout (ohp_ssl glob→rglob); cv2 decode fallback (Colab tv 0.26 removed read_video); run_supervised_epoch dataset_cls+checkpoint_phase seam. Baseline (R(2+1)D-18 Kinetics, joint Elbows/Knees, phase06/ohp_supervised_v1/best.pt): test Elbows 0.4167 / Knees 0.8069 / macro 0.6118 at val-tuned thresholds {elbows 0.704, knees 0.438} — the SSL-lift control (no paper Kinetics row for OHP; paper Ours-MD targets Elbow 0.4552 / Knees 0.8452). Plans 03-05 pending.
+Status: executing — Phase 6 in progress (2/5 plans; Plan 03 MD-SSL pretrain next, fresh L4)
+Last activity: 2026-05-29 -- Phase 6 Plan 02 (gated probe + supervised baseline) complete
 
 Progress: [██████░░░░] 63%
 
