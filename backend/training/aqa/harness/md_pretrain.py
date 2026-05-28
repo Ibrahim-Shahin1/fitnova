@@ -318,6 +318,9 @@ def run_md_pretrain_epoch(
     config: MDConfig | None = None,
     resume: bool = True,
     max_epochs: int | None = None,
+    ssl_dataset_cls=SquatSSLDataset,
+    probe_dataset_cls=SquatKIEKFEDataset,
+    checkpoint_phase: str = "phase04",
 ) -> dict:
     """MD-SSL pretraining — 3-branch triplet forward + AdamW + linear-probe + collapse detection.
 
@@ -347,13 +350,13 @@ def run_md_pretrain_epoch(
         "strong_augs": config.strong_augs, "use_rotation": config.use_rotation, "aug_prob": config.aug_prob,
     }
     config_hash_str = hash_config(config_repr)
-    run_dir = os.path.join(drive_root, "FitNova/checkpoints/phase04", run_name)
+    run_dir = os.path.join(drive_root, "FitNova/checkpoints", checkpoint_phase, run_name)
     os.makedirs(run_dir, exist_ok=True)
     backbone_path = os.path.join(run_dir, "backbone.pt")
     logger.info("run_dir: %s (config_hash=%s)", run_dir, config_hash_str)
 
     loader = build_ssl_loader(
-        SquatSSLDataset(
+        ssl_dataset_cls(
             videos_root=videos_root, trajectories_root=trajectories_root,
             frames_per_half=config.frames_per_half, crop_size=config.crop_size, seed=seed,
             strong_augs=config.strong_augs, use_rotation=config.use_rotation, aug_prob=config.aug_prob,
@@ -365,7 +368,7 @@ def run_md_pretrain_epoch(
     _persistent = config.num_workers > 0
     def _labeled_loader(split: str) -> DataLoader:
         return DataLoader(
-            SquatKIEKFEDataset(
+            probe_dataset_cls(
                 split=split, train_aug=False, drive_root=drive_root,
                 videos_root=labeled_videos_root, num_frames=32, crop_size=config.crop_size,
             ),
