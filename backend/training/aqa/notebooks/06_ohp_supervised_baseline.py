@@ -139,15 +139,15 @@ assert "L4" in _gpu_name or _vram_gb >= 22.0, (
     f"Phase 6 expects L4 (>=22 GB); got {_gpu_name} {_vram_gb:.1f} GB."
 )
 
-# Verify the PUBLIC torchvision.io decode API that decode_clip needs. tv 0.26 removed
-# the internal `torchvision.io.video` submodule (the old PyAV-cache probe), so we check
-# the public API instead. tv >= 0.27 removes read_video entirely (then switch decode_clip
-# to the cv2 backend — opencv-python-headless is already a backend dep).
-assert hasattr(torchvision.io, "read_video") and hasattr(torchvision.io, "read_video_timestamps"), (
-    f"torchvision {torchvision.__version__} lacks read_video/read_video_timestamps — "
-    "tv >= 0.27 removed them; pin torchvision <0.27 in Colab OR switch decode_clip to cv2."
-)
-print(f"torchvision.io decode API ready: read_video present (tv {torchvision.__version__}, PyAV {av.__version__})")
+# Decode-backend report. transforms.decode_clip + count_frames are version-robust:
+# torchvision < 0.26 uses read_video; torchvision >= 0.26 (which REMOVED read_video)
+# transparently falls back to cv2 (opencv-python-headless). Just confirm a backend exists.
+from backend.training.aqa.datasets.transforms import _HAS_TV_READ_VIDEO
+if _HAS_TV_READ_VIDEO:
+    print(f"decode backend: torchvision.read_video (tv {torchvision.__version__}, PyAV {av.__version__})")
+else:
+    import cv2
+    print(f"decode backend: cv2 fallback (tv {torchvision.__version__} removed read_video; OpenCV {cv2.__version__})")
 
 # Drive mount (idempotent).
 from google.colab import drive
@@ -220,7 +220,7 @@ import torchvision
 from scipy.signal import find_peaks
 
 from backend.training.aqa.datasets.ohp_ssl import OHPSSLDataset, split_half_cycles
-from backend.training.aqa.datasets.transforms import decode_clip
+from backend.training.aqa.datasets.transforms import count_frames, decode_clip
 
 FIG_DIR = Path(".planning/phases/06-overhead-press/figures")
 FIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -312,13 +312,12 @@ for clip_id, y in parsed:
         print(f"  {clip_id}: video not found at {vpath}")
         continue
     try:
-        pts, _fps = torchvision.io.read_video_timestamps(vpath, pts_unit="sec")
-        n_frames = len(pts)
+        n_frames = count_frames(vpath)  # version-robust (read_video_timestamps or cv2)
         ratio = n_frames / len(y) if len(y) else float("nan")
         print(f"  {clip_id}: traj_len={len(y)}  video_frames={n_frames}  frames/traj={ratio:.3f} "
               f"({'1:1' if abs(ratio - 1.0) < 0.05 else 'NOT 1:1 — Task 2 must rescale'})")
     except Exception as e:  # noqa: BLE001
-        print(f"  {clip_id}: read_video_timestamps failed -> {e!r}")
+        print(f"  {clip_id}: count_frames failed -> {e!r}")
 
 # ── (5) SIGN figure: split overlay (both signs) + half-cycle frame grids ───────
 n_show = min(3, sum(1 for _, y in parsed if len(y) >= 4))

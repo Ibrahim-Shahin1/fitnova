@@ -19,6 +19,17 @@ import torchvision.transforms.functional as TF
 
 logger = logging.getLogger("aqa.phase02")
 
+# torchvision >= 0.26 REMOVED `read_video` / `read_video_timestamps` (the TorchCodec
+# migration the Phase-2 decisions anticipated — confirmed live on Colab 2026-05, tv
+# 0.26.0+cu128). On those versions `decode_clip` + `count_frames` transparently fall back
+# to a cv2 backend (opencv-python-headless, already a project dependency). Detected once at
+# import so the per-call routing is cheap. The cv2 path mirrors the Phase-5 serving twin
+# `backend/services/clip_decode.decode_clip_cv2` (kept here so the training transforms layer
+# stays self-contained — no training->services import).
+_HAS_TV_READ_VIDEO = hasattr(torchvision.io, "read_video") and hasattr(
+    torchvision.io, "read_video_timestamps"
+)
+
 # Kinetics-400 normalization — matches torchvision.models.video.R2Plus1D_18_Weights.KINETICS400_V1.
 # NOT ImageNet stats (CVCSPC uses ImageNet for its 2D image path — different model family).
 KINETICS_MEAN: Final[tuple[float, float, float]] = (0.43216, 0.394666, 0.37645)
@@ -60,6 +71,75 @@ def uniform_sample_indices(
     return base
 
 
+def count_frames(path: str) -> int:
+    """Frame count for `path`, version-robust across the torchvision read_video removal.
+
+    torchvision < 0.26: `read_video_timestamps` (exact decoded frame count).
+    torchvision >= 0.26: cv2 `CAP_PROP_FRAME_COUNT` (an estimate for some codecs; the
+    cv2 `decode_clip` path tolerates a slightly-high count — out-of-range indices map to
+    the nearest decoded frame). Replaces the datasets' direct `read_video_timestamps`
+    probe so they decode identically on both torchvision generations.
+    """
+    if _HAS_TV_READ_VIDEO:
+        pts_list, _fps = torchvision.io.read_video_timestamps(path, pts_unit="sec")
+        return len(pts_list)
+    import cv2  # opencv-python-headless — project dependency
+
+    cap = cv2.VideoCapture(path)
+    if not cap.isOpened():
+        cap.release()
+        raise ValueError(f"count_frames: cv2 could not open {path}")
+    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+    return n
+
+
+def _decode_clip_cv2(path: str, indices: torch.Tensor) -> torch.Tensor:
+    """cv2 fallback for `decode_clip` (torchvision >= 0.26 removed read_video).
+
+    Sequential read up to `max(indices)`, BGR->RGB, returns uint8 `[len(indices), 3, H, W]`
+    RGB — the SAME contract as the read_video path (so `spatial_train` / `spatial_val` run
+    identically). Mirrors `backend/services/clip_decode.decode_clip_cv2` (the serving twin),
+    duplicated here to keep this training layer free of a services import.
+    """
+    import cv2
+    import numpy as np
+
+    idx_list = [int(i) for i in indices.tolist()]
+    if not idx_list:
+        raise ValueError("_decode_clip_cv2: empty indices")
+    want = set(idx_list)
+    max_want = max(idx_list)
+
+    cap = cv2.VideoCapture(path)
+    if not cap.isOpened():
+        cap.release()
+        raise ValueError(f"_decode_clip_cv2: cv2 could not open {path}")
+
+    frames_by_idx: dict[int, "np.ndarray"] = {}
+    fi = 0
+    while fi <= max_want:
+        ret, frame = cap.read()  # BGR uint8 [H, W, 3]
+        if not ret:
+            break
+        if fi in want:
+            frames_by_idx[fi] = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        fi += 1
+    cap.release()
+
+    if not frames_by_idx:
+        raise ValueError(f"_decode_clip_cv2: decoded 0 frames from {path}")
+
+    available = sorted(frames_by_idx)
+    picked = [
+        frames_by_idx[i] if i in frames_by_idx
+        else frames_by_idx[min(available, key=lambda k: abs(k - i))]
+        for i in idx_list
+    ]
+    arr = np.ascontiguousarray(np.stack(picked, axis=0).transpose(0, 3, 1, 2))  # [T,3,H,W] RGB
+    return torch.from_numpy(arr)
+
+
 def decode_clip(path: str, indices: torch.Tensor) -> torch.Tensor:
     """Decode a window of frames from `path` at the positions in `indices`.
 
@@ -85,6 +165,10 @@ def decode_clip(path: str, indices: torch.Tensor) -> torch.Tensor:
     Raises:
         AssertionError: returned shape doesn't match expected `[len(indices), 3, H, W]`.
     """
+    # torchvision >= 0.26 removed read_video — route to the cv2 backend (same output contract).
+    if not _HAS_TV_READ_VIDEO:
+        return _decode_clip_cv2(path, indices)
+
     # F11 (RESEARCH §5): cheap probe for fps + frame count — no frames decoded.
     pts_list, video_fps = torchvision.io.read_video_timestamps(path, pts_unit="sec")
     fps = float(video_fps) if video_fps else 30.0  # Phase 1: Squat is uniformly 30fps; defensive default.

@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from backend.training.aqa.datasets import splits
 from backend.training.aqa.datasets.transforms import (
+    count_frames,
     decode_clip,
     spatial_train,
     spatial_val,
@@ -131,11 +132,9 @@ class SquatKIEKFEDataset(Dataset):
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         rec = self.records[idx]
 
-        # Cheap header probe — no frames decoded here.
-        pts_list, _video_fps = torchvision.io.read_video_timestamps(
-            rec.video_path, pts_unit="sec",
-        )
-        num_frames = len(pts_list)
+        # Cheap header probe — no frames decoded here. count_frames is version-robust:
+        # read_video_timestamps on torchvision <0.26, cv2 CAP_PROP_FRAME_COUNT on >=0.26.
+        num_frames = count_frames(rec.video_path)
 
         # Index sampling — jitter only on train. generator=None so torch's default
         # RNG drives jitter; harness capture/restore covers it across resume.
