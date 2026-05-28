@@ -139,12 +139,15 @@ assert "L4" in _gpu_name or _vram_gb >= 22.0, (
     f"Phase 6 expects L4 (>=22 GB); got {_gpu_name} {_vram_gb:.1f} GB."
 )
 
-# Verify torchvision.io PyAV backend (no real video needed).
-from torchvision.io.video import av as _tv_av_ref
-assert not isinstance(_tv_av_ref, Exception), (
-    "torchvision.io cached `av` as an Exception — PyAV install ordered wrong."
+# Verify the PUBLIC torchvision.io decode API that decode_clip needs. tv 0.26 removed
+# the internal `torchvision.io.video` submodule (the old PyAV-cache probe), so we check
+# the public API instead. tv >= 0.27 removes read_video entirely (then switch decode_clip
+# to the cv2 backend — opencv-python-headless is already a backend dep).
+assert hasattr(torchvision.io, "read_video") and hasattr(torchvision.io, "read_video_timestamps"), (
+    f"torchvision {torchvision.__version__} lacks read_video/read_video_timestamps — "
+    "tv >= 0.27 removed them; pin torchvision <0.27 in Colab OR switch decode_clip to cv2."
 )
-print("torchvision.io PyAV backend: ready")
+print(f"torchvision.io decode API ready: read_video present (tv {torchvision.__version__}, PyAV {av.__version__})")
 
 # Drive mount (idempotent).
 from google.colab import drive
