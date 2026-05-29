@@ -29,7 +29,7 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 - [ ] **IMG-01**: CVCSPC (ResNet-18) image pipeline — baseline and self-supervised
 - [ ] **IMG-02**: Shallow-Squat detector trained; F1 on the official split
-- [ ] **IMG-03**: Barbell Row Lumbar and Torso-Angle detectors trained; F1 on the official splits
+- [~] **IMG-03**: Barbell Row Lumbar and Torso-Angle detectors trained; F1 on the official splits  *(DESCOPED 2026-05-30 — BarbellRow cancelled by user for compute/time; milestone form-correction scope is Squat + OHP (video) + Shallow-Squat (image))*
 
 ### Inference API
 
@@ -85,7 +85,7 @@ Deferred to a future milestone.
 | OHP-01 | Phase 6 | Complete |
 | IMG-01 | Phase 7 | Pending |
 | IMG-02 | Phase 7 | Pending |
-| IMG-03 | Phase 7 | Pending |
+| IMG-03 | Phase 7 | Descoped |
 | EVAL-01 | Phase 8 | Pending |
 | EVAL-02 | Phase 8 | Pending |
 | EVAL-03 | Phase 8 | Pending |
