@@ -28,5 +28,16 @@ JPEG crop → 224² → ImageNet mean/std (ResNet-18 native). No video decode/te
 - API/serving — descoped (D1, same as OHP).
 
 ## Claude's discretion (delegated)
-- Exact CVCSPC reconstruction mechanics → researcher (from `CVCSPC.py` + paper).
-- Final notebook count (2 vs 4) → planner, based on whether CVCSPC SSL lands.
+- Exact CVCSPC reconstruction mechanics → researcher (from the code + paper).
+- Final notebook count → planner.
+
+## Post-research correction (2026-05-30)
+The discuss-phase Q2 was framed as "CVCSPC may need the cancelled BarbellRow / may be
+infeasible standalone → research-gated, baseline-first, possibly adapted SSL." During research
+I briefly (and wrongly) concluded CVCSPC was inherently cross-exercise and asked the user to
+choose a compromise. **The research corrected this:** CVCSPC pretrains on the unlabeled
+Back-Squat set ALONE (verified in `dataloader.py` — phase-matched frames across two *Squat* reps
+via bar-trajectory phase; the "two roots" are train/val of one exercise). The 4,970 unlabeled
+Squat clips + bar-trajectory JSONs are on disk. **Faithful CVCSPC IS feasible.** User confirmed
+2026-05-30: do faithful CVCSPC (the real method), not an adapted substitute. D2 in CONTEXT.md is
+updated accordingly; baseline still ships first, then faithful CVCSPC SSL + lift.
