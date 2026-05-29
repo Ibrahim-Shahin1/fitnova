@@ -107,3 +107,23 @@ for m in result42["metrics_history"]:
           f"macro={m['val_macro_f1']:.4f} ({m['epoch_wall_time_s']:.0f}s)")
 print(f"\nseed42: best_f1_val={result42['best_f1_val']:.4f} | aborted_overfit={result42.get('aborted_overfit')} "
       f"| epochs_run={len(result42['metrics_history'])}")
+
+
+# %% [markdown]
+# ## Step 2b — fine-tune seed 1337 (locked recipe = base, seed 42 did not trip D6)
+#
+# 2-seed ensemble (42 + 1337) — a time-driven reduction from the 3-seed Squat protocol.
+# The ensemble methodology is identical; documented in the SUMMARY.
+
+# %%
+result1337 = run_md_finetune_epoch(
+    run_name="ohp_md_finetune_seed1337", md_backbone_path=BACKBONE_PATH,
+    drive_root=MYDRIVE, videos_root=VIDEOS_ROOT, seed=1337,
+    config=base_config, resume=True, dataset_cls=OHPElbowsKneesDataset, checkpoint_phase="phase06",
+)
+for m in result1337["metrics_history"]:
+    print(f"ep {m['epoch']:>2}: train={m['train_loss_mean']:.4f} val={m['val_loss_mean']:.4f} "
+          f"val/train={m['val_train_loss_ratio']:.2f} | Elbows={m['val_f1_kie']:.4f} Knees={m['val_f1_kfe']:.4f} "
+          f"macro={m['val_macro_f1']:.4f} ({m['epoch_wall_time_s']:.0f}s)")
+print(f"\nseed1337: best_f1_val={result1337['best_f1_val']:.4f} | aborted_overfit={result1337.get('aborted_overfit')} "
+      f"| epochs_run={len(result1337['metrics_history'])}")
