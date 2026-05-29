@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 6 (Overhead Press) COMPLETE — all 5 plans. OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770) on the official 339-clip split; +0.050 SSL lift over baseline, matches/edges paper Ours-MD 0.6502, val->test gap 0.011. Deliverable: 7 figures + 4 executed notebooks (05-08) + FINDINGS_OHP + results.pkl. OHP-01 complete. Next: Phase 7 (image errors via CVCSPC) or milestone review."
-last_updated: "2026-05-30"
-last_activity: "2026-05-30 -- Phase 6 COMPLETE: Plan 03 (MD-SSL backbone ep30), Plan 04 (2-seed ensemble: OHP macro 0.6622 vs paper 0.6502, gap 0.011), Plan 05 (7 figures + 4 executed notebooks + FINDINGS_OHP + results.pkl). OHP-01 marked complete."
+stopped_at: Phase 7 context gathered (Shallow-Squat CVCSPC; BarbellRow descoped)
+last_updated: "2026-05-29T23:34:48.452Z"
+last_activity: 2026-05-30 -- Phase 6 COMPLETE (5/5); OHP-01 done; OHP macro 0.6622 matches/edges paper
 progress:
   total_phases: 8
-  completed_phases: 6
-  total_plans: 17
+  completed_phases: 5
+  total_plans: 18
   completed_plans: 17
-  percent: 75
+  percent: 63
 ---
 
 # Project State
@@ -118,6 +118,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-27T11:44:35.074Z
-Stopped at: Phase 6 (Overhead Press) context gathered — /gsd:discuss-phase 6 complete. Next: /gsd:plan-phase 6
-Resume file: .planning/phases/06-overhead-press/06-CONTEXT.md
+Last session: 2026-05-29T23:34:48.447Z
+Stopped at: Phase 7 context gathered (Shallow-Squat CVCSPC; BarbellRow descoped)
+Resume file: .planning/phases/07-image-based-errors-cvcspc/07-CONTEXT.md
