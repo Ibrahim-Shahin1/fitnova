@@ -34,6 +34,11 @@ if TYPE_CHECKING:  # avoid a runtime import cycle (md_pretrain imports this modu
 
 logger = logging.getLogger("aqa.phase06")
 
+# The half-cycle split needs a reliable barbell trajectory; a clip where the raw tracker
+# missed the bar in most frames can't be split (interpolating across >50% gaps misplaces
+# the overhead extremum). Exclude clips below this detection coverage from the SSL set.
+_MIN_VALID_FRAC: float = 0.5
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Half-cycle splitter — COPIED VERBATIM from squat_ssl.py (lines 51-96)
@@ -124,14 +129,23 @@ class OHPSSLDataset(Dataset):
         self._traj_paths: dict[str, Path] = {
             p.stem: p for p in Path(trajectories_root).rglob("*.json")
         }
-        self._clip_ids: list[str] = sorted(vid_stems & set(self._traj_paths))
+        _candidates = sorted(vid_stems & set(self._traj_paths))
+        self._clip_ids: list[str] = [c for c in _candidates if self._barbell_coverage(c) >= _MIN_VALID_FRAC]
         logger.info(
-            "OHPSSLDataset: %d clips (videos=%d, trajectories=%d) under %s",
-            len(self._clip_ids), len(vid_stems), len(self._traj_paths), videos_root,
+            "OHPSSLDataset: %d clips (dropped %d with <%.0f%% barbell coverage; videos=%d, traj=%d)",
+            len(self._clip_ids), len(_candidates) - len(self._clip_ids),
+            _MIN_VALID_FRAC * 100, len(vid_stems), len(self._traj_paths),
         )
 
     def __len__(self) -> int:
         return len(self._clip_ids)
+
+    def _barbell_coverage(self, clip_id: str) -> float:
+        with open(self._traj_paths[clip_id], encoding="utf-8") as fh:
+            data = json.load(fh)
+        if not data:
+            return 0.0
+        return sum(1 for fr in data if len(fr) > 0 and fr[0]) / len(data)
 
     def _load_trajectory(self, clip_id: str) -> np.ndarray:
         """Load OHP barbell trajectory from BBox JSON and return y_center array.
