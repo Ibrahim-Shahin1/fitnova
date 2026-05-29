@@ -150,11 +150,11 @@ Plans:
 
 **Wave 3** *(blocked on Wave 1 completion)*
 
-- [ ] 06-03-PLAN.md — Wave 3: MD-SSL pretrain on 5,490 unlabeled OHP clips (v2 strong augs + linear-probe + collapse guard) -> backbone.pt
+- [x] 06-03-PLAN.md — Wave 3: MD-SSL pretrain on 5,490 unlabeled OHP clips (v2 strong augs + linear-probe + collapse guard) -> backbone.pt
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 06-04-PLAN.md — Wave 4: 3-seed fine-tune (42/1337/7) + mean-of-sigmoids ensemble + val-tuned threshold/TTA + test eval + F1-vs-paper + results.pkl
+- [x] 06-04-PLAN.md — Wave 4: 3-seed fine-tune (42/1337/7) + mean-of-sigmoids ensemble + val-tuned threshold/TTA + test eval + F1-vs-paper + results.pkl
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -198,6 +198,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Squat Supervised Baseline | 1/1 | Complete | 2026-05-20 |
 | 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
 | 5. Backend Inference Integration (Squat) | 5/5 | Complete    | 2026-05-26 |
-| 6. Overhead Press | 2/5 | In Progress|  |
+| 6. Overhead Press | 4/5 | In Progress|  |
 | 7. Image-Based Errors (CVCSPC) | 0/TBD | Not started | - |
 | 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |

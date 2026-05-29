@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 6 Plan 02 complete — gated trajectory probe (argMIN / 1:1 mapping / nested layout confirmed) + supervised baseline (test Elbows 0.4167 / Knees 0.8069 / macro 0.6118, the SSL-lift control). Next: Plan 03 (MD-SSL pretrain on 5,490 unlabeled OHP clips) — FRESH L4 notebook, ~15-26h; prompt user first."
-last_updated: "2026-05-29"
-last_activity: "2026-05-29 -- Phase 6 Plan 02: gated probe confirmed BBox format / 1:1 traj-frame / argMIN sign / NESTED traj layout; cv2 decode fallback (Colab tv 0.26 removed read_video); run_supervised_epoch dataset_cls+checkpoint_phase seam; OHP supervised baseline trained (best epoch 4, val macro 0.645) -> test macro 0.6118. OHP-01 still phase-spanning (SSL = Plans 03/04)."
+stopped_at: "Phase 6 Plans 03+04 complete — MD-SSL backbone (ep30) + 2-seed fine-tune ensemble. HEADLINE: OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770) on the official 339-clip split — beats baseline 0.6118 (+0.050 SSL lift), matches/edges paper Ours-MD 0.6502, val->test gap 0.011 (no overfitting). Next: Plan 05 — 4-notebook viz pack + FINDINGS from results.pkl (needs results.pkl copied from Colab to Drive)."
+last_updated: "2026-05-30"
+last_activity: "2026-05-30 -- Phase 6 Plans 03 (MD-SSL pretrain, backbone.pt ep30, decode-cache made A100 epochs ~3min) + 04 (2-seed ensemble, time-driven; checkpoint_phase/best.pt-latest fixes). OHP headline: macro 0.6622 vs baseline 0.6118 vs paper 0.6502; val-test gap 0.011. results.pkl written on Colab. docs/figures/ohp_f1_vs_paper.png committed. Plan 05 = viz pack."
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 17
-  completed_plans: 14
-  percent: 63
+  completed_plans: 16
+  percent: 74
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 6 (Overhead Press) IN PROGRESS — 2/5 plans executed. Plan 01 (Wave-0 modules) + Plan 02 (gated probe + supervised baseline) DONE. Phases 1–5 COMPLETE. Next: Plan 03 (MD-SSL pretrain on 5,490 unlabeled OHP clips) — FRESH L4 notebook, ~15-26h heavy burn; prompt user before kicking off. API integration descoped (D1).
-Plan: Phase 6 = 2/5 executed. Plan 02: probe confirmed BBox format / 1:1 traj↔frame / argMIN sign / NESTED traj layout (ohp_ssl glob→rglob); cv2 decode fallback (Colab tv 0.26 removed read_video); run_supervised_epoch dataset_cls+checkpoint_phase seam. Baseline (R(2+1)D-18 Kinetics, joint Elbows/Knees, phase06/ohp_supervised_v1/best.pt): test Elbows 0.4167 / Knees 0.8069 / macro 0.6118 at val-tuned thresholds {elbows 0.704, knees 0.438} — the SSL-lift control (no paper Kinetics row for OHP; paper Ours-MD targets Elbow 0.4552 / Knees 0.8452). Plans 03-05 pending.
-Status: executing — Phase 6 in progress (2/5 plans; Plan 03 MD-SSL pretrain next, fresh L4)
-Last activity: 2026-05-29 -- Phase 6 Plan 02 (gated probe + supervised baseline) complete
+Phase: 6 (Overhead Press) IN PROGRESS — 4/5 plans executed. Plans 01-04 DONE. Phases 1–5 COMPLETE. Next: Plan 05 — the 4-notebook OHP viz pack (EDA/pipeline/training/evaluation) + figures + FINDINGS.md from results.pkl, then phase SUMMARY. Needs results.pkl copied Colab->Drive (it's at /content/fitnova/.planning/phases/06-overhead-press/figures/results.pkl). API integration descoped (D1).
+Plan: Phase 6 = 4/5 executed. Plan 03: MD-SSL pretrain (ohp_md_pretrain_v2/backbone.pt = ep30, probe macro 0.6065; ssl_loss 0.86->0.065, eff_rank healthy, no collapse; <50% barbell-coverage filter dropped 401 -> 5089 clips; decode-cache -> A100 epochs ~3min). Plan 04: 2-seed (42,1337; time-driven, seed 7 skipped) MD-SSL ensemble -> OHP test Elbows 0.4474 / Knees 0.8770 / macro 0.6622 at thresholds {elbows 0.357, knees 0.476}; baseline 0.6118 -> +0.050 SSL lift; paper Ours-MD 0.6502 matched/edged (Knees 0.877>0.845); val-test gap 0.011 (no overfitting); ensemble > both seeds; TTA skipped (Phase 4 settled). Carry-fixes: cv2 decode (tv0.26), drop_last SSL, decode-cache + cv2.setNumThreads + workers8, md_pretrain/md_finetune checkpoint_phase + best.pt update_latest=False. OHP-01 model+F1 done (serving descoped).
+Status: executing — Phase 6 in progress (4/5 plans; Plan 05 viz pack next, local from results.pkl)
+Last activity: 2026-05-30 -- Phase 6 Plans 03+04 complete; OHP macro 0.6622 (matches/edges paper); headline chart committed
 
 Progress: [██████░░░░] 63%
 
