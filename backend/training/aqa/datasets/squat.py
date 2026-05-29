@@ -29,6 +29,7 @@ from backend.training.aqa.datasets import splits
 from backend.training.aqa.datasets.transforms import (
     count_frames,
     decode_clip,
+    decode_clip_cached,
     spatial_train,
     spatial_val,
     uniform_sample_indices,
@@ -90,6 +91,7 @@ class SquatKIEKFEDataset(Dataset):
         train_aug: bool = True,
         train_jitter_frames: int = 2,
         seed: int = 42,
+        cache_dir: str | None = None,
     ) -> None:
         self.split = split
         self.drive_root = drive_root
@@ -99,6 +101,7 @@ class SquatKIEKFEDataset(Dataset):
         self.train_aug = train_aug
         self.train_jitter_frames = train_jitter_frames
         self.seed = seed
+        self.cache_dir = cache_dir if not train_aug else None
 
         # Records for THIS split (val_dataset has val records, etc.).
         self.records: list[splits.ClipRecord] = splits.index(
@@ -146,9 +149,12 @@ class SquatKIEKFEDataset(Dataset):
             generator=None,
         )
 
-        # Window-bounded decode (F11) then spatial pipeline. spatial_train's random
-        # crop also uses torch's default RNG (generator=None).
-        clip_tchw = decode_clip(rec.video_path, indices)
+        # Window-bounded decode (F11) then spatial pipeline. cache_dir is set only on the
+        # deterministic path (train_aug=False).
+        if self.cache_dir:
+            clip_tchw = decode_clip_cached(self.cache_dir, f"{rec.clip_id}_lbl{self.num_frames}", rec.video_path, indices)
+        else:
+            clip_tchw = decode_clip(rec.video_path, indices)
         clip = self._spatial_fn(clip_tchw, crop_size=self.crop_size)
 
         label = torch.tensor([rec.label_kie, rec.label_kfe], dtype=torch.float32)

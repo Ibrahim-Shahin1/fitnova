@@ -200,12 +200,43 @@ print(f"\n=== DECISION: est_total≈{estimated_total_h:.1f}h, VRAM fits. option-
 
 
 # %% [markdown]
-# ## Step 3 — full MD-SSL pretrain (resumable; multi-session)
+# ## Step 2.5 — cache sanity (verify cached frames == fresh decode on 2 real clips)
 #
-# Single cell = the whole run. resume=True: a disconnect (or A100<->L4 switch) is recovered
-# by re-running Cell A -> Step 0 -> this cell; it picks up from latest.txt. Checkpoints every
-# epoch + writes backbone.pt on linear-probe improvement (update_latest=False). Keep batch 8
-# fixed across any GPU switch so the config_hash matches on resume.
+# Run before Step 3. Confirms decode_clip_cached stores exactly resize-128(decode) and that
+# a second call hits the cache. If all True, Step 3's cache is trustworthy.
+
+# %%
+import os
+import torch
+from backend.training.aqa.datasets.transforms import decode_clip, decode_clip_cached, _resize_short_side
+from backend.training.aqa.datasets.ohp_ssl import OHPSSLDataset, split_half_cycles
+
+CACHE_DIR = "/content/ohp_cache"
+_probe = OHPSSLDataset(videos_root=UNLABELED_VIDEOS_ROOT, trajectories_root=TRAJ_ROOT, frames_per_half=16, crop_size=112)
+for cid in _probe._clip_ids[:2]:
+    traj = _probe._load_trajectory(cid)
+    d_idx, a_idx = split_half_cycles(traj, frames_per_half=16, bottom_is_argmax=False)
+    vp = os.path.join(UNLABELED_VIDEOS_ROOT, f"{cid}.mp4")
+    for tag, idx in [("desc16", torch.as_tensor(d_idx).long()), ("asc16", torch.as_tensor(a_idx).long())]:
+        fresh = _resize_short_side(decode_clip(vp, idx), 128)
+        if fresh.dtype != torch.uint8:
+            fresh = fresh.round().clamp(0, 255).to(torch.uint8)
+        built = decode_clip_cached(CACHE_DIR, f"{cid}_{tag}", vp, idx)
+        hit = decode_clip_cached(CACHE_DIR, f"{cid}_{tag}", vp, idx)
+        print(f"{cid}_{tag}: cache==fresh {torch.equal(built, fresh)} | hit==built {torch.equal(hit, built)} | {tuple(built.shape)}")
+print("cache sanity done — all True => Step 3 trains cache-backed")
+
+
+# %% [markdown]
+# ## Step 3 — full MD-SSL pretrain (resumable; cache-backed; multi-session)
+#
+# Single cell = the whole run. cache_dir=CACHE_DIR -> epoch 0 decodes + caches each clip's
+# half-cycle frames to /content/ohp_cache (~the decode we'd pay anyway); epochs 1+ read the
+# cache -> GPU-bound (A100 becomes the bottleneck). resume=True: a disconnect (or A100<->L4
+# switch) is recovered by re-running Cell A -> Step 0 -> this cell; it picks up from latest.txt.
+# Note: the cache lives on /content (wiped if the VM is recycled) -> epoch 0 of a fresh session
+# rebuilds it (~one slow epoch), then fast again. Keep batch 8 fixed across any GPU switch so
+# the config_hash matches on resume.
 
 # %%
 import os
@@ -214,6 +245,7 @@ from backend.training.aqa.datasets.ohp import OHPElbowsKneesDataset
 from backend.training.aqa.datasets.ohp_ssl import OHPSSLDataset
 from backend.training.aqa.harness.md_pretrain import MDConfig, run_md_pretrain_epoch
 
+CACHE_DIR = "/content/ohp_cache"
 config = MDConfig()
 RUN_NAME = "ohp_md_pretrain_v2"
 result = run_md_pretrain_epoch(
@@ -221,6 +253,7 @@ result = run_md_pretrain_epoch(
     videos_root=UNLABELED_VIDEOS_ROOT, trajectories_root=TRAJ_ROOT, labeled_videos_root=VIDEOS_ROOT,
     seed=42, config=config, resume=True, max_epochs=config.max_epochs,
     ssl_dataset_cls=OHPSSLDataset, probe_dataset_cls=OHPElbowsKneesDataset, checkpoint_phase="phase06",
+    cache_dir=CACHE_DIR,
 )
 mh = result["metrics_history"]
 print(f"epochs: {len(mh)}")

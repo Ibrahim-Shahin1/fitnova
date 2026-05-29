@@ -10,6 +10,7 @@ See: `.planning/phases/02-squat-data-pipeline-colab-harness/02-01-PLAN.md` — T
 from __future__ import annotations
 
 import logging
+import os
 import warnings
 from typing import Final
 
@@ -297,6 +298,42 @@ def spatial_val(
     normed = _normalize_kinetics(floated)
 
     return normed.permute(1, 0, 2, 3).contiguous()
+
+
+def decode_clip_cached(
+    cache_dir: str | None,
+    cache_key: str,
+    path: str,
+    indices: torch.Tensor,
+    *,
+    resize_short: int = 128,
+) -> torch.Tensor:
+    """decode_clip with a disk memo so repeated epochs don't re-decode the same frames.
+
+    cache_dir None -> plain decode_clip (native res). cache_dir set -> the frames are
+    decoded once, short-side-resized to `resize_short` (the pre-crop size spatial_* uses
+    anyway, so the downstream random/center crop is preserved) and stored uint8 at
+    {cache_dir}/{cache_key}.pt; later calls load it. Atomic write (tmp + os.replace) so a
+    killed worker can't leave a half-written file; a corrupt/short read falls back to decode.
+    """
+    if not cache_dir:
+        return decode_clip(path, indices)
+    cpath = os.path.join(cache_dir, cache_key + ".pt")
+    if os.path.exists(cpath):
+        try:
+            cached = torch.load(cpath)
+            if isinstance(cached, torch.Tensor) and cached.shape[0] == int(indices.shape[0]):
+                return cached
+        except Exception:
+            pass
+    frames = _resize_short_side(decode_clip(path, indices), resize_short)
+    if frames.dtype != torch.uint8:
+        frames = frames.round().clamp(0, 255).to(torch.uint8)
+    os.makedirs(cache_dir, exist_ok=True)
+    tmp = f"{cpath}.tmp{os.getpid()}"
+    torch.save(frames, tmp)
+    os.replace(tmp, cpath)
+    return frames
 
 
 if __name__ == "__main__":

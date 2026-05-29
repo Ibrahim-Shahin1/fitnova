@@ -38,6 +38,7 @@ from torch.utils.data import DataLoader, Dataset
 from backend.training.aqa.datasets import ssl_augs
 from backend.training.aqa.datasets.transforms import (
     decode_clip,
+    decode_clip_cached,
     spatial_train,
     uniform_sample_indices,
 )
@@ -115,12 +116,14 @@ class SquatSSLDataset(Dataset):
         strong_augs: bool = True,
         use_rotation: bool = False,
         aug_prob: float = 0.5,
+        cache_dir: str | None = None,
     ) -> None:
         self.videos_root = videos_root
         self.trajectories_root = trajectories_root
         self.frames_per_half = frames_per_half
         self.crop_size = crop_size
         self.seed = seed
+        self.cache_dir = cache_dir
         self.strong_augs = strong_augs       # v2: paper-faithful strong aug set (§3.2/§7); False = v1 safe-core
         self.use_rotation = use_rotation     # rotation OFF by default — distorts the knee-valgus KIE signal (§7)
         self.aug_prob = aug_prob             # per-aug independent application probability (strong set)
@@ -215,8 +218,9 @@ class SquatSSLDataset(Dataset):
         )
         # 2. Decode the two half-cycles (1:1 traj->frame, Task 1). decode_clip -> [16,3,H,W] uint8.
         video_path = os.path.join(self.videos_root, f"{clip_id}.mp4")
-        descent_u8 = decode_clip(video_path, torch.as_tensor(descent_idx, dtype=torch.long))
-        ascent_u8 = decode_clip(video_path, torch.as_tensor(ascent_idx, dtype=torch.long))
+        n = self.frames_per_half
+        descent_u8 = decode_clip_cached(self.cache_dir, f"{clip_id}_desc{n}", video_path, torch.as_tensor(descent_idx, dtype=torch.long))
+        ascent_u8 = decode_clip_cached(self.cache_dir, f"{clip_id}_asc{n}", video_path, torch.as_tensor(ascent_idx, dtype=torch.long))
         # 3. anchor + positive = two independent augmented views of the DESCENT; negative = an
         #    augmented view of the ASCENT (RESEARCH §3 / paper §3.2).
         anchor_u8 = self._augment(descent_u8)

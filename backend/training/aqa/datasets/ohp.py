@@ -31,6 +31,7 @@ from backend.training.aqa.datasets import splits
 from backend.training.aqa.datasets.transforms import (
     count_frames,
     decode_clip,
+    decode_clip_cached,
     spatial_train,
     spatial_val,
     uniform_sample_indices,
@@ -101,6 +102,7 @@ class OHPElbowsKneesDataset(Dataset):
         train_aug: bool = True,
         train_jitter_frames: int = 2,
         seed: int = 42,
+        cache_dir: str | None = None,
     ) -> None:
         self.split = split
         self.drive_root = drive_root
@@ -110,6 +112,9 @@ class OHPElbowsKneesDataset(Dataset):
         self.train_aug = train_aug
         self.train_jitter_frames = train_jitter_frames
         self.seed = seed
+        # Cache only helps the deterministic (train_aug=False) path; jittered train
+        # resamples frames per epoch, so it is never cached.
+        self.cache_dir = cache_dir if not train_aug else None
 
         # Records for THIS split (val_dataset has val records, etc.).
         self.records: list[splits.OHPClipRecord] = splits.index_ohp(
@@ -152,8 +157,12 @@ class OHPElbowsKneesDataset(Dataset):
             generator=None,
         )
 
-        # Window-bounded decode (F11) then spatial pipeline.
-        clip_tchw = decode_clip(rec.video_path, indices)
+        # Window-bounded decode (F11) then spatial pipeline. cache_dir is set only on the
+        # deterministic path (train_aug=False), where the 32 indices are stable per clip.
+        if self.cache_dir:
+            clip_tchw = decode_clip_cached(self.cache_dir, f"{rec.clip_id}_lbl{self.num_frames}", rec.video_path, indices)
+        else:
+            clip_tchw = decode_clip(rec.video_path, indices)
         clip = self._spatial_fn(clip_tchw, crop_size=self.crop_size)
 
         # labels=[label_elbows, label_knees] — the joint 2-output head target (D2).

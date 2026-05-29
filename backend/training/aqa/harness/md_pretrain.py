@@ -326,6 +326,7 @@ def run_md_pretrain_epoch(
     ssl_dataset_cls=SquatSSLDataset,
     probe_dataset_cls=SquatKIEKFEDataset,
     checkpoint_phase: str = "phase04",
+    cache_dir: str | None = None,
 ) -> dict:
     """MD-SSL pretraining — 3-branch triplet forward + AdamW + linear-probe + collapse detection.
 
@@ -365,6 +366,7 @@ def run_md_pretrain_epoch(
             videos_root=videos_root, trajectories_root=trajectories_root,
             frames_per_half=config.frames_per_half, crop_size=config.crop_size, seed=seed,
             strong_augs=config.strong_augs, use_rotation=config.use_rotation, aug_prob=config.aug_prob,
+            cache_dir=cache_dir,
         ),
         config, seed=seed,
     )
@@ -376,6 +378,7 @@ def run_md_pretrain_epoch(
             probe_dataset_cls(
                 split=split, train_aug=False, drive_root=drive_root,
                 videos_root=labeled_videos_root, num_frames=32, crop_size=config.crop_size,
+                cache_dir=cache_dir,
             ),
             batch_size=config.batch_size, num_workers=config.num_workers,
             worker_init_fn=seed_worker, shuffle=False, drop_last=False, persistent_workers=_persistent,
