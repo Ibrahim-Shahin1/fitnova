@@ -209,10 +209,22 @@ with open(os.path.join(ssl_run, "latest.txt")) as f:
     ssl_latest = f.read().strip()
 ssl_ck = torch.load(os.path.join(ssl_run, ssl_latest), map_location="cpu", weights_only=False)
 
+
+def _load_seed_curve(s):
+    rd = os.path.join(P6, f"ohp_md_finetune_seed{s}")
+    with open(os.path.join(rd, "latest.txt")) as f:
+        latest = f.read().strip()
+    mh = torch.load(os.path.join(rd, latest), map_location="cpu", weights_only=False)["metrics_history"]
+    bf = torch.load(os.path.join(rd, "best.pt"), map_location="cpu", weights_only=False)["best_f1_val"]
+    return mh, bf
+
+
+_curves = {s: _load_seed_curve(s) for s in SEEDS}
+
 results = {
     "ssl_metrics_history": ssl_ck["metrics_history"],
     "ssl_linear_probe_history": ssl_ck["linear_probe_history"],
-    "finetune_seeds": {42: result42["metrics_history"], 1337: result1337["metrics_history"]},
+    "finetune_seeds": {s: _curves[s][0] for s in SEEDS},
     "ensemble_val_scores": ens_val, "ensemble_test_scores": ens_test,
     "val_labels": val_labels, "test_labels": test_labels,
     "test_clip_ids": [r.clip_id for r in test_loader.dataset.records],
@@ -224,7 +236,7 @@ results = {
         "knees": confusion_matrix_per_error(test_labels[:, 1], pk),
     },
     "per_seed_test_f1": per_seed_test,
-    "per_seed_val_macro": {42: result42["best_f1_val"], 1337: result1337["best_f1_val"]},
+    "per_seed_val_macro": {s: _curves[s][1] for s in SEEDS},
     "baseline_control": baseline, "ssl_lift": ssl_lift, "val_test_gap": val_test_gap,
     "paper_targets": paper, "n_seeds": len(SEEDS), "tta": "none",
 }
