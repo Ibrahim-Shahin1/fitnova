@@ -76,7 +76,7 @@ class MDConfig:
     learning_rate: float = 1e-4          # [CITED §5 p.9 — ADAM lr 1e-4]
     weight_decay: float = 1e-4           # [ASSUMED — AdamW decoupled wd, D2/D3]
     batch_size: int = 8                  # [ASSUMED; paper 5 CITED §5; 8 fits L4 ~11.7GB]
-    num_workers: int = 4                 # persistent_workers guard applies (D7)
+    num_workers: int = 8                 # 8 cv2-decode streams (cv2.setNumThreads(0) per worker); fits L4/A100 vCPUs
     max_epochs: int = 60                 # [CITED baseline 20 §5; ASSUMED extension <=60 via linear-probe]
     frames_per_half: int = 16            # [CITED §5 p.9 — 16 frames/half-cycle]
     crop_size: int = 112                 # Phase 2/3 contract
@@ -228,6 +228,11 @@ def seed_worker(worker_id: int) -> None:
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
+    try:
+        import cv2
+        cv2.setNumThreads(0)  # 1 cv2 thread per worker; the DataLoader provides parallelism
+    except ImportError:
+        pass
 
 
 def _set_global_seed(seed: int) -> None:

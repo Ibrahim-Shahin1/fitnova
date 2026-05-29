@@ -278,6 +278,11 @@ def seed_worker(worker_id: int) -> None:
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
+    try:
+        import cv2
+        cv2.setNumThreads(0)  # 1 cv2 thread per worker; the DataLoader provides parallelism
+    except ImportError:
+        pass
 
 
 def build_ssl_loader(dataset: OHPSSLDataset, config: "MDConfig", *, seed: int = 42) -> DataLoader:
