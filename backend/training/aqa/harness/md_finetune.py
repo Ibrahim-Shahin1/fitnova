@@ -141,7 +141,8 @@ def run_md_finetune_epoch(
     config: FinetuneConfig | None = None,
     resume: bool = True,
     max_epochs: int | None = None,
-    dataset_cls=SquatKIEKFEDataset,  # NEW kwarg — OHP callers pass OHPElbowsKneesDataset (D6/RESEARCH §5)
+    dataset_cls=SquatKIEKFEDataset,
+    checkpoint_phase: str = "phase04",
 ) -> dict:
     """Fine-tune the MD backbone on labeled Squat KIE/KFE (parallels run_supervised_epoch + 4 deltas).
 
@@ -187,7 +188,7 @@ def run_md_finetune_epoch(
     }
     config_hash_str = hash_config(config_repr)
 
-    run_dir = os.path.join(drive_root, "FitNova/checkpoints/phase04", run_name)
+    run_dir = os.path.join(drive_root, "FitNova/checkpoints", checkpoint_phase, run_name)
     os.makedirs(run_dir, exist_ok=True)
     logger.info("run_dir: %s (config_hash=%s, md_backbone=%s)", run_dir, config_hash_str, md_backbone_path)
 
@@ -316,7 +317,7 @@ def run_md_finetune_epoch(
         if val_macro_f1 > best_f1_val:
             best_f1_val = val_macro_f1
             payload["best_f1_val"] = best_f1_val
-            atomic_save_checkpoint(payload, best_ckpt_path)  # update_latest=True default (best.pt is fine here)
+            atomic_save_checkpoint(payload, best_ckpt_path, update_latest=False)
             logger.info("seed=%d new best val_macro_f1=%.4f -> wrote best.pt", seed, best_f1_val)
             epochs_since_improve = 0
         else:
