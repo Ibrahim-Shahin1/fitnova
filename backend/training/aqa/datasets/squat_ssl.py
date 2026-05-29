@@ -263,6 +263,6 @@ def build_ssl_loader(dataset: SquatSSLDataset, config: "MDConfig", *, seed: int 
         worker_init_fn=seed_worker,
         generator=g,
         shuffle=True,
-        drop_last=False,
+        drop_last=True,  # contrastive + BatchNorm: never feed a size-1 final batch
         persistent_workers=_persistent,
     )
