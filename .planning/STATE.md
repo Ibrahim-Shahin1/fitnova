@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 6 Plans 03+04 complete — MD-SSL backbone (ep30) + 2-seed fine-tune ensemble. HEADLINE: OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770) on the official 339-clip split — beats baseline 0.6118 (+0.050 SSL lift), matches/edges paper Ours-MD 0.6502, val->test gap 0.011 (no overfitting). Next: Plan 05 — 4-notebook viz pack + FINDINGS from results.pkl (needs results.pkl copied from Colab to Drive)."
+stopped_at: "Phase 6 (Overhead Press) COMPLETE — all 5 plans. OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770) on the official 339-clip split; +0.050 SSL lift over baseline, matches/edges paper Ours-MD 0.6502, val->test gap 0.011. Deliverable: 7 figures + 4 executed notebooks (05-08) + FINDINGS_OHP + results.pkl. OHP-01 complete. Next: Phase 7 (image errors via CVCSPC) or milestone review."
 last_updated: "2026-05-30"
-last_activity: "2026-05-30 -- Phase 6 Plans 03 (MD-SSL pretrain, backbone.pt ep30, decode-cache made A100 epochs ~3min) + 04 (2-seed ensemble, time-driven; checkpoint_phase/best.pt-latest fixes). OHP headline: macro 0.6622 vs baseline 0.6118 vs paper 0.6502; val-test gap 0.011. results.pkl written on Colab. docs/figures/ohp_f1_vs_paper.png committed. Plan 05 = viz pack."
+last_activity: "2026-05-30 -- Phase 6 COMPLETE: Plan 03 (MD-SSL backbone ep30), Plan 04 (2-seed ensemble: OHP macro 0.6622 vs paper 0.6502, gap 0.011), Plan 05 (7 figures + 4 executed notebooks + FINDINGS_OHP + results.pkl). OHP-01 marked complete."
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 17
-  completed_plans: 16
-  percent: 74
+  completed_plans: 17
+  percent: 75
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 6 (Overhead Press) IN PROGRESS — 4/5 plans executed. Plans 01-04 DONE. Phases 1–5 COMPLETE. Next: Plan 05 — the 4-notebook OHP viz pack (EDA/pipeline/training/evaluation) + figures + FINDINGS.md from results.pkl, then phase SUMMARY. Needs results.pkl copied Colab->Drive (it's at /content/fitnova/.planning/phases/06-overhead-press/figures/results.pkl). API integration descoped (D1).
-Plan: Phase 6 = 4/5 executed. Plan 03: MD-SSL pretrain (ohp_md_pretrain_v2/backbone.pt = ep30, probe macro 0.6065; ssl_loss 0.86->0.065, eff_rank healthy, no collapse; <50% barbell-coverage filter dropped 401 -> 5089 clips; decode-cache -> A100 epochs ~3min). Plan 04: 2-seed (42,1337; time-driven, seed 7 skipped) MD-SSL ensemble -> OHP test Elbows 0.4474 / Knees 0.8770 / macro 0.6622 at thresholds {elbows 0.357, knees 0.476}; baseline 0.6118 -> +0.050 SSL lift; paper Ours-MD 0.6502 matched/edged (Knees 0.877>0.845); val-test gap 0.011 (no overfitting); ensemble > both seeds; TTA skipped (Phase 4 settled). Carry-fixes: cv2 decode (tv0.26), drop_last SSL, decode-cache + cv2.setNumThreads + workers8, md_pretrain/md_finetune checkpoint_phase + best.pt update_latest=False. OHP-01 model+F1 done (serving descoped).
-Status: executing — Phase 6 in progress (4/5 plans; Plan 05 viz pack next, local from results.pkl)
-Last activity: 2026-05-30 -- Phase 6 Plans 03+04 complete; OHP macro 0.6622 (matches/edges paper); headline chart committed
+Phase: 6 (Overhead Press) COMPLETE — all 5 plans. Phases 1–6 COMPLETE. OHP-01 satisfied (model + F1-per-error + paper comparison + full viz pack; serving descoped per D1). Next: Phase 7 (image-based errors: Shallow-Squat + BarbellRow via CVCSPC) or milestone review.
+Plan: Phase 6 = 5/5. Headline (official 339-clip OHP test, 2-seed MD-SSL ensemble): Elbows 0.4474 / Knees 0.8770 / macro 0.6622 at thresholds {elbows 0.357, knees 0.476}; baseline 0.6118 -> +0.050 SSL lift; paper Ours-MD 0.6502 matched/edged (Knees 0.877>0.845); val-test gap 0.011 (no overfitting). Deliverable: docs/figures/ohp_*.png (7) + docs/notebooks/05-08_ohp_* (executed) + docs/eval/FINDINGS_OHP.md + results.pkl. Checkpoints on Drive phase06/ (backbone ep30 + 2 fine-tune best.pt). Carry-fixes now in main code: cv2 decode (tv0.26), SSL drop_last, decode-cache + cv2.setNumThreads + num_workers8, md_pretrain/md_finetune dataset_cls+checkpoint_phase + best.pt update_latest=False.
+Status: executing — between phases (Phase 6 done; Phase 7 or milestone review next)
+Last activity: 2026-05-30 -- Phase 6 COMPLETE (5/5); OHP-01 done; OHP macro 0.6622 matches/edges paper
 
-Progress: [██████░░░░] 63%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
