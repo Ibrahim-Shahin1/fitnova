@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-19)
 
 **Core value:** A user can record/upload a lift and get trustworthy, plain-language form-error feedback grounded in a published dataset and method.
-**Current focus:** Phase 6 COMPLETE — next: Phase 7 (image-based errors) or milestone review
+**Current focus:** Phase 6 — Overhead Press (Phase 5 complete)
 
 ## Current Position
 
