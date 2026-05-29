@@ -197,3 +197,36 @@ assert pl["code_version"] == "phase04-md-pretrain", pl.get("code_version")
 assert "phase06" in ckpt, f"checkpoint not under phase06: {ckpt}"
 print("checkpoint round-trip OK; under phase06; payload keys:", sorted(pl.keys()))
 print(f"\n=== DECISION: est_total≈{estimated_total_h:.1f}h, VRAM fits. option-a (batch 8) if reasonable; option-b (batch 5) if VRAM tight. NO full run until you choose. ===")
+
+
+# %% [markdown]
+# ## Step 3 — full MD-SSL pretrain (resumable; multi-session)
+#
+# Single cell = the whole run. resume=True: a disconnect (or A100<->L4 switch) is recovered
+# by re-running Cell A -> Step 0 -> this cell; it picks up from latest.txt. Checkpoints every
+# epoch + writes backbone.pt on linear-probe improvement (update_latest=False). Keep batch 8
+# fixed across any GPU switch so the config_hash matches on resume.
+
+# %%
+import os
+
+from backend.training.aqa.datasets.ohp import OHPElbowsKneesDataset
+from backend.training.aqa.datasets.ohp_ssl import OHPSSLDataset
+from backend.training.aqa.harness.md_pretrain import MDConfig, run_md_pretrain_epoch
+
+config = MDConfig()
+RUN_NAME = "ohp_md_pretrain_v2"
+result = run_md_pretrain_epoch(
+    run_name=RUN_NAME, drive_root=MYDRIVE,
+    videos_root=UNLABELED_VIDEOS_ROOT, trajectories_root=TRAJ_ROOT, labeled_videos_root=VIDEOS_ROOT,
+    seed=42, config=config, resume=True, max_epochs=config.max_epochs,
+    ssl_dataset_cls=OHPSSLDataset, probe_dataset_cls=OHPElbowsKneesDataset, checkpoint_phase="phase06",
+)
+mh = result["metrics_history"]
+print(f"epochs: {len(mh)}")
+for i, m in enumerate(mh):
+    print(f"  ep {i}: ssl_loss={m.get('ssl_loss_mean'):.4f} emb_std={m.get('embedding_std'):.4f} eff_rank={m.get('effective_rank'):.1f} ({m.get('epoch_wall_time_s', 0):.0f}s)")
+for lp in result.get("linear_probe_history", []):
+    print(f"  [probe] ep{lp.get('epoch','?')}: macro={lp['linear_probe_f1_macro']:.4f} (Elbows={lp.get('linear_probe_f1_kie')} Knees={lp.get('linear_probe_f1_kfe')})")
+bp = os.path.join(MYDRIVE, "FitNova/checkpoints/phase06", RUN_NAME, "backbone.pt")
+print("backbone.pt:", bp, "| exists:", os.path.exists(bp))
