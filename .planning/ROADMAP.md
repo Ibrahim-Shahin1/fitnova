@@ -11,7 +11,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 - [x] **Phase 3: Squat Supervised Baseline** - R(2+1)D-18 baseline for KIE/KFE, F1 on the official split  *(complete 2026-05-20)*
 - [x] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison  *(complete 2026-05-25)*
 - [x] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API (completed 2026-05-26)
-- [ ] **Phase 6: Overhead Press** - Extend the video pipeline to OHP Elbow/Knees errors
+- [x] **Phase 6: Overhead Press** - Extend the video pipeline to OHP Elbow/Knees errors (completed 2026-05-29)
 - [ ] **Phase 7: Image-Based Errors (CVCSPC)** - Shallow-Squat and Barbell Row detectors
 - [ ] **Phase 8: Ensemble, Evaluation & Visualization Pack** - Final integration and the comparison deliverable
 
@@ -158,7 +158,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 06-05-PLAN.md — Wave 5: 4-notebook OHP deliverable pack + figures + FINDINGS.md + phase SUMMARY + ROADMAP/REQUIREMENTS/STATE reconciliation
+- [x] 06-05-PLAN.md — Wave 5: 4-notebook OHP deliverable pack + figures + FINDINGS.md + phase SUMMARY + ROADMAP/REQUIREMENTS/STATE reconciliation
 
 ### Phase 7: Image-Based Errors (CVCSPC)
 
@@ -198,6 +198,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Squat Supervised Baseline | 1/1 | Complete | 2026-05-20 |
 | 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
 | 5. Backend Inference Integration (Squat) | 5/5 | Complete    | 2026-05-26 |
-| 6. Overhead Press | 4/5 | In Progress|  |
+| 6. Overhead Press | 5/5 | Complete   | 2026-05-29 |
 | 7. Image-Based Errors (CVCSPC) | 0/TBD | Not started | - |
 | 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |

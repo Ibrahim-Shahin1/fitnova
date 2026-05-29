@@ -23,7 +23,7 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 ### Overhead Press Model
 
-- [ ] **OHP-01**: OHP Elbow/Knees baseline and MD-SSL models trained; F1 per error on the official OHP splits
+- [x] **OHP-01**: OHP Elbow/Knees baseline and MD-SSL models trained; F1 per error on the official OHP splits  *(complete 2026-05-30 — official OHP test: Elbows 0.447 / Knees 0.877 / macro 0.662; matches/edges paper MD 0.650, +0.050 over baseline, val→test gap 0.011; serving descoped per CONTEXT D1)*
 
 ### Image-Based Errors
 
@@ -82,7 +82,7 @@ Deferred to a future milestone.
 | API-02 | Phase 5 | Complete |
 | API-03 | Phase 5 | Complete |
 | API-04 | Phase 5 | Complete |
-| OHP-01 | Phase 6 | Pending |
+| OHP-01 | Phase 6 | Complete |
 | IMG-01 | Phase 7 | Pending |
 | IMG-02 | Phase 7 | Pending |
 | IMG-03 | Phase 7 | Pending |
