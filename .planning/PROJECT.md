@@ -8,6 +8,8 @@ FitNova is an AI-powered fitness mobile app (Flutter client + FastAPI/Python bac
 
 A user can record or upload themselves doing a lift and get trustworthy, plain-language feedback on specific form errors — feedback grounded in a published dataset and method, not guesswork.
 
+**Current state — v1.0 shipped 2026-05-31:** the form-correction model + benchmark evaluation are complete for 5 errors across 3 exercises (Squat KIE/KFE + OHP Elbows/Knees via video MD-SSL; Shallow-Squat depth via image CVCSPC), matching/beating Parmar et al. (ECCV 2022) on the official splits with identical F1 metrics. The serving API was rebuilt in PyTorch (UI-less); the polished Flutter form UI and graded severity are deferred to v2.
+
 ## Requirements
 
 ### Validated
@@ -18,17 +20,19 @@ A user can record or upload themselves doing a lift and get trustworthy, plain-l
 - ✓ Layered workout recommender (content filter → NeuMF → LLM plan adapter) producing a 7-day plan — existing
 - ✓ Flutter app shell: registration, chat, plan screens, theming, state management — existing
 - ✓ FastAPI backend with REST + WebSocket transport and static media serving — existing
+- ✓ Fitness-AQA dataset consolidated, verified, characterized (EDA + report) — v1.0 (Phase 1)
+- ✓ Squat form-error detection (KIE/KFE): supervised baseline → Motion-Disentangling SSL, official-split F1 — v1.0 (macro 0.6304, matches paper MD 0.6262)
+- ✓ Overhead Press form-error detection (Elbows/Knees): baseline → MD-SSL, official-split F1 — v1.0 (macro 0.6622, matches/edges paper 0.6502)
+- ✓ Image-based error (Shallow-Squat depth) via faithful CVCSPC — v1.0 (F1 0.8902 > paper CVCSPC 0.8694; BarbellRow/IMG-03 descoped)
+- ✓ Backend inference API — live (WebSocket) + video-upload (REST), binary + timing — v1.0 (PyTorch SquatFormService; UI-less — the form frontend was cancelled)
+- ✓ Identical-metric comparison vs Parmar (+ GYMetricPose/LMM as caveated context), visualizations throughout — v1.0 (FINDINGS_FULL + notebook 12 + master figures)
 
 ### Active
 
-<!-- This milestone: form-correction rebuilt on Fitness-AQA. -->
+<!-- Next milestone not yet defined. The form-correction model + benchmark evaluation shipped in v1.0. -->
 
-- [ ] Fitness-AQA dataset consolidated, verified, and characterized (EDA + report)
-- [ ] Squat form-error detection (Knees-Inward, Knees-Forward): supervised baseline → domain-knowledge SSL, evaluated on official splits with F1
-- [ ] Overhead Press form-error detection (Elbows, Knees): same pipeline
-- [ ] Image-based errors (Shallow-Squat, BarbellRow Lumbar/Torso) via the CVCSPC method
-- [ ] Backend inference API — live (WebSocket) and video-upload (REST) — emitting binary error detections with timing
-- [ ] Identical-metric comparison vs Parmar / GYMetricPose / LMM, with visualizations throughout
+- [ ] (v2) Polished Flutter form-correction UI — live-camera + video-upload + results screens (UI-01 / UI-02)
+- [ ] (v2) Graded error severity as a measured target — needs an added labeling/data strategy (FB-01)
 
 ### Out of Scope
 
@@ -59,12 +63,12 @@ A user can record or upload themselves doing a lift and get trustworthy, plain-l
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Rebuild form-correction on Fitness-AQA | Published dataset + method → reproducible, academically defensible; replaces a failed line | — Pending |
-| Scrap the entire v4–v7 / QEVD form line | Produced no defensible result; not worth measuring against | — Pending |
-| Squat-first vertical slice | Richest data (labeled + unlabeled + trajectories); proves the full pipeline before scaling | — Pending |
-| Supervised baseline before domain-knowledge SSL | Guarantees an early paper-comparable result; the SSL lift becomes the measured contribution | — Pending |
-| Binary detection + timing (no graded severity) | Matches what the dataset labels support; honest about measured vs estimated | — Pending |
-| PyTorch for the form model | Official code and R(2+1)D / ResNet are torch-native | — Pending |
+| Rebuild form-correction on Fitness-AQA | Published dataset + method → reproducible, academically defensible; replaces a failed line | ✓ Shipped v1.0 |
+| Scrap the entire v4–v7 / QEVD form line | Produced no defensible result; not worth measuring against | ✓ Shipped v1.0 |
+| Squat-first vertical slice | Richest data (labeled + unlabeled + trajectories); proves the full pipeline before scaling | ✓ Shipped v1.0 |
+| Supervised baseline before domain-knowledge SSL | Guarantees an early paper-comparable result; the SSL lift becomes the measured contribution | ✓ Shipped v1.0 |
+| Binary detection + timing (no graded severity) | Matches what the dataset labels support; honest about measured vs estimated | ✓ Shipped v1.0 |
+| PyTorch for the form model | Official code and R(2+1)D / ResNet are torch-native | ✓ Shipped v1.0 |
 
 ## Evolution
 
@@ -84,4 +88,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-19 after initialization*
+*Last updated: 2026-05-31 after v1.0 (Form-Correction Rebuild) milestone*

@@ -2,36 +2,33 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: "Phase 8 Plan 01 complete: 12_full_evaluation.ipynb + 4 master figures + AQA green"
-last_updated: "2026-05-30T22:31:21.227Z"
-last_activity: 2026-05-30
+status: Awaiting next milestone
+stopped_at: "Milestone v1.0 (Form-Correction Rebuild) COMPLETE — all 8 phases shipped + archived; awaiting next milestone"
+last_updated: "2026-05-31"
+last_activity: 2026-05-31 — Milestone v1.0 completed and archived (8/8 phases, 24/24 plans, 100%)
 progress:
   total_phases: 8
-  completed_phases: 6
-  total_plans: 25
-  completed_plans: 20
-  percent: 75
+  completed_phases: 8
+  total_plans: 24
+  completed_plans: 24
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-19)
+See: .planning/PROJECT.md (updated 2026-05-31)
 
 **Core value:** A user can record/upload a lift and get trustworthy, plain-language form-error feedback grounded in a published dataset and method.
-**Current focus:** Phase 8 — Ensemble, Evaluation & Visualization Pack
+**Current focus:** v1.0 (Form-Correction Rebuild) COMPLETE — awaiting next milestone (run /gsd:new-milestone)
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
-PRIOR (Phase 6, complete): OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770), +0.050 SSL lift, paper-matched, val-test gap 0.011; deliverable shipped (docs/figures/ohp_*.png, docs/notebooks/05-08_ohp_*, FINDINGS_OHP, results.pkl).
-Status: Phase complete — ready for verification
-Last activity: 2026-05-30
-
-Progress: [█████████░] 88%
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-30 — Milestone v1.0 completed and archived
 
 ## Performance Metrics
 
@@ -114,14 +111,19 @@ None yet.
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items acknowledged and deferred at the v1.0 milestone close (2026-05-31) — both superseded by the form-correction frontend cancellation (D1), not coverage gaps:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| UAT | Phase-05 HUMAN-UAT: 2 live-demo scenarios (real-camera / live-trigger) | superseded (frontend cancelled, D1) | v1.0 close 2026-05-31 |
+| quick_task | 260527-2bt: unit 3 (upload-replay) | superseded (frontend cancelled, D1) | v1.0 close 2026-05-31 |
 
 ## Session Continuity
 
 Last session: 2026-05-30T21:47:34.033Z
 Stopped at: Phase 8 Plan 01 complete: 12_full_evaluation.ipynb + 4 master figures + AQA green
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd:new-milestone
