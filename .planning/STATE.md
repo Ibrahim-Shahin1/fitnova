@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 7 Plan 01 (Wave 0) COMPLETE — Shallow-Squat CVCSPC scaffold + unit tests GREEN (44 passed, 4 deselected; +15 Phase-7 tests, no Squat/OHP regression). 5 atomic commits 26dce44..62dd9be pushed to origin. NEXT: Plan 02 (Colab) — ImageNet ResNet-18 supervised baseline on the official Shallow-Squat splits (multi-seed, test F1 = SSL-lift control)."
+stopped_at: "Phase 7 Plan 02 (Colab baseline) COMPLETE — ImageNet ResNet-18 3-seed ensemble, official Shallow-Squat test F1 0.8750 (PR-AUC 0.9506, val->test gap 0.010), which EXCEEDS paper CVCSPC 0.8694 / SimSiam 0.8286. The SSL-lift control. Drive-FUSE _atomic_write_text hardened (ade4c3e). NEXT: Plan 03 (Colab, FRESH notebook) — faithful CVCSPC SSL pretrain on the 4970 unlabeled Squat clips (frame-extract + traj_nan exclusion + phase-contrastive triplet) -> backbone.pt."
 last_updated: "2026-05-30"
-last_activity: "2026-05-30 -- Phase 7 Plan 01 executed (Wave-0 local CPU): shallow_squat.py + cvcspc_ssl.py + cvcspc_pretrain.py (3-term loss + phase-matched triplet) + image_supervised_train.py + colab staging/frame-extract + 15 unit tests; Wave-0 gate 44 passed/4 deselected. Pushed 62dd9be."
+last_activity: "2026-05-30 -- Phase 7 Plan 02 executed (Colab): 3-seed ResNet-18 baseline (per-seed val F1 0.876/0.872/0.885), ensemble test F1 0.8750 @ t*=0.473. Hardened _atomic_write_text for Drive FUSE rapid latest.txt writes. Pushed 4ea54e3."
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 22
-  completed_plans: 18
+  completed_plans: 19
   percent: 75
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 7 (Shallow-Squat CVCSPC) EXECUTING — Plan 01 (Wave 0) COMPLETE; Plans 02-05 remain. Phases 1–6 COMPLETE. IMG-03 (BarbellRow) DESCOPED.
-Plan: Phase 7 = 1/5 executed. Plan 01 (Wave-0 LOCAL CPU) DONE: shallow_squat.py + cvcspc_ssl.py + image_supervised_train.py + cvcspc_pretrain.py + colab staging/frame-extract + 15 unit tests (3-term loss closed-form+directional, phase-matched cross-rep triplet, traj_nan exclusion, masking aug, single-head shapes, no-BN configurable projector, seams); Wave-0 gate 44 passed/4 deselected, no Squat/OHP regression; pushed 26dce44..62dd9be. NEXT: Plan 02 (Colab) = ImageNet ResNet-18 baseline (multi-seed, official Shallow-Squat splits 2542/529/540, test F1 = the SSL-lift control). 03 = CVCSPC SSL pretrain (Colab, FRESH notebook, frame-extract 4970 unlabeled clips + traj_nan exclusion) -> backbone.pt. 04 = fine-tune (model_builder seam) + ensemble + eval + results.pkl. 05 = deliverable pack. checkpoint_phase=phase07. Key facts: single binary error (Linear(512,1)+BCE, pos_weight~1.28); 3-term loss (train_test.py:68, code deviates from paper's 2-term — documented); Adam (official) == AdamW at wd=0; CVCSPC feasible on Squat-alone.
+Phase: 7 (Shallow-Squat CVCSPC) EXECUTING — Plans 01-02 COMPLETE; Plans 03-05 remain. Phases 1–6 COMPLETE. IMG-03 (BarbellRow) DESCOPED.
+Plan: Phase 7 = 2/5 executed. Plan 01 (Wave-0 scaffold + 15 unit tests, 44 passed) + Plan 02 (Colab baseline: 3-seed ImageNet ResNet-18, official test F1 0.8750 @ t*=0.473, PR-AUC 0.9506, val->test gap 0.010 — the SSL-lift control) DONE. NOTE: the supervised baseline 0.8750 EXCEEDS paper CVCSPC 0.8694 / SimSiam 0.8286 (near-balanced, visually-discriminative task; no paper supervised-ImageNet row) — so the Plan-03/04 CVCSPC SSL is a FAITHFUL METHOD REPRODUCTION; the lift over this strong baseline may be small/zero/negative and is reported honestly. NEXT: Plan 03 (Colab, FRESH notebook, L4) = faithful CVCSPC SSL pretrain (Step-0 frame-extract 4970 unlabeled clips -> {frames_root}/{vid}/frame.jpg + traj_nan exclusion + the trajectory/phase-matching probe + phase-contrastive triplet pretrain + triplet-accuracy monitor) -> backbone.pt. 04 = fine-tune from backbone via the model_builder seam + ensemble + eval vs baseline 0.8750 + paper 0.8694 + results.pkl. 05 = deliverable pack. checkpoint_phase=phase07. Key facts: single binary error (Linear(512,1)+BCE, pos_weight 1.313); 3-term loss (train_test.py:68, code deviates from paper's 2-term — documented); Adam (official) == AdamW at wd=0; Drive-FUSE _atomic_write_text hardened (read-back + retry); CVCSPC feasible on Squat-alone.
 PRIOR (Phase 6, complete): OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770), +0.050 SSL lift, paper-matched, val-test gap 0.011; deliverable shipped (docs/figures/ohp_*.png, docs/notebooks/05-08_ohp_*, FINDINGS_OHP, results.pkl).
-Status: executing — Phase 7 Plan 01 (Wave 0) complete; Plan 02 baseline (Colab) next
-Last activity: 2026-05-30 -- Phase 7 Plan 01 (Wave 0) complete: scaffold + 15 unit tests green (44 passed/4 deselected)
+Status: executing — Phase 7 Plans 01-02 complete (baseline test F1 0.8750); Plan 03 CVCSPC SSL pretrain (Colab, fresh notebook) next
+Last activity: 2026-05-30 -- Phase 7 Plan 02 (Colab baseline) complete: 3-seed ResNet-18 ensemble test F1 0.8750 (> paper CVCSPC 0.8694)
 
 Progress: [████████░░] 75%
 
