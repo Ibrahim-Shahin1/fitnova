@@ -1,9 +1,9 @@
 # Form-Error Analysis Notebooks
 
 Reproducible Jupyter notebooks documenting the form-error detection pipeline (Fitness-AQA),
-from raw data to final evaluation — **Squat** (01–04) and **Overhead Press** (05–08). Open in
-VS Code or `jupyter notebook docs/notebooks/`. All are **pre-executed** (figures/tables render
-on open).
+from raw data to final evaluation — **Squat** (01–04), **Overhead Press** (05–08), and
+**Shallow-Squat** (09–11, the image modality). Open in VS Code or `jupyter notebook docs/notebooks/`.
+All are **pre-executed** (figures/tables render on open).
 
 ## Squat (KIE / KFE)
 
@@ -30,12 +30,27 @@ on open).
 MD-SSL (0.650), +0.050 over the supervised baseline, val→test gap 0.011 (no overfitting).
 Write-up: [`../eval/FINDINGS_OHP.md`](../eval/FINDINGS_OHP.md).
 
+## Shallow-Squat (squat-depth, image error · CVCSPC)
+
+| Notebook | Covers |
+|----------|--------|
+| **09_shallow_squat_eda** | Official splits (2542/529/540), near-balanced class distribution (43.9% pos / 1584-of-3611), sample shallow vs deep crops, uniform 299² crop size, the image pipeline (224² + ImageNet norm, single binary head) |
+| **10_shallow_squat_training** | CVCSPC pose-contrastive SSL convergence (triplet-accuracy 0.48→0.959), per-seed baseline vs CVCSPC fine-tune val-F1, baseline→CVCSPC lift |
+| **11_shallow_squat_evaluation** | Official-test-split F1, score distribution, PR curve, confusion, per-seed vs ensemble, F1-vs-paper (baseline → CVCSPC → paper CVCSPC 0.8694) |
+
+**Shallow-Squat headline:** F1 **0.8902** (PR-AUC 0.967) on the official 540-crop test split —
+**beats the published CVCSPC 0.8694** (+0.021), and SimSiam 0.829 / OpenPose-TDM 0.834; the faithful
+CVCSPC SSL adds **+0.0152** over our supervised baseline (0.8750), consistent across all 3 seeds,
+val→test gap 0.0217 (no overfitting). Adds the **image modality** + the **2nd method (CVCSPC)** to
+the thesis. Write-up: [`../eval/FINDINGS_SHALLOW_SQUAT.md`](../eval/FINDINGS_SHALLOW_SQUAT.md).
+
 ## Data sources (real, no fabrication)
 
 - Fitness-AQA labeled sets (local: labels, splits, clips).
-- Recorded training artifacts: `.planning/phases/04-…/figures/results.pkl` (Squat) and
-  `.planning/phases/06-…/figures/results.pkl` (OHP) — per-epoch SSL + fine-tune curves,
-  official per-clip ensemble scores, paper comparison.
+- Recorded training artifacts: `.planning/phases/04-…/figures/results.pkl` (Squat),
+  `.planning/phases/06-…/figures/results.pkl` (OHP), and
+  `.planning/phases/07-…/figures/results.pkl` (Shallow-Squat) — per-epoch SSL + fine-tune curves,
+  official per-clip/per-crop ensemble scores, paper comparison.
 
 ## Reproduce
 

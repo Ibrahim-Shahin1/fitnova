@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 7 Plan 04 (Colab CVCSPC fine-tune + eval) COMPLETE — CVCSPC 3-seed ensemble official 540-crop test F1 0.8902 (PR-AUC 0.9668) @ t*=0.395, +0.0152 SSL lift over baseline 0.8750 (reproduced exactly), all 3 seeds beat baseline, val->test gap 0.0217 (no overfit). BEATS paper CVCSPC 0.8694 by +0.021. results.pkl (113KB) on Drive (phase07/results.pkl) + repo figures/. NEXT: Plan 05 (LOCAL) — deliverable pack (EDA + training/eval notebooks + figures + FINDINGS_SHALLOW_SQUAT) from results.pkl; PowerShell Copy-Item results.pkl off the Windows Drive mount first."
+stopped_at: "Phase 7 (Shallow-Squat CVCSPC) COMPLETE — IMG-01 + IMG-02 met: official 540-crop test F1 0.8902 (3-seed CVCSPC ensemble) BEATS paper CVCSPC 0.8694 by +0.021, +0.0152 SSL lift over baseline 0.8750, val->test gap 0.0217 (no overfit). Deliverable pack shipped: docs/notebooks/09-11_shallow_squat_* (executed) + 6 docs/figures/shallow_squat_* + FINDINGS_SHALLOW_SQUAT.md + shallow_squat_test_scores.csv + results.pkl + 07-05-SUMMARY. IMG-03 (BarbellRow) + SC3 (serving) descoped. 7/8 phases done. NEXT: Phase 8 (ensemble + full identical-metric evaluation + consolidated visualization pack)."
 last_updated: "2026-05-30"
-last_activity: "2026-05-30 -- Phase 7 Plan 04 executed (Colab): 3-seed CVCSPC fine-tune from the backbone (model_builder seam), ensemble test F1 0.8902 (+0.0152 over baseline, > paper 0.8694). results.pkl written + SSL convergence + comparison figures. Pushed 68dc382."
+last_activity: "2026-05-30 -- Phase 7 COMPLETE (all 5 plans): Shallow-Squat CVCSPC headline F1 0.8902 > paper 0.8694; deliverable pack + SUMMARY shipped; ROADMAP/REQUIREMENTS reconciled (IMG-01/02 complete, IMG-03 descoped)."
 progress:
   total_phases: 8
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 22
-  completed_plans: 21
-  percent: 75
+  completed_plans: 22
+  percent: 88
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-19)
 
 **Core value:** A user can record/upload a lift and get trustworthy, plain-language form-error feedback grounded in a published dataset and method.
-**Current focus:** Phase 7 (Shallow-Squat CVCSPC) PLANNED — ready to execute
+**Current focus:** Phase 7 COMPLETE (Shallow-Squat CVCSPC, F1 0.8902 > paper 0.8694) — Phase 8 (final ensemble + evaluation + viz pack) next
 
 ## Current Position
 
-Phase: 7 (Shallow-Squat CVCSPC) EXECUTING — Plans 01-04 COMPLETE; Plan 05 (LOCAL deliverable pack) remains. Phases 1–6 COMPLETE. IMG-03 (BarbellRow) DESCOPED.
-Plan: Phase 7 = 4/5 executed. Plan 04 (Colab CVCSPC fine-tune + eval) DONE: 3-seed fine-tune from the backbone via the model_builder seam, ensemble official test F1 0.8902 (PR-AUC 0.9668) @ t*=0.395, +0.0152 over baseline 0.8750 (reproduced exactly), all 3 seeds beat baseline (42:0.896/1337:0.890/7:0.882), val->test gap 0.0217. BEATS paper CVCSPC 0.8694 by +0.021. results.pkl (113KB) on Drive (FitNova/checkpoints/phase07/results.pkl) + repo .planning/.../figures/. Figures so far: cvcspc_triplet_probe, cvcspc_ssl_curves, cvcspc_comparison. NEXT: Plan 05 (LOCAL, no Colab) = deliverable pack from results.pkl — PowerShell Copy-Item results.pkl off the Windows Drive mount (G:\My Drive\FitNova\checkpoints\phase07\results.pkl) first, then build EDA + training/eval notebooks (docs/notebooks/) + figures (docs/figures/) + FINDINGS_SHALLOW_SQUAT.md + phase SUMMARY + reconcile ROADMAP/REQUIREMENTS (IMG-01/IMG-02 complete). PRIOR DETAIL: Phase 7 = 3/5 executed. Plan 01 (Wave-0 scaffold + 15 unit tests, 44 passed) + Plan 02 (Colab baseline: 3-seed ImageNet ResNet-18, official test F1 0.8750 @ t*=0.473, PR-AUC 0.9506, val->test gap 0.010 — the SSL-lift control) DONE. NOTE: the supervised baseline 0.8750 EXCEEDS paper CVCSPC 0.8694 / SimSiam 0.8286 (near-balanced, visually-discriminative task; no paper supervised-ImageNet row) — so the Plan-03/04 CVCSPC SSL is a FAITHFUL METHOD REPRODUCTION; the lift over this strong baseline may be small/zero/negative and is reported honestly. NEXT: Plan 03 (Colab, FRESH notebook, L4) = faithful CVCSPC SSL pretrain (Step-0 frame-extract 4970 unlabeled clips -> {frames_root}/{vid}/frame.jpg + traj_nan exclusion + the trajectory/phase-matching probe + phase-contrastive triplet pretrain + triplet-accuracy monitor) -> backbone.pt. 04 = fine-tune from backbone via the model_builder seam + ensemble + eval vs baseline 0.8750 + paper 0.8694 + results.pkl. 05 = deliverable pack. checkpoint_phase=phase07. Key facts: single binary error (Linear(512,1)+BCE, pos_weight 1.313); 3-term loss (train_test.py:68, code deviates from paper's 2-term — documented); Adam (official) == AdamW at wd=0; Drive-FUSE _atomic_write_text hardened (read-back + retry); CVCSPC feasible on Squat-alone.
+Phase: 7 (Shallow-Squat CVCSPC) COMPLETE — all 5 plans done. Phases 1–7 COMPLETE; Phase 8 (final ensemble + evaluation + visualization pack) remains. IMG-03 (BarbellRow) + SC3 (serving) DESCOPED.
+Plan: Phase 7 = 5/5 complete. Headline: faithful CVCSPC, official 540-crop test F1 0.8902 (3-seed ensemble, PR-AUC 0.9668) BEATS paper CVCSPC 0.8694 by +0.021; +0.0152 SSL lift over the supervised baseline 0.8750 (all 3 seeds beat baseline); val->test gap 0.0217 (no overfit); SSL triplet-accuracy 0.48->0.959. Deliverable pack: docs/notebooks/09-11_shallow_squat_* (paired .py + executed .ipynb), 6 docs/figures/shallow_squat_*, FINDINGS_SHALLOW_SQUAT.md, shallow_squat_test_scores.csv, results.pkl, 07-05-SUMMARY. Production checkpoints on Drive: phase07/shallow_squat_cvcspc_v1/backbone.pt + shallow_squat_cvcspc_finetune_seed{42,1337,7}/best.pt; ensemble mean-of-sigmoids @ threshold 0.395. Deviations documented: 3-term loss (code) vs paper 2-term; Adam==AdamW@wd0; val/test-clip exclusion added (leakage-free, 4791-clip SSL set); Drive-FUSE _atomic_write_text hardened. NEXT: Phase 8 = MD+CVCSPC ensemble where the paper applies it + the full identical-metric comparison (ours vs Parmar/GYMetricPose/LMM) across all errors + consolidated viz/results pack. Plan 01 (Wave-0 scaffold + 15 unit tests, 44 passed) + Plan 02 (Colab baseline: 3-seed ImageNet ResNet-18, official test F1 0.8750 @ t*=0.473, PR-AUC 0.9506, val->test gap 0.010 — the SSL-lift control) DONE. NOTE: the supervised baseline 0.8750 EXCEEDS paper CVCSPC 0.8694 / SimSiam 0.8286 (near-balanced, visually-discriminative task; no paper supervised-ImageNet row) — so the Plan-03/04 CVCSPC SSL is a FAITHFUL METHOD REPRODUCTION; the lift over this strong baseline may be small/zero/negative and is reported honestly. NEXT: Plan 03 (Colab, FRESH notebook, L4) = faithful CVCSPC SSL pretrain (Step-0 frame-extract 4970 unlabeled clips -> {frames_root}/{vid}/frame.jpg + traj_nan exclusion + the trajectory/phase-matching probe + phase-contrastive triplet pretrain + triplet-accuracy monitor) -> backbone.pt. 04 = fine-tune from backbone via the model_builder seam + ensemble + eval vs baseline 0.8750 + paper 0.8694 + results.pkl. 05 = deliverable pack. checkpoint_phase=phase07. Key facts: single binary error (Linear(512,1)+BCE, pos_weight 1.313); 3-term loss (train_test.py:68, code deviates from paper's 2-term — documented); Adam (official) == AdamW at wd=0; Drive-FUSE _atomic_write_text hardened (read-back + retry); CVCSPC feasible on Squat-alone.
 PRIOR (Phase 6, complete): OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770), +0.050 SSL lift, paper-matched, val-test gap 0.011; deliverable shipped (docs/figures/ohp_*.png, docs/notebooks/05-08_ohp_*, FINDINGS_OHP, results.pkl).
-Status: executing — Phase 7 Plans 01-04 complete (CVCSPC test F1 0.8902 > paper 0.8694, +0.015 SSL lift); Plan 05 local deliverable pack next
-Last activity: 2026-05-30 -- Phase 7 Plan 04 (Colab CVCSPC fine-tune+eval) complete: ensemble test F1 0.8902 (+0.0152 over baseline), results.pkl on Drive+repo
+Status: executing — Phase 7 COMPLETE (Shallow-Squat CVCSPC test F1 0.8902 > paper 0.8694); Phase 8 (final ensemble + evaluation + viz pack) next
+Last activity: 2026-05-30 -- Phase 7 COMPLETE: all 5 plans, headline 0.8902 > paper 0.8694, deliverable pack + SUMMARY shipped, ROADMAP/REQUIREMENTS reconciled
 
-Progress: [████████░░] 75%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 

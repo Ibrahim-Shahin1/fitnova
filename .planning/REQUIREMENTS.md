@@ -27,8 +27,8 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 ### Image-Based Errors
 
-- [ ] **IMG-01**: CVCSPC (ResNet-18) image pipeline — baseline and self-supervised
-- [ ] **IMG-02**: Shallow-Squat detector trained; F1 on the official split
+- [x] **IMG-01**: CVCSPC (ResNet-18) image pipeline — baseline and self-supervised  *(complete 2026-05-30 — ImageNet ResNet-18 supervised baseline + faithful CVCSPC pose-contrastive SSL; triplet-accuracy 0.48→0.959; met by model+eval+viz)*
+- [x] **IMG-02**: Shallow-Squat detector trained; F1 on the official split  *(complete 2026-05-30 — official 540-crop test F1 0.8902, 3-seed CVCSPC ensemble; beats paper CVCSPC 0.8694, +0.0152 SSL lift over baseline 0.8750, val→test gap 0.0217)*
 - [~] **IMG-03**: Barbell Row Lumbar and Torso-Angle detectors trained; F1 on the official splits  *(DESCOPED 2026-05-30 — BarbellRow cancelled by user for compute/time; milestone form-correction scope is Squat + OHP (video) + Shallow-Squat (image))*
 
 ### Inference API
@@ -83,8 +83,8 @@ Deferred to a future milestone.
 | API-03 | Phase 5 | Complete |
 | API-04 | Phase 5 | Complete |
 | OHP-01 | Phase 6 | Complete |
-| IMG-01 | Phase 7 | Pending |
-| IMG-02 | Phase 7 | Pending |
+| IMG-01 | Phase 7 | Complete |
+| IMG-02 | Phase 7 | Complete |
 | IMG-03 | Phase 7 | Descoped |
 | EVAL-01 | Phase 8 | Pending |
 | EVAL-02 | Phase 8 | Pending |

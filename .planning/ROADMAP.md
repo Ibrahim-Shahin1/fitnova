@@ -12,7 +12,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 - [x] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison  *(complete 2026-05-25)*
 - [x] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API (completed 2026-05-26)
 - [x] **Phase 6: Overhead Press** - Extend the video pipeline to OHP Elbow/Knees errors (completed 2026-05-29)
-- [ ] **Phase 7: Image-Based Errors (CVCSPC)** - Shallow-Squat detector (BarbellRow/IMG-03 descoped)
+- [x] **Phase 7: Image-Based Errors (CVCSPC)** - Shallow-Squat detector, official test F1 0.8902 > paper CVCSPC 0.8694 (BarbellRow/IMG-03 descoped)  *(complete 2026-05-30)*
 - [ ] **Phase 8: Ensemble, Evaluation & Visualization Pack** - Final integration and the comparison deliverable
 
 ## Phase Details
@@ -176,23 +176,23 @@ Plans:
 Plans:
 **Wave 0**
 
-- [ ] 07-01-PLAN.md — Wave 0 (LOCAL CPU): scaffold shallow_squat.py (image dataset) + cvcspc_ssl.py (phase-matched triplet) + image_train.py (ResNet-18 trainer) + cvcspc_pretrain.py (3-term loss + triplet-accuracy) + colab staging/frame-extract + unit tests (loss closed-form, phase-matching, dataset shape/norm) + no-regression gate
+- [x] 07-01-PLAN.md — Wave 0 (LOCAL CPU): scaffold shallow_squat.py (image dataset) + cvcspc_ssl.py (phase-matched triplet) + image_train.py (ResNet-18 trainer) + cvcspc_pretrain.py (3-term loss + triplet-accuracy) + colab staging/frame-extract + unit tests (loss closed-form, phase-matching, dataset shape/norm) + no-regression gate
 
 **Wave 1**
 
-- [ ] 07-02-PLAN.md — Wave 1 (Colab): the ImageNet ResNet-18 supervised baseline (the SSL-lift control, the guaranteed IMG-02 result) — stage crops, multi-seed train, ensemble + val-tuned threshold, test F1 on the official 540-crop split
+- [x] 07-02-PLAN.md — Wave 1 (Colab): the ImageNet ResNet-18 supervised baseline (the SSL-lift control, the guaranteed IMG-02 result) — stage crops, multi-seed train, ensemble + val-tuned threshold, test F1 on the official 540-crop split
 
 **Wave 2** *(parallel with Wave 1 — independent checkpoint dirs / notebooks)*
 
-- [ ] 07-03-PLAN.md — Wave 2 (Colab): the faithful CVCSPC SSL pretrain on the 4,970 unlabeled Squat clips — Step-0 frame-extract + the trajectory/phase-matching probe (blocking) + the phase-contrastive triplet pretrain with the triplet-accuracy monitor → backbone.pt
+- [x] 07-03-PLAN.md — Wave 2 (Colab): the faithful CVCSPC SSL pretrain on the 4,970 unlabeled Squat clips — Step-0 frame-extract + the trajectory/phase-matching probe (blocking) + the phase-contrastive triplet pretrain with the triplet-accuracy monitor → backbone.pt
 
 **Wave 3** *(blocked on Waves 1 + 2)*
 
-- [ ] 07-04-PLAN.md — Wave 3 (Colab): fine-tune from the CVCSPC backbone (multi-seed) → ensemble → val-tuned threshold → test F1 vs baseline vs paper 0.8694 → results.pkl (source of truth; the baseline→CVCSPC lift + the val→test gap computed in code)
+- [x] 07-04-PLAN.md — Wave 3 (Colab): fine-tune from the CVCSPC backbone (multi-seed) → ensemble → val-tuned threshold → test F1 vs baseline vs paper 0.8694 → results.pkl (source of truth; the baseline→CVCSPC lift + the val→test gap computed in code)
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 07-05-PLAN.md — Wave 4 (LOCAL): the 3-notebook Shallow-Squat deliverable pack (EDA + training + evaluation) + figures + FINDINGS_SHALLOW_SQUAT.md + phase SUMMARY + ROADMAP/REQUIREMENTS/STATE reconciliation
+- [x] 07-05-PLAN.md — Wave 4 (LOCAL): the 3-notebook Shallow-Squat deliverable pack (EDA + training + evaluation) + figures + FINDINGS_SHALLOW_SQUAT.md + phase SUMMARY + ROADMAP/REQUIREMENTS/STATE reconciliation
 
 ### Phase 8: Ensemble, Evaluation & Visualization Pack
 
@@ -220,5 +220,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
 | 5. Backend Inference Integration (Squat) | 5/5 | Complete    | 2026-05-26 |
 | 6. Overhead Press | 5/5 | Complete   | 2026-05-29 |
-| 7. Image-Based Errors (CVCSPC) | 0/5 | Planned | - |
+| 7. Image-Based Errors (CVCSPC) | 5/5 | Complete | 2026-05-30 |
 | 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |
