@@ -262,3 +262,39 @@ assert 0.0 <= _ta <= 1.0
 
 del _backbone, _projector, _loss
 torch.cuda.empty_cache()
+
+
+# %% [markdown]
+# ## Step 3 — epoch-0 timing gate (BLOCKING decision)
+#
+# Runs ONE real SSL epoch under run_cvcspc_pretrain_epoch on the 4791 clips (a separate `_timing` dir,
+# resume=False) to measure the per-epoch time + estimate the full 100-epoch run, sanity-check the
+# ssl_loss + epoch-0 triplet-accuracy, and verify the checkpoint round-trip. epoch 0 is a triplet-acc
+# cadence epoch, so its time is an UPPER bound (4/5 epochs skip the triplet-accuracy pass).
+
+# %%
+import os as _os
+import time
+
+from backend.training.aqa.harness.cvcspc_pretrain import run_cvcspc_pretrain_epoch
+
+_t0 = time.perf_counter()
+_res = run_cvcspc_pretrain_epoch(
+    run_name="shallow_squat_cvcspc_v1_timing",
+    drive_root=MYDRIVE,
+    frames_root=FRAMES_ROOT, trajectories_root=TRAJ_ROOT,
+    traj_nan_path=TRAJ_NAN_PATH, exclude_ids=EXCLUDE_IDS,
+    seed=42, resume=False, max_epochs=1,
+)
+_wall = time.perf_counter() - _t0
+_m0 = _res["metrics_history"][0]
+_epoch_s = _m0["epoch_wall_time_s"]
+print(f"\nepoch-0 time: {_epoch_s:.1f}s ({_epoch_s / 60:.1f} min)  |  cell wall incl setup: {_wall:.1f}s")
+print(f"estimated full run (100 ep, UPPER bound): {_epoch_s * 100 / 3600:.2f} h")
+print(f"epoch-0 ssl_loss={_m0['ssl_loss_mean']:.4f}")
+if _res["triplet_acc_history"]:
+    print(f"epoch-0 triplet_acc={_res['triplet_acc_history'][-1]['triplet_acc']:.4f}")
+
+_ck = torch.load(_res["checkpoint_path"], map_location="cpu", weights_only=False)
+print(f"\ncheckpoint: {_os.path.basename(_res['checkpoint_path'])}  code_version={_ck['code_version']}")
+assert _ck["code_version"] == "phase07-cvcspc-pretrain"
