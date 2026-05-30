@@ -255,3 +255,36 @@ print(f"\ncheckpoint: {_os.path.basename(_res['checkpoint_path'])}  "
       f"code_version={_ck['code_version']}")
 print("payload keys:", sorted(_ck.keys()))
 assert _ck["code_version"] == "phase07-image-baseline"
+
+
+# %% [markdown]
+# ## Step 4 — multi-seed baseline training (seed 42 first)
+#
+# Trains seed 42 to convergence (resume=True -> disconnect-safe; just re-run the cell to resume
+# from latest.txt). ~5 min on L4. The INFO logging surfaces per-epoch val F1 so you can watch it
+# climb (IMG-02 convergence); the tqdm bars show in-epoch progress. Seeds 1337 + 7 follow in the
+# next cell.
+
+# %%
+import logging
+
+from backend.training.aqa.datasets.shallow_squat import ShallowSquatDataset
+from backend.training.aqa.harness.image_supervised_train import ImageConfig, run_image_epoch
+
+logging.basicConfig(level=logging.WARNING, format="%(message)s", force=True)
+logging.getLogger("aqa.phase07").setLevel(logging.INFO)
+
+SEEDS = [42, 1337, 7]
+_results = {}
+
+_n = 42
+_results[_n] = run_image_epoch(
+    run_name=f"shallow_squat_baseline_seed{_n}",
+    drive_root=MYDRIVE,
+    images_root=IMAGES_ROOT, labels_path=LABELS_PATH, splits_root=SPLITS_ROOT,
+    seed=_n, config=ImageConfig(), resume=True, max_epochs=50,
+    dataset_cls=ShallowSquatDataset,
+)
+_r = _results[_n]
+print(f"\nseed {_n}: best_f1_val={_r['best_f1_val']:.4f}  (last epoch {_r['epoch']})")
+print(f"best.pt: {_r['best_checkpoint_path']}")
