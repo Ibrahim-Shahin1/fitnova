@@ -333,3 +333,51 @@ _best_ta = max((e["triplet_acc"] for e in _res["triplet_acc_history"]), default=
 print(f"\nSSL done: final epoch {_res['epoch']}, best triplet_acc {_best_ta:.4f}")
 print(f"backbone.pt: {_res['backbone_path']}")
 print(f"final phase_gap: {_config.phase_gap_start}")
+
+
+# %% [markdown]
+# ## Step 5 — SSL convergence figure (defense visualization)
+#
+# Plots the SSL contrastive loss + the triplet-accuracy over the 100 epochs. Loaded from the
+# `latest.txt`-pointed checkpoint (the full metrics_history — backbone.pt is frozen at the best epoch).
+
+# %%
+import matplotlib.pyplot as plt
+
+_run_dir = f"{MYDRIVE}/FitNova/checkpoints/phase07/shallow_squat_cvcspc_v1"
+with open(f"{_run_dir}/latest.txt") as _f:
+    _latest = _f.read().strip()
+_ck = torch.load(f"{_run_dir}/{_latest}", map_location="cpu", weights_only=False)
+_mh, _tah = _ck["metrics_history"], _ck["triplet_acc_history"]
+
+_ep = [m["epoch"] for m in _mh]
+_loss = [m["ssl_loss_mean"] for m in _mh]
+_ta_ep = [t["epoch"] for t in _tah]
+_ta = [t["triplet_acc"] for t in _tah]
+_best = max(_ta)
+_best_ep = _ta_ep[_ta.index(_best)]
+
+fig, ax1 = plt.subplots(figsize=(9, 5))
+ax1.plot(_ep, _loss, color="tab:blue", lw=1.8)
+ax1.set_xlabel("epoch")
+ax1.set_ylabel("SSL contrastive loss (3-term)", color="tab:blue")
+ax1.tick_params(axis="y", labelcolor="tab:blue")
+
+ax2 = ax1.twinx()
+ax2.plot(_ta_ep, _ta, color="tab:green", marker="o", lw=1.8, label="triplet acc (AP<AN)")
+ax2.axhline(0.5, color="gray", ls=":", lw=1, label="chance 0.5")
+ax2.scatter([_best_ep], [_best], color="red", s=80, zorder=5,
+            label=f"best {_best:.3f} @ ep{_best_ep} -> backbone.pt")
+ax2.set_ylabel("triplet accuracy", color="tab:green")
+ax2.tick_params(axis="y", labelcolor="tab:green")
+ax2.set_ylim(0.45, 1.0)
+ax2.legend(loc="center right", fontsize=8)
+ax1.set_title("CVCSPC SSL pretrain — Shallow-Squat backbone convergence (4791 unlabeled clips)")
+
+_figdir = ".planning/phases/07-image-based-errors-cvcspc/figures"
+os.makedirs(_figdir, exist_ok=True)
+plt.tight_layout()
+plt.savefig(f"{_figdir}/cvcspc_ssl_curves.png", dpi=130, bbox_inches="tight")
+plt.show()
+print(f"saved {_figdir}/cvcspc_ssl_curves.png  "
+      f"(loss {_loss[0]:.3f}->{_loss[-1]:.3f}, triplet_acc {_ta[0]:.3f}->{_best:.3f})")
