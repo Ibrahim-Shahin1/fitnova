@@ -205,7 +205,16 @@ Plans:
   2. A full identical-metric comparison covers every error vs Parmar / GYMetricPose / LMM
   3. A consolidated visualization and results pack is assembled
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 08-01-PLAN.md (wave 1) - consolidated notebook 12_full_evaluation (.py + pre-executed .ipynb): 3-pickle load + no-fabrication validation cell (recompute 5 headline F1, assert <=1e-6 vs stored) + EVAL-01 master table + 4 master figures (all_errors_vs_paper, cross_exercise_macro, methodology_diagram, highlights_panel)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 08-02-PLAN.md (wave 2) - FINDINGS_FULL.md (master table + EVAL-02 not-applicable finding + GYMetricPose/LMM context + honest framing) + README notebook-12 row + phase close (ROADMAP/REQUIREMENTS/STATE + SUMMARY)
 
 ## Progress
 
@@ -221,4 +230,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Backend Inference Integration (Squat) | 5/5 | Complete    | 2026-05-26 |
 | 6. Overhead Press | 5/5 | Complete   | 2026-05-29 |
 | 7. Image-Based Errors (CVCSPC) | 5/5 | Complete | 2026-05-30 |
-| 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |
+| 8. Ensemble, Evaluation & Visualization Pack | 0/2 | Not started | - |
