@@ -298,3 +298,38 @@ if _res["triplet_acc_history"]:
 _ck = torch.load(_res["checkpoint_path"], map_location="cpu", weights_only=False)
 print(f"\ncheckpoint: {_os.path.basename(_res['checkpoint_path'])}  code_version={_ck['code_version']}")
 assert _ck["code_version"] == "phase07-cvcspc-pretrain"
+
+
+# %% [markdown]
+# ## Step 4 — full CVCSPC SSL pretrain (100 epochs, multi-session resume)
+#
+# The single cell that IS the whole run. Checkpoints every epoch + writes backbone.pt on
+# triplet-accuracy improvement (update_latest=False) + anneals the phase-gap (a no-op at the default
+# 30° start). resume=True -> a disconnect is recoverable (re-run Cell A -> Step 0 -> this cell; it
+# resumes from latest.txt). The triplet-accuracy monitor logs every 5 epochs (the convergence signal).
+# ~1.2-1.4h on L4 — backgroundable.
+
+# %%
+import logging
+
+from backend.training.aqa.harness.cvcspc_pretrain import (
+    CVCSPCConfig,
+    run_cvcspc_pretrain_epoch,
+)
+
+logging.basicConfig(level=logging.WARNING, format="%(message)s", force=True)
+logging.getLogger("aqa.phase07").setLevel(logging.INFO)
+
+RUN_NAME = "shallow_squat_cvcspc_v1"
+_config = CVCSPCConfig()
+_res = run_cvcspc_pretrain_epoch(
+    run_name=RUN_NAME,
+    drive_root=MYDRIVE,
+    frames_root=FRAMES_ROOT, trajectories_root=TRAJ_ROOT,
+    traj_nan_path=TRAJ_NAN_PATH, exclude_ids=EXCLUDE_IDS,
+    seed=42, config=_config, resume=True, max_epochs=_config.max_epochs,
+)
+_best_ta = max((e["triplet_acc"] for e in _res["triplet_acc_history"]), default=float("nan"))
+print(f"\nSSL done: final epoch {_res['epoch']}, best triplet_acc {_best_ta:.4f}")
+print(f"backbone.pt: {_res['backbone_path']}")
+print(f"final phase_gap: {_config.phase_gap_start}")
