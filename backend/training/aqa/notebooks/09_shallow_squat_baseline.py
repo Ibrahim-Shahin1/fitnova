@@ -123,3 +123,57 @@ print(f"\nstaged: {_n_jpg} jpgs at {IMAGES_ROOT}")
 print(f"labels: {'OK' if os.path.isfile(LABELS_PATH) else 'MISSING'}   "
       f"splits: {'OK' if os.path.isdir(SPLITS_ROOT) else 'MISSING'}")
 print(f"free disk on /content: {shutil.disk_usage('/content').free / 1e9:.1f} GB")
+
+
+# %% [markdown]
+# ## Step 1 — split reconciliation (2542/529/540) + dataset smoke
+#
+# Builds the loaders against the staged crops, reconciles the official split sizes live, checks
+# the single-head `pos_weight` (~1.28, shape (1,)), pulls one train batch (shape (B,3,224,224) +
+# label batch (B,) — single binary head, NOT (B,2)), and shows a few denormalized crops so you
+# can eyeball that the images load correctly.
+
+# %%
+import torch
+import matplotlib.pyplot as plt
+
+from backend.training.aqa.datasets.shallow_squat import (
+    IMAGENET_MEAN,
+    IMAGENET_STD,
+    build_loaders,
+)
+
+loaders = build_loaders(
+    images_root=IMAGES_ROOT, labels_path=LABELS_PATH, splits_root=SPLITS_ROOT,
+    batch_size=32, num_workers=2,
+)
+
+_EXPECT = {"train": 2542, "val": 529, "test": 540}
+for _split, _exp in _EXPECT.items():
+    _ds = loaders[_split].dataset
+    _pos = sum(_lbl for _, _lbl in _ds.records)
+    print(f"{_split:5s}: {len(_ds):4d} crops (expected {_exp})  pos={_pos} "
+          f"({100 * _pos / len(_ds):.1f}%)  {'OK' if len(_ds) == _exp else 'MISMATCH'}")
+
+_pw = loaders["train"].dataset.pos_weight
+print(f"\npos_weight {tuple(_pw.shape)}: {float(_pw[0]):.4f}")
+assert tuple(_pw.shape) == (1,), "pos_weight must be single-head (1,)"
+
+_imgs, _labels = next(iter(loaders["train"]))
+print(f"train batch: imgs {tuple(_imgs.shape)} {_imgs.dtype}, "
+      f"labels {tuple(_labels.shape)} {_labels.dtype}, "
+      f"label values {sorted(set(int(_x) for _x in _labels.tolist()))}")
+assert _imgs.shape[1:] == (3, 224, 224) and _imgs.dtype == torch.float32
+assert _labels.ndim == 1, f"label batch must be (B,) single-head, got {tuple(_labels.shape)}"
+
+_mean = torch.tensor(IMAGENET_MEAN).view(3, 1, 1)
+_std = torch.tensor(IMAGENET_STD).view(3, 1, 1)
+fig, axes = plt.subplots(1, 6, figsize=(15, 3))
+for _i, _ax in enumerate(axes):
+    _crop = (_imgs[_i] * _std + _mean).clamp(0, 1).permute(1, 2, 0).numpy()
+    _ax.imshow(_crop)
+    _ax.set_title(f"y={int(_labels[_i])}")
+    _ax.axis("off")
+plt.suptitle("Shallow-Squat train crops (denormalized) — y=1 is shallow-depth error")
+plt.tight_layout()
+plt.show()
