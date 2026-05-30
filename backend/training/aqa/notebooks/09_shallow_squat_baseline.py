@@ -311,3 +311,90 @@ print("\n\nper-seed best val F1 (0.5 proxy):")
 for _n in SEEDS:
     print(f"  seed {_n:5d}: best_f1_val={_results[_n]['best_f1_val']:.4f}  "
           f"(last epoch {_results[_n]['epoch']})")
+
+
+# %% [markdown]
+# ## Step 5 + 6 — mean-of-sigmoids ensemble + val-tuned threshold + test F1 (the SSL-lift control)
+#
+# Reloads each seed's best.pt, gathers per-crop sigmoid scores on the 529-crop val + 540-crop test
+# splits (num_workers=0 — single pass, no worker teardown), ensembles by mean-of-sigmoids, tunes ONE
+# decision threshold on the ensemble VAL scores, and reports the **test F1** on the official 540-crop
+# split at that threshold — computed in code. This is the SSL-lift control (no paper supervised row).
+
+# %%
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+
+from backend.training.aqa.datasets.shallow_squat import ShallowSquatDataset
+from backend.training.aqa.eval.metrics import (
+    confusion_matrix_per_error,
+    f1_per_error,
+    pr_auc_per_error,
+    threshold_sweep,
+)
+from backend.training.aqa.harness.image_supervised_train import build_resnet18
+
+_device = torch.device("cuda")
+
+
+def _split_loader(split):
+    ds = ShallowSquatDataset(
+        split=split, images_root=IMAGES_ROOT, labels_path=LABELS_PATH,
+        splits_root=SPLITS_ROOT, train_aug=False,
+    )
+    return DataLoader(ds, batch_size=64, shuffle=False, num_workers=0)
+
+
+@torch.no_grad()
+def _gather(model, loader):
+    model.eval()
+    scs, lbs = [], []
+    for _img, _lbl in loader:
+        scs.append(torch.sigmoid(model(_img.to(_device))).squeeze(-1).cpu())
+        lbs.append(_lbl)
+    return torch.cat(scs).numpy(), torch.cat(lbs).numpy().astype(int)
+
+
+_val_loader, _test_loader = _split_loader("val"), _split_loader("test")
+_per_seed_val, _per_seed_test = {}, {}
+_val_labels = _test_labels = None
+for _n in SEEDS:
+    _ck = torch.load(
+        f"{MYDRIVE}/FitNova/checkpoints/phase07/shallow_squat_baseline_seed{_n}/best.pt",
+        map_location=_device, weights_only=False,
+    )
+    _m = build_resnet18().to(_device)
+    _m.load_state_dict(_ck["model_state_dict"])
+    _per_seed_val[_n], _val_labels = _gather(_m, _val_loader)
+    _per_seed_test[_n], _test_labels = _gather(_m, _test_loader)
+    print(f"seed {_n:5d}: val F1@0.5={f1_per_error(_val_labels, (_per_seed_val[_n] >= 0.5).astype(int)):.4f}  "
+          f"test F1@0.5={f1_per_error(_test_labels, (_per_seed_test[_n] >= 0.5).astype(int)):.4f}")
+    del _m
+    torch.cuda.empty_cache()
+
+_ens_val = np.mean([_per_seed_val[_n] for _n in SEEDS], axis=0)
+_ens_test = np.mean([_per_seed_test[_n] for _n in SEEDS], axis=0)
+_t_star, _f1_val_at_t = threshold_sweep(_val_labels, _ens_val)
+
+_test_pred = (_ens_test >= _t_star).astype(int)
+_test_f1 = f1_per_error(_test_labels, _test_pred)
+_test_pr_auc = pr_auc_per_error(_test_labels, _ens_test)
+_test_cm = confusion_matrix_per_error(_test_labels, _test_pred)
+_best_seed = max(SEEDS, key=lambda n: f1_per_error(_val_labels, (_per_seed_val[n] >= 0.5).astype(int)))
+_best_seed_test_f1 = f1_per_error(_test_labels, (_per_seed_test[_best_seed] >= _t_star).astype(int))
+
+print(f"\nensemble val F1@0.5={f1_per_error(_val_labels, (_ens_val >= 0.5).astype(int)):.4f}  "
+      f"|  val-tuned t*={_t_star:.4f} (ensemble val F1@t*={_f1_val_at_t:.4f})")
+print("=" * 60)
+print("Shallow-Squat SUPERVISED BASELINE  (SSL-lift control)")
+print("=" * 60)
+print(f"  ensemble ({len(SEEDS)} seeds) test F1 @ t*={_t_star:.3f} : {_test_f1:.4f}")
+print(f"  ensemble test PR-AUC (threshold-free)   : {_test_pr_auc:.4f}")
+print(f"  single best-val seed ({_best_seed}) test F1     : {_best_seed_test_f1:.4f}")
+print(f"  confusion [[TN,FP],[FN,TP]]:\n{_test_cm}")
+print("-" * 60)
+print("  paper rows (context — NO supervised-ImageNet row exists):")
+print("    CVCSPC (Plan-04 SSL target) : 0.8694")
+print("    SimSiam (image SSL)         : 0.8286")
+print("    OpenPose-TDM (2D pose)      : 0.8340")
