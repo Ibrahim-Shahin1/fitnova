@@ -288,3 +288,26 @@ _results[_n] = run_image_epoch(
 _r = _results[_n]
 print(f"\nseed {_n}: best_f1_val={_r['best_f1_val']:.4f}  (last epoch {_r['epoch']})")
 print(f"best.pt: {_r['best_checkpoint_path']}")
+
+
+# %% [markdown]
+# ## Step 4 (cont.) — seeds 1337 + 7
+#
+# Trains the remaining seeds (resume=True each, ~5 min/seed), then prints the per-seed best val F1
+# table (D4 variance evidence). Run after the seed-42 cell in the same session.
+
+# %%
+for _n in SEEDS[1:]:
+    print(f"\n===== seed {_n} =====")
+    _results[_n] = run_image_epoch(
+        run_name=f"shallow_squat_baseline_seed{_n}",
+        drive_root=MYDRIVE,
+        images_root=IMAGES_ROOT, labels_path=LABELS_PATH, splits_root=SPLITS_ROOT,
+        seed=_n, config=ImageConfig(), resume=True, max_epochs=50,
+        dataset_cls=ShallowSquatDataset,
+    )
+
+print("\n\nper-seed best val F1 (0.5 proxy):")
+for _n in SEEDS:
+    print(f"  seed {_n:5d}: best_f1_val={_results[_n]['best_f1_val']:.4f}  "
+          f"(last epoch {_results[_n]['epoch']})")
