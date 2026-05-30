@@ -964,13 +964,39 @@ def hash_config(config: dict) -> str:
     return hashlib.sha256(payload).hexdigest()[:16]
 
 
-def _atomic_write_text(path: str, content: str) -> None:
-    """Atomic-ish text write via tmp + os.replace. Used for `latest.txt`."""
+def _atomic_write_text(path: str, content: str, *, retries: int = 5, delay: float = 0.5) -> None:
+    """Atomic-ish text write via tmp + os.replace, hardened for Drive FUSE.
+
+    Drive FUSE is eventually-consistent for small files: a freshly-written tmp may not be visible
+    to os.replace yet, which raises FileNotFoundError on the source under rapid writes (the
+    checkpoint path dodges this via its torch.load read-back). Mirror that read-back here to force
+    materialization, fsync, and retry the whole write+replace on the transient FUSE error.
+    """
     dir_ = os.path.dirname(path) or "."
-    tmp = os.path.join(dir_, f".tmp_{os.path.basename(path)}.{os.getpid()}")
-    with open(tmp, "w", encoding="utf-8") as fh:
-        fh.write(content)
-    os.replace(tmp, path)
+    base = os.path.basename(path)
+    last_exc: Exception | None = None
+    for attempt in range(retries):
+        tmp = os.path.join(dir_, f".tmp_{base}.{os.getpid()}.{attempt}")
+        try:
+            with open(tmp, "w", encoding="utf-8") as fh:
+                fh.write(content)
+                fh.flush()
+                os.fsync(fh.fileno())
+            with open(tmp, "r", encoding="utf-8") as fh:
+                if fh.read() != content:
+                    raise OSError(f"tmp read-back mismatch: {tmp}")
+            os.replace(tmp, path)
+            return
+        except OSError as exc:
+            last_exc = exc
+            try:
+                if os.path.exists(tmp):
+                    os.remove(tmp)
+            except OSError:
+                pass
+            if attempt < retries - 1:
+                time.sleep(delay)
+    raise RuntimeError(f"_atomic_write_text failed after {retries} attempts: {path}") from last_exc
 
 
 def atomic_save_checkpoint(
