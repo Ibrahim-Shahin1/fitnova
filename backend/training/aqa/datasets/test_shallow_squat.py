@@ -167,3 +167,23 @@ def test_image_trainer_seams() -> None:
     assert sig_ri.parameters["model_builder"].kind == inspect.Parameter.KEYWORD_ONLY
     assert sig_ri.parameters["model_builder"].default is build_resnet18
     assert sig_ri.parameters["checkpoint_phase"].default == "phase07"
+
+
+def test_colab_additions_present() -> None:
+    """The Phase-7 colab staging + frame-extraction additions exist with the right signatures."""
+    import inspect
+
+    from backend.training.aqa.harness import colab
+
+    assert callable(colab.stage_shallow_squat_images)
+    assert callable(colab.extract_frames_for_ssl)
+
+    sig_s = inspect.signature(colab.stage_shallow_squat_images)
+    assert "drive_root_3001" in sig_s.parameters
+    assert sig_s.parameters["local_root"].kind == inspect.Parameter.KEYWORD_ONLY
+    assert sig_s.parameters["expect_count"].kind == inspect.Parameter.KEYWORD_ONLY
+
+    sig_e = inspect.signature(colab.extract_frames_for_ssl)
+    assert "videos_root" in sig_e.parameters
+    assert "frames_root" in sig_e.parameters
+    assert sig_e.parameters["skip_existing"].kind == inspect.Parameter.KEYWORD_ONLY

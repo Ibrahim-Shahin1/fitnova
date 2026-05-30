@@ -754,6 +754,134 @@ def stage_unlabeled_ohp_videos(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Phase 7 — Shallow-Squat image staging + CVCSPC SSL frame extraction (additive)
+# ──────────────────────────────────────────────────────────────────────────────
+
+_SHALLOW_SQUAT_IMAGES_EXPECT_COUNT = 3738  # images.zip ships 3,738 crop JPEGs
+
+
+def stage_shallow_squat_images(
+    drive_root_3001: str,
+    *,
+    local_root: str = "/content/squat_shallow_images",
+    expect_count: int = _SHALLOW_SQUAT_IMAGES_EXPECT_COUNT,
+) -> str:
+    """Stage the Shallow-Squat images.zip + labels + splits from Drive (-3-001) to /content/.
+
+    Source: {drive_root_3001}/Fitness-AQA_dataset_release/Squat/Labeled_Dataset/
+            Shallow_Squat_Error_Dataset/{images.zip, labels_shallow_depth.json, splits/}
+
+    Extracts to local_root/crops_unaligned/{id}.jpg and copies the labels + splits alongside,
+    so the training/EDA notebooks read images_root=local_root/crops_unaligned,
+    labels_path=local_root/labels_shallow_depth.json, splits_root=local_root/splits.
+
+    Returns the local_root path.
+    """
+    local_root_p = Path(local_root)
+    crops_dir = local_root_p / "crops_unaligned"
+    src_dir = (
+        Path(drive_root_3001)
+        / "Fitness-AQA_dataset_release/Squat/Labeled_Dataset/Shallow_Squat_Error_Dataset"
+    )
+
+    def _copy_aux() -> None:
+        local_root_p.mkdir(parents=True, exist_ok=True)
+        labels_src = src_dir / "labels_shallow_depth.json"
+        if labels_src.is_file():
+            shutil.copy2(labels_src, local_root_p / "labels_shallow_depth.json")
+        splits_src = src_dir / "splits"
+        if splits_src.is_dir():
+            (local_root_p / "splits").mkdir(parents=True, exist_ok=True)
+            for j in splits_src.glob("*.json"):
+                shutil.copy2(j, local_root_p / "splits" / j.name)
+
+    # Cache hit — crops already extracted at the expected count.
+    if crops_dir.is_dir():
+        n_jpg = sum(1 for _ in crops_dir.rglob("*.jpg"))
+        if n_jpg == expect_count:
+            _copy_aux()
+            logger.info("stage_shallow_squat cache hit: %d jpgs at %s", expect_count, crops_dir)
+            return str(local_root_p)
+
+    src_zip = src_dir / "images.zip"
+    if not src_zip.is_file():
+        raise FileNotFoundError(f"Shallow-Squat images.zip not found on Drive: {src_zip}")
+
+    local_root_p.mkdir(parents=True, exist_ok=True)
+    local_zip = Path("/content/squat_shallow_images.zip")
+    t_copy = _copy_with_resume_and_progress(src_zip, local_zip)
+    # JPEG members — zipfile.extractall (the mp4-only extractor would skip every JPEG).
+    with zipfile.ZipFile(str(local_zip), "r") as zf:
+        zf.extractall(local_root_p)
+    _copy_aux()
+
+    n_jpg = sum(1 for _ in crops_dir.rglob("*.jpg"))
+    if n_jpg != expect_count:
+        raise RuntimeError(
+            f"stage_shallow_squat_images: expected {expect_count} jpgs under {crops_dir}, "
+            f"got {n_jpg}. Check Drive zip: {src_zip}"
+        )
+
+    try:
+        local_zip.unlink()
+    except OSError as exc:
+        logger.warning("could not remove %s: %s", local_zip, exc)
+
+    logger.info("stage_shallow_squat_images: %d jpgs at %s (copy %.2fs)", expect_count, crops_dir, t_copy)
+    return str(local_root_p)
+
+
+def extract_frames_for_ssl(
+    videos_root: str,
+    frames_root: str,
+    *,
+    skip_existing: bool = True,
+) -> int:
+    """Decode each unlabeled Squat mp4 into per-clip JPEG frame dirs for the CVCSPC dataloader.
+
+    Output layout: {frames_root}/{video_id}/frame_{i:06d}.jpg (the per-video subdir the SSL
+    dataset indexes). Disconnect-safe: a clip whose dir already exists and is non-empty is
+    skipped. Returns the total number of frames written this call.
+    """
+    import cv2
+
+    try:
+        from tqdm.auto import tqdm  # type: ignore[import-not-found]
+    except ImportError:
+        tqdm = None
+
+    videos_root_p = Path(videos_root)
+    frames_root_p = Path(frames_root)
+    frames_root_p.mkdir(parents=True, exist_ok=True)
+
+    mp4s = sorted(videos_root_p.glob("*.mp4"))
+    total_frames = 0
+    skipped = 0
+    iterator = mp4s if tqdm is None else tqdm(mp4s, desc="extract frames", unit="clip")
+    for mp4 in iterator:
+        out_dir = frames_root_p / mp4.stem
+        if skip_existing and out_dir.exists() and any(out_dir.iterdir()):
+            skipped += 1
+            continue
+        out_dir.mkdir(parents=True, exist_ok=True)
+        cap = cv2.VideoCapture(str(mp4))
+        i = 0
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                break
+            cv2.imwrite(str(out_dir / f"frame_{i:06d}.jpg"), frame)
+            i += 1
+        cap.release()
+        total_frames += i
+        if tqdm is not None:
+            iterator.set_postfix(extracted=total_frames, skipped=skipped)
+
+    logger.info("extract_frames_for_ssl: %d frames written, %d clips skipped", total_frames, skipped)
+    return total_frames
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Task 9 — RNG capture/restore. Required for Task 14's bitwise-resume assertion
 # (fresh-2-epoch vs. resumed-from-epoch-0-into-epoch-1 must produce byte-identical
 # epoch-1 loss trajectories). All 4 RNG sources captured so seed-restoration
