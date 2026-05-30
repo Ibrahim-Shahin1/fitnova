@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 7 (Shallow-Squat CVCSPC) COMPLETE — IMG-01 + IMG-02 met: official 540-crop test F1 0.8902 (3-seed CVCSPC ensemble) BEATS paper CVCSPC 0.8694 by +0.021, +0.0152 SSL lift over baseline 0.8750, val->test gap 0.0217 (no overfit). Deliverable pack shipped: docs/notebooks/09-11_shallow_squat_* (executed) + 6 docs/figures/shallow_squat_* + FINDINGS_SHALLOW_SQUAT.md + shallow_squat_test_scores.csv + results.pkl + 07-05-SUMMARY. IMG-03 (BarbellRow) + SC3 (serving) descoped. 7/8 phases done. NEXT: Phase 8 (ensemble + full identical-metric evaluation + consolidated visualization pack)."
-last_updated: "2026-05-30"
-last_activity: "2026-05-30 -- Phase 7 COMPLETE (all 5 plans): Shallow-Squat CVCSPC headline F1 0.8902 > paper 0.8694; deliverable pack + SUMMARY shipped; ROADMAP/REQUIREMENTS reconciled (IMG-01/02 complete, IMG-03 descoped)."
+stopped_at: Phase 8 context gathered (EVAL-01/02/03; comprehensive viz pack; context-only comparators)
+last_updated: "2026-05-30T20:33:00.602Z"
+last_activity: "2026-05-30 -- Phase 7 COMPLETE: all 5 plans, headline 0.8902 > paper 0.8694, deliverable pack + SUMMARY shipped, ROADMAP/REQUIREMENTS reconciled"
 progress:
   total_phases: 8
-  completed_phases: 7
-  total_plans: 22
-  completed_plans: 22
-  percent: 88
+  completed_phases: 5
+  total_plans: 23
+  completed_plans: 18
+  percent: 63
 ---
 
 # Project State
@@ -119,6 +119,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-29T23:34:48.447Z
-Stopped at: Phase 7 context gathered (Shallow-Squat CVCSPC; BarbellRow descoped)
-Resume file: .planning/phases/07-image-based-errors-cvcspc/07-CONTEXT.md
+Last session: 2026-05-30T20:33:00.596Z
+Stopped at: Phase 8 context gathered (EVAL-01/02/03; comprehensive viz pack; context-only comparators)
+Resume file: .planning/phases/08-ensemble-evaluation-visualization-pack/08-CONTEXT.md
