@@ -299,3 +299,44 @@ with open(_repo_pkl, "wb") as _f:
     pickle.dump(_results, _f)
 print(f"\nwrote results.pkl -> Drive ({_drive_pkl}) + repo ({_repo_pkl}), "
       f"{len(pickle.dumps(_results)) / 1e3:.0f} KB")
+
+
+# %% [markdown]
+# ## Step 5 — headline comparison figure (defense visualization)
+#
+# Left: our baseline -> our CVCSPC -> the paper rows (blue=ours, red=paper). Right: per-seed test F1,
+# CVCSPC vs baseline. Saved to figures/.
+
+# %%
+import matplotlib.pyplot as plt
+
+_methods = ["Ours\nbaseline", "Ours\nCVCSPC", "Paper\nCVCSPC", "Paper\nSimSiam", "Paper\nOpenPose-TDM"]
+_vals = [_bl_tf1, _cv_tf1, PAPER["cvcspc"], PAPER["simsiam"], PAPER["openpose_tdm"]]
+_colors = ["#4C72B0", "#2CA02C", "#C44E52", "#C44E52", "#C44E52"]
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5), gridspec_kw={"width_ratios": [1.3, 1]})
+for _b, _v in zip(ax1.bar(_methods, _vals, color=_colors), _vals):
+    ax1.text(_b.get_x() + _b.get_width() / 2, _v + 0.002, f"{_v:.4f}", ha="center", fontsize=9)
+ax1.axhline(PAPER["cvcspc"], color="gray", ls=":", lw=1)
+ax1.set_ylim(0.80, 0.92)
+ax1.set_ylabel("Shallow-Squat test F1 (official 540-crop split)")
+ax1.set_title(f"Ours vs paper — CVCSPC {_cv_tf1:.3f} > paper {PAPER['cvcspc']:.3f}; SSL lift +{_ssl_lift:.3f}")
+
+_x = np.arange(len(SEEDS))
+_w = 0.35
+_bl_seed = {n: f1_per_error(_test_labels, (_bl_pt[n] >= _bl_t).astype(int)) for n in SEEDS}
+ax2.bar(_x - _w / 2, [_bl_seed[n] for n in SEEDS], _w, label="baseline", color="#4C72B0")
+ax2.bar(_x + _w / 2, [_cv_per_seed_test[n] for n in SEEDS], _w, label="CVCSPC", color="#2CA02C")
+ax2.set_xticks(_x)
+ax2.set_xticklabels([f"seed {n}" for n in SEEDS])
+ax2.set_ylim(0.80, 0.92)
+ax2.set_ylabel("test F1")
+ax2.set_title("Per-seed test F1 — CVCSPC beats baseline on all")
+ax2.legend()
+
+os.makedirs(".planning/phases/07-image-based-errors-cvcspc/figures", exist_ok=True)
+plt.tight_layout()
+plt.savefig(".planning/phases/07-image-based-errors-cvcspc/figures/cvcspc_comparison.png",
+            dpi=130, bbox_inches="tight")
+plt.show()
+print("saved figures/cvcspc_comparison.png")
