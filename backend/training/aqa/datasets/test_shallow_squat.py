@@ -144,3 +144,26 @@ def test_split_sizes() -> None:
     train_pos = sum(int(all_labels[i]) for i in train_ids if i in all_labels)
     expected_w = (len(train_ids) - train_pos) / max(train_pos, 1)
     assert float(ds.pos_weight[0]) == pytest.approx(expected_w, rel=1e-6)
+
+
+def test_image_trainer_seams() -> None:
+    """_build_dataloaders + run_image_epoch expose the dataset_cls / model_builder / checkpoint_phase seams."""
+    import inspect
+
+    from backend.training.aqa.datasets.shallow_squat import ShallowSquatDataset
+    from backend.training.aqa.harness.image_supervised_train import (
+        _build_dataloaders,
+        build_resnet18,
+        run_image_epoch,
+    )
+
+    sig_bd = inspect.signature(_build_dataloaders)
+    assert sig_bd.parameters["dataset_cls"].kind == inspect.Parameter.KEYWORD_ONLY
+    assert sig_bd.parameters["dataset_cls"].default is ShallowSquatDataset
+
+    sig_ri = inspect.signature(run_image_epoch)
+    assert sig_ri.parameters["dataset_cls"].kind == inspect.Parameter.KEYWORD_ONLY
+    assert sig_ri.parameters["dataset_cls"].default is ShallowSquatDataset
+    assert sig_ri.parameters["model_builder"].kind == inspect.Parameter.KEYWORD_ONLY
+    assert sig_ri.parameters["model_builder"].default is build_resnet18
+    assert sig_ri.parameters["checkpoint_phase"].default == "phase07"
