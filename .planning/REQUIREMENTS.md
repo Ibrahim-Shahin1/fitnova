@@ -9,17 +9,17 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 ### Dataset
 
-- [ ] **DATA-01**: Fitness-AQA dataset fully extracted (including nested video/image archives) and consolidated into one tree
-- [ ] **DATA-02**: Dataset sample counts reconciled against the official train/val/test split JSONs
-- [ ] **DATA-03**: EDA report produced with visualizations (class balance, clip properties, barbell trajectories, error co-occurrence)
+- [x] **DATA-01**: Fitness-AQA dataset fully extracted (including nested video/image archives) and consolidated into one tree  *(complete 2026-05-20 — Phase 1)*
+- [x] **DATA-02**: Dataset sample counts reconciled against the official train/val/test split JSONs  *(complete 2026-05-20 — Phase 1; counts reconciled in 01-DATASET-REPORT)*
+- [x] **DATA-03**: EDA report produced with visualizations (class balance, clip properties, barbell trajectories, error co-occurrence)  *(complete 2026-05-20 — Phase 1; EDA report + docs/notebooks/01_squat_eda)*
 
 ### Squat Model
 
-- [ ] **SQUAT-01**: PyTorch data pipeline for Squat KIE/KFE — decode, 32-frame sampling, transforms, official-split loaders
-- [ ] **SQUAT-02**: Resumable Colab training harness — checkpoints to Google Drive each epoch, auto-resumes after a disconnect
+- [x] **SQUAT-01**: PyTorch data pipeline for Squat KIE/KFE — decode, 32-frame sampling, transforms, official-split loaders  *(complete 2026-05-20 — Phase 2; datasets/squat.py + transforms.py)*
+- [x] **SQUAT-02**: Resumable Colab training harness — checkpoints to Google Drive each epoch, auto-resumes after a disconnect  *(complete 2026-05-20 — Phase 2; harness/colab.py, bitwise-resume proof)*
 - [x] **SQUAT-03**: Supervised baseline (R(2+1)D-18, Kinetics-init) trained; F1 per error on the official Squat test split  *(complete 2026-05-20 — test KIE 0.286 / KFE 0.800 / macro 0.543 at val-tuned thresholds; within 2% of paper Kinetics row)*
-- [ ] **SQUAT-04**: Motion-Disentangling self-supervised pretraining on the unlabeled Squat set
-- [ ] **SQUAT-05**: MD-pretrained model fine-tuned for KIE/KFE; F1 vs baseline and vs published numbers
+- [x] **SQUAT-04**: Motion-Disentangling self-supervised pretraining on the unlabeled Squat set  *(complete 2026-05-25 — Phase 4; MD-SSL pretrain on 4,970 unlabeled clips → backbone.pt)*
+- [x] **SQUAT-05**: MD-pretrained model fine-tuned for KIE/KFE; F1 vs baseline and vs published numbers  *(complete 2026-05-25 — Phase 4; 3-seed ensemble macro 0.6304, matches paper MD 0.6262, +0.087 over baseline)*
 
 ### Overhead Press Model
 
@@ -70,14 +70,14 @@ Deferred to a future milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
-| SQUAT-01 | Phase 2 | Pending |
-| SQUAT-02 | Phase 2 | Pending |
+| DATA-01 | Phase 1 | Complete |
+| DATA-02 | Phase 1 | Complete |
+| DATA-03 | Phase 1 | Complete |
+| SQUAT-01 | Phase 2 | Complete |
+| SQUAT-02 | Phase 2 | Complete |
 | SQUAT-03 | Phase 3 | Complete |
-| SQUAT-04 | Phase 4 | Pending |
-| SQUAT-05 | Phase 4 | Pending |
+| SQUAT-04 | Phase 4 | Complete |
+| SQUAT-05 | Phase 4 | Complete |
 | API-01 | Phase 5 | Complete |
 | API-02 | Phase 5 | Complete |
 | API-03 | Phase 5 | Complete |
@@ -98,4 +98,4 @@ Deferred to a future milestone.
 
 ---
 *Requirements defined: 2026-05-19*
-*Last updated: 2026-05-19 after initialization*
+*Last updated: 2026-05-31 — all 19 v1 requirements complete (IMG-03 descoped); reconciled at v1.0 milestone close*
