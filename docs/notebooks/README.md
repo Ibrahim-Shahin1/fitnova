@@ -44,6 +44,17 @@ CVCSPC SSL adds **+0.0152** over our supervised baseline (0.8750), consistent ac
 val→test gap 0.0217 (no overfitting). Adds the **image modality** + the **2nd method (CVCSPC)** to
 the thesis. Write-up: [`../eval/FINDINGS_SHALLOW_SQUAT.md`](../eval/FINDINGS_SHALLOW_SQUAT.md).
 
+## Full Evaluation (all 3 exercises)
+
+| Notebook | Covers |
+|----------|--------|
+| **12_full_evaluation** | Cross-exercise master comparison (all 5 errors vs Parmar), EVAL-02 MD+CVCSPC ensemble finding (not-applicable), GYMetricPose + LMM related-work context, 4 master figures (all_errors_vs_paper, cross_exercise_macro, methodology_diagram, highlights_panel) |
+
+**Full-evaluation headline:** 5-error spine -- Squat KIE/KFE (0.420 / 0.841, macro 0.6304),
+OHP Elbows/Knees (0.447 / 0.877, macro 0.6622), Shallow-Squat depth (0.8902) -- all measured on
+the official Fitness-AQA test splits, identical metric (F1) and split as Parmar et al. (ECCV 2022).
+Write-up: [`../eval/FINDINGS_FULL.md`](../eval/FINDINGS_FULL.md).
+
 ## Data sources (real, no fabrication)
 
 - Fitness-AQA labeled sets (local: labels, splits, clips).
