@@ -214,3 +214,44 @@ assert _peak_gb < _total_gb, "VRAM exceeded — drop batch_size"
 
 del _model, _logits, _loss
 torch.cuda.empty_cache()
+
+
+# %% [markdown]
+# ## Step 3 — epoch-0 timing gate (BLOCKING)
+#
+# Runs ONE real epoch under the production trainer on the 2542 train crops (a separate `_timing`
+# run dir, resume=False) to measure minutes/epoch + estimate the full run, sanity-check the
+# epoch-0 train loss / val F1, and verify the checkpoint round-trip. This authorizes the
+# multi-seed run.
+
+# %%
+import os as _os
+import time
+
+from backend.training.aqa.datasets.shallow_squat import ShallowSquatDataset
+from backend.training.aqa.harness.image_supervised_train import ImageConfig, run_image_epoch
+
+_cfg = ImageConfig()
+print("ImageConfig:", _cfg)
+
+_t0 = time.perf_counter()
+_res = run_image_epoch(
+    run_name="shallow_squat_baseline_seed42_timing",
+    drive_root=MYDRIVE,
+    images_root=IMAGES_ROOT, labels_path=LABELS_PATH, splits_root=SPLITS_ROOT,
+    seed=42, config=_cfg, resume=False, max_epochs=1,
+    dataset_cls=ShallowSquatDataset,
+)
+_wall = time.perf_counter() - _t0
+_m0 = _res["metrics_history"][0]
+_epoch_s = _m0["epoch_wall_time_s"]
+print(f"\nepoch-0 time: {_epoch_s:.1f}s ({_epoch_s / 60:.1f} min)  |  cell wall incl setup: {_wall:.1f}s")
+print(f"estimated full run ({_cfg.max_epochs} ep): {_epoch_s * _cfg.max_epochs / 3600:.2f} h")
+print(f"epoch-0 train_loss={_m0['train_loss_mean']:.4f}  "
+      f"val_f1={_m0['val_f1']:.4f}  val_pr_auc={_m0['val_pr_auc']:.4f}")
+
+_ck = torch.load(_res["checkpoint_path"], map_location="cpu", weights_only=False)
+print(f"\ncheckpoint: {_os.path.basename(_res['checkpoint_path'])}  "
+      f"code_version={_ck['code_version']}")
+print("payload keys:", sorted(_ck.keys()))
+assert _ck["code_version"] == "phase07-image-baseline"
