@@ -69,6 +69,7 @@ class ShallowSquatSSLDataset(Dataset):
         frames_root: str,
         trajectories_root: str,
         traj_nan_path: str | None = None,
+        exclude_ids: list[str] | None = None,
         ssl_contrastive_phase_gap: float = 30.0,
         mask_prob: float = 0.5,
         mask_amt_lo: float = 0.4,
@@ -96,7 +97,9 @@ class ShallowSquatSSLDataset(Dataset):
             else:
                 logger.warning("no traj_nan_path provided; relying on the degenerate-trajectory guard")
 
-        candidates = sorted((frame_ids & set(self._traj_paths)) - nan_stems)
+        holdout = {str(x) for x in exclude_ids} if exclude_ids else set()
+        present = frame_ids & set(self._traj_paths)
+        candidates = sorted(present - nan_stems - holdout)
         self._clip_ids: list[str] = []
         dropped = 0
         for cid in candidates:
@@ -114,8 +117,8 @@ class ShallowSquatSSLDataset(Dataset):
             T.Normalize(IMAGENET_MEAN, IMAGENET_STD),
         ])
         logger.info(
-            "ShallowSquatSSLDataset: %d clips (excluded %d traj_nan, %d degenerate)",
-            len(self._clip_ids), len(nan_stems), dropped,
+            "ShallowSquatSSLDataset: %d clips (excluded %d traj_nan, %d holdout, %d degenerate)",
+            len(self._clip_ids), len(present & nan_stems), len(present & holdout), dropped,
         )
 
     def __len__(self) -> int:

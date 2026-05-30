@@ -176,3 +176,17 @@ def test_phase_matched_triplet(tmp_path) -> None:
     for k in out:
         assert out[k].shape == (3, 224, 224)
         assert out[k].dtype == torch.float32
+
+
+def test_exclude_ids(tmp_path) -> None:
+    """Clips listed in exclude_ids (the labeled val/test holdout) are dropped from _clip_ids."""
+    from backend.training.aqa.datasets.cvcspc_ssl import ShallowSquatSSLDataset
+
+    frames_root, traj_root = _make_ssl_fixture(
+        tmp_path, {"c0": [0, 1, 2, 3], "c1": [3, 2, 1, 0], "c2": [0, 2, 4, 6]}
+    )
+    ds = ShallowSquatSSLDataset(
+        frames_root=frames_root, trajectories_root=traj_root, exclude_ids=["c1"],
+    )
+    assert "c1" not in ds._clip_ids
+    assert set(ds._clip_ids) == {"c0", "c2"}

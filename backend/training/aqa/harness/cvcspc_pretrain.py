@@ -229,6 +229,7 @@ def run_cvcspc_pretrain_epoch(
     frames_root: str = "/content/squat_ssl_frames",
     trajectories_root: str = "/content/squat_trajectories",
     traj_nan_path: str | None = None,
+    exclude_ids: list[str] | None = None,
     seed: int = 42,
     config: CVCSPCConfig | None = None,
     resume: bool = True,
@@ -269,6 +270,7 @@ def run_cvcspc_pretrain_epoch(
         "mask_amt_lo": config.mask_amt_lo,
         "mask_amt_hi": config.mask_amt_hi,
         "model_arch": config.model_arch,
+        "exclude_ids_hash": hash_config({"ids": sorted(str(x) for x in (exclude_ids or []))}),
     }
     config_hash_str = hash_config(config_repr)
     run_dir = os.path.join(drive_root, "FitNova/checkpoints", checkpoint_phase, run_name)
@@ -281,6 +283,7 @@ def run_cvcspc_pretrain_epoch(
             frames_root=frames_root,
             trajectories_root=trajectories_root,
             traj_nan_path=traj_nan_path,
+            exclude_ids=exclude_ids,
             ssl_contrastive_phase_gap=config.phase_gap_start,
             mask_prob=config.mask_prob,
             mask_amt_lo=config.mask_amt_lo,
