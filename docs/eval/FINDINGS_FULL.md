@@ -118,7 +118,7 @@ All four master figures below present these results visually.
 | `all_errors_vs_paper.png` | Headline grouped bar: all 5 errors -- Ours vs Parmar SSL vs Parmar baseline (where it exists). The primary EVAL-01 deliverable. |
 | `cross_exercise_macro.png` | Per-exercise macro-F1 summary -- Ours vs Parmar SSL, side by side, for Squat, OHP, and Shallow-Squat. |
 | `methodology_diagram.png` | Two-branch architecture schematic: left = video errors (Squat KIE/KFE + OHP Elbows/Knees) via MD-SSL R(2+1)D-18; right = image error (Shallow-Squat) via CVCSPC ResNet-18. Both evaluated on the official Fitness-AQA splits. |
-| `highlights_panel.png` | Per-exercise headline summary panel -- headline F1, method, split size, and vs-paper delta for each of the three exercises. |
+| `highlights_panel.png` | Per-exercise headline summary panel -- per exercise: the headline/macro F1, the constituent per-error F1s, the SSL lift over our own supervised baseline, and the val->test gap. |
 
 ---
 
