@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 7 context gathered (Shallow-Squat CVCSPC; BarbellRow descoped)
-last_updated: "2026-05-29T23:34:48.452Z"
-last_activity: 2026-05-30 -- Phase 6 COMPLETE (5/5); OHP-01 done; OHP macro 0.6622 matches/edges paper
+stopped_at: "Phase 7 (Shallow-Squat CVCSPC) PLANNED — 5 plans, plan-check PASS + revision (2 blockers fixed: separate 2D ResNet-18 trainer; traj_nan exclusion). BarbellRow/IMG-03 DESCOPED. Faithful CVCSPC confirmed feasible on the Squat-alone unlabeled set. NEXT: execute Phase 7 — Plan 01 local CPU scaffold+tests, 02-04 Colab cell-by-cell, 05 local pack."
+last_updated: "2026-05-30"
+last_activity: "2026-05-30 -- Phase 7 PLANNED: 5 plans committed (abd6bde). Research corrected an earlier wrong 'CVCSPC needs BarbellRow' premise (it pretrains on the Squat unlabeled set alone). IMG-03 descoped. Phases 1-6 complete."
 progress:
   total_phases: 8
-  completed_phases: 5
-  total_plans: 18
+  completed_phases: 6
+  total_plans: 22
   completed_plans: 17
-  percent: 63
+  percent: 75
 ---
 
 # Project State
@@ -21,14 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-19)
 
 **Core value:** A user can record/upload a lift and get trustworthy, plain-language form-error feedback grounded in a published dataset and method.
-**Current focus:** Phase 6 — Overhead Press (Phase 5 complete)
+**Current focus:** Phase 7 (Shallow-Squat CVCSPC) PLANNED — ready to execute
 
 ## Current Position
 
-Phase: 6 (Overhead Press) COMPLETE — all 5 plans. Phases 1–6 COMPLETE. OHP-01 satisfied (model + F1-per-error + paper comparison + full viz pack; serving descoped per D1). Next: Phase 7 (image-based errors: Shallow-Squat + BarbellRow via CVCSPC) or milestone review.
-Plan: Phase 6 = 5/5. Headline (official 339-clip OHP test, 2-seed MD-SSL ensemble): Elbows 0.4474 / Knees 0.8770 / macro 0.6622 at thresholds {elbows 0.357, knees 0.476}; baseline 0.6118 -> +0.050 SSL lift; paper Ours-MD 0.6502 matched/edged (Knees 0.877>0.845); val-test gap 0.011 (no overfitting). Deliverable: docs/figures/ohp_*.png (7) + docs/notebooks/05-08_ohp_* (executed) + docs/eval/FINDINGS_OHP.md + results.pkl. Checkpoints on Drive phase06/ (backbone ep30 + 2 fine-tune best.pt). Carry-fixes now in main code: cv2 decode (tv0.26), SSL drop_last, decode-cache + cv2.setNumThreads + num_workers8, md_pretrain/md_finetune dataset_cls+checkpoint_phase + best.pt update_latest=False.
-Status: executing — between phases (Phase 6 done; Phase 7 or milestone review next)
-Last activity: 2026-05-30 -- Phase 6 COMPLETE (5/5); OHP-01 done; OHP macro 0.6622 matches/edges paper
+Phase: 7 (Shallow-Squat CVCSPC) PLANNED — 5 plans (07-01..05), 4 waves, plan-check PASS + revision applied. Phases 1–6 COMPLETE. Next: execute Phase 7. IMG-03 (BarbellRow) DESCOPED.
+Plan: Phase 7 = 0/5 executed. Shallow-Squat image classifier (ImageNet ResNet-18 supervised baseline -> faithful CVCSPC pose-contrastive SSL on the unlabeled Back-Squat set -> fine-tune -> F1 vs paper 0.869). Plan 01 = Wave-0 LOCAL CPU (new datasets/shallow_squat.py + cvcspc_ssl.py + image_supervised_train.py + cvcspc_pretrain.py + colab staging/frame-extract + unit tests for the 3-term loss + phase-matched triplet; gate = pytest green + no Phase-3/4/6 regression). 02 = baseline (Colab). 03 = CVCSPC SSL pretrain (Colab, frame-extract 4970 unlabeled Squat clips + traj_nan exclusion). 04 = fine-tune+ensemble+eval+results.pkl. 05 = deliverable pack. checkpoint_phase=phase07. Key facts: single binary error (Linear(512,1)+BCE); 3-term loss (train_test.py:64-68, code deviates from paper's 2-term — documented); CVCSPC feasible on Squat-alone (research corrected the BarbellRow premise).
+PRIOR (Phase 6, complete): OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770), +0.050 SSL lift, paper-matched, val-test gap 0.011; deliverable shipped (docs/figures/ohp_*.png, docs/notebooks/05-08_ohp_*, FINDINGS_OHP, results.pkl).
+Status: executing — Phase 7 planned, ready to execute (Plan 01 local CPU first)
+Last activity: 2026-05-30 -- Phase 7 PLANNED (5 plans, plan-check-revised)
 
 Progress: [████████░░] 75%
 
