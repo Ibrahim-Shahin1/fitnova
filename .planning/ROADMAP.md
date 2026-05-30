@@ -162,16 +162,37 @@ Plans:
 
 ### Phase 7: Image-Based Errors (CVCSPC)
 
-**Goal**: Detection of the static (image-based) errors — Shallow-Squat and Barbell Row Lumbar/Torso.
+**Goal**: Detection of the static (image-based) error Shallow-Squat (squat-depth) — a CVCSPC (ResNet-18) image classifier evaluated by F1 on the official split vs the published CVCSPC number (0.8694). Adds the image modality + the 2nd method (CVCSPC) to the thesis alongside the video MD-SSL work. *(BarbellRow Lumbar/Torso — IMG-03 — descoped: cancelled by the user for compute/time.)*
 **Depends on**: Phase 6
-**Requirements**: IMG-01, IMG-02, IMG-03
+**Requirements**: IMG-01, IMG-02 *(IMG-03 descoped)*
 **Success Criteria** (what must be TRUE):
 
-  1. A CVCSPC (ResNet-18) image pipeline trains baseline and self-supervised models
-  2. Shallow-Squat and Barbell Row Lumbar/Torso detectors report F1 on the official splits
-  3. These errors are served through the inference API
+  1. A CVCSPC (ResNet-18) image pipeline trains baseline (ImageNet supervised) and self-supervised (faithful CVCSPC pose-contrastive) models
+  2. The Shallow-Squat detector reports F1 on the official split, compared to the published CVCSPC 0.8694
+  3. ~~These errors are served through the inference API~~ — **DESCOPED** (CONTEXT D1, mirroring OHP): the form-correction frontend was cancelled, so Shallow-Squat is not wired into the (UI-less) serving path. IMG-01/IMG-02 are satisfied by trained/evaluated models + the paper comparison + the visualization pack. *(BarbellRow / IMG-03 also descoped — cancelled.)*
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 0**
+
+- [ ] 07-01-PLAN.md — Wave 0 (LOCAL CPU): scaffold shallow_squat.py (image dataset) + cvcspc_ssl.py (phase-matched triplet) + image_train.py (ResNet-18 trainer) + cvcspc_pretrain.py (3-term loss + triplet-accuracy) + colab staging/frame-extract + unit tests (loss closed-form, phase-matching, dataset shape/norm) + no-regression gate
+
+**Wave 1**
+
+- [ ] 07-02-PLAN.md — Wave 1 (Colab): the ImageNet ResNet-18 supervised baseline (the SSL-lift control, the guaranteed IMG-02 result) — stage crops, multi-seed train, ensemble + val-tuned threshold, test F1 on the official 540-crop split
+
+**Wave 2** *(parallel with Wave 1 — independent checkpoint dirs / notebooks)*
+
+- [ ] 07-03-PLAN.md — Wave 2 (Colab): the faithful CVCSPC SSL pretrain on the 4,970 unlabeled Squat clips — Step-0 frame-extract + the trajectory/phase-matching probe (blocking) + the phase-contrastive triplet pretrain with the triplet-accuracy monitor → backbone.pt
+
+**Wave 3** *(blocked on Waves 1 + 2)*
+
+- [ ] 07-04-PLAN.md — Wave 3 (Colab): fine-tune from the CVCSPC backbone (multi-seed) → ensemble → val-tuned threshold → test F1 vs baseline vs paper 0.8694 → results.pkl (source of truth; the baseline→CVCSPC lift + the val→test gap computed in code)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 07-05-PLAN.md — Wave 4 (LOCAL): the 3-notebook Shallow-Squat deliverable pack (EDA + training + evaluation) + figures + FINDINGS_SHALLOW_SQUAT.md + phase SUMMARY + ROADMAP/REQUIREMENTS/STATE reconciliation
 
 ### Phase 8: Ensemble, Evaluation & Visualization Pack
 
@@ -199,5 +220,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Squat Motion-Disentangling SSL | 4/4 | Complete | 2026-05-25 |
 | 5. Backend Inference Integration (Squat) | 5/5 | Complete    | 2026-05-26 |
 | 6. Overhead Press | 5/5 | Complete   | 2026-05-29 |
-| 7. Image-Based Errors (CVCSPC) | 0/TBD | Not started | - |
+| 7. Image-Based Errors (CVCSPC) | 0/5 | Planned | - |
 | 8. Ensemble, Evaluation & Visualization Pack | 0/TBD | Not started | - |
