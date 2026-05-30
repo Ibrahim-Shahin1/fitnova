@@ -13,7 +13,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 - [x] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API (completed 2026-05-26)
 - [x] **Phase 6: Overhead Press** - Extend the video pipeline to OHP Elbow/Knees errors (completed 2026-05-29)
 - [x] **Phase 7: Image-Based Errors (CVCSPC)** - Shallow-Squat detector, official test F1 0.8902 > paper CVCSPC 0.8694 (BarbellRow/IMG-03 descoped)  *(complete 2026-05-30)*
-- [ ] **Phase 8: Ensemble, Evaluation & Visualization Pack** - Final integration and the comparison deliverable
+- [x] **Phase 8: Ensemble, Evaluation & Visualization Pack** - Final integration and the comparison deliverable  *(complete 2026-05-31)*
 
 ## Phase Details
 
@@ -201,9 +201,9 @@ Plans:
 **Requirements**: EVAL-01, EVAL-02, EVAL-03
 **Success Criteria** (what must be TRUE):
 
-  1. The MD + CVCSPC ensemble is evaluated where the paper applies it
-  2. A full identical-metric comparison covers every error vs Parmar / GYMetricPose / LMM
-  3. A consolidated visualization and results pack is assembled
+  1. ✓ The MD + CVCSPC ensemble is evaluated where the paper applies it (EVAL-02: evaluated -> not-applicable; paper BackSquat KIE 0.5263/KFE 0.8468; single-method-per-error scope)
+  2. ✓ A full identical-metric comparison covers every error vs Parmar (EVAL-01 master table, 5 errors; GYMetricPose + LMM as labeled context)
+  3. ✓ A consolidated visualization and results pack is assembled (notebook 12 + FINDINGS_FULL + 4 master figures)
 
 **Plans**: 2 plans
 
@@ -214,7 +214,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 08-02-PLAN.md (wave 2) - FINDINGS_FULL.md (master table + EVAL-02 not-applicable finding + GYMetricPose/LMM context + honest framing) + README notebook-12 row + phase close (ROADMAP/REQUIREMENTS/STATE + SUMMARY)
+- [x] 08-02-PLAN.md (wave 2) - FINDINGS_FULL.md (master table + EVAL-02 not-applicable finding + GYMetricPose/LMM context + honest framing) + README notebook-12 row + phase close (ROADMAP/REQUIREMENTS/STATE + SUMMARY)
 
 ## Progress
 
@@ -230,4 +230,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Backend Inference Integration (Squat) | 5/5 | Complete    | 2026-05-26 |
 | 6. Overhead Press | 5/5 | Complete   | 2026-05-29 |
 | 7. Image-Based Errors (CVCSPC) | 5/5 | Complete | 2026-05-30 |
-| 8. Ensemble, Evaluation & Visualization Pack | 1/2 | In Progress|  |
+| 8. Ensemble, Evaluation & Visualization Pack | 2/2 | Complete | 2026-05-31 |

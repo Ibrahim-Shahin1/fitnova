@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: "Phase 8 Plan 01 complete: 12_full_evaluation.ipynb + 4 master figures + AQA green"
-last_updated: "2026-05-30T21:34:01.051Z"
+last_updated: "2026-05-30T21:47:34.038Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 8
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 Phase: 8 (Ensemble, Evaluation & Visualization Pack) — EXECUTING
 Plan: 2 of 2
 PRIOR (Phase 6, complete): OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770), +0.050 SSL lift, paper-matched, val-test gap 0.011; deliverable shipped (docs/figures/ohp_*.png, docs/notebooks/05-08_ohp_*, FINDINGS_OHP, results.pkl).
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-30
 
 Progress: [█████████░] 88%
@@ -121,6 +121,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-30T21:34:01.045Z
+Last session: 2026-05-30T21:47:34.033Z
 Stopped at: Phase 8 Plan 01 complete: 12_full_evaluation.ipynb + 4 master figures + AQA green
 Resume file: None

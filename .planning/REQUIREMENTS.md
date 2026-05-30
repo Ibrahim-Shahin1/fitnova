@@ -40,9 +40,9 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 ### Evaluation & Visualization
 
-- [x] **EVAL-01**: Identical-metric comparison (ours vs Parmar / GYMetricPose / LMM) across all errors
-- [ ] **EVAL-02**: MD + CVCSPC ensemble evaluated where the paper applies it
-- [x] **EVAL-03**: Consolidated visualization / results pack
+- [x] **EVAL-01**: Identical-metric comparison (ours vs Parmar / GYMetricPose / LMM) across all errors  *(complete 2026-05-31 -- master 5-error comparison table vs Parmar; all values recomputed-in-code from results.pkl; GYMetricPose + LMM as labeled context with caveats)*
+- [x] **EVAL-02**: MD + CVCSPC ensemble evaluated where the paper applies it  *(complete 2026-05-31 -- evaluated -> not-applicable; paper applies MD+CVCSPC only to BackSquat KIE/KFE (Table 2: 0.5263 / 0.8468); our scope has exactly one method per error so no error has both an MD and a CVCSPC score)*
+- [x] **EVAL-03**: Consolidated visualization / results pack  *(complete 2026-05-31 -- docs/notebooks/12_full_evaluation.py + .ipynb (pre-executed) + docs/eval/FINDINGS_FULL.md + 4 master figures in docs/figures/)*
 
 ## v2 Requirements
 
@@ -87,7 +87,7 @@ Deferred to a future milestone.
 | IMG-02 | Phase 7 | Complete |
 | IMG-03 | Phase 7 | Descoped |
 | EVAL-01 | Phase 8 | Complete |
-| EVAL-02 | Phase 8 | Pending |
+| EVAL-02 | Phase 8 | Complete |
 | EVAL-03 | Phase 8 | Complete |
 
 **Coverage:**
