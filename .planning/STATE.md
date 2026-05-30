@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: verifying
 stopped_at: "Phase 8 Plan 01 complete: 12_full_evaluation.ipynb + 4 master figures + AQA green"
-last_updated: "2026-05-30T21:47:34.038Z"
+last_updated: "2026-05-30T22:31:21.227Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 25
-  completed_plans: 19
-  percent: 63
+  completed_plans: 20
+  percent: 75
 ---
 
 # Project State
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 8 (Ensemble, Evaluation & Visualization Pack) — EXECUTING
-Plan: 2 of 2
+Phase: 8
+Plan: Not started
 PRIOR (Phase 6, complete): OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770), +0.050 SSL lift, paper-matched, val-test gap 0.011; deliverable shipped (docs/figures/ohp_*.png, docs/notebooks/05-08_ohp_*, FINDINGS_OHP, results.pkl).
 Status: Phase complete — ready for verification
 Last activity: 2026-05-30
@@ -37,7 +37,7 @@ Progress: [█████████░] 88%
 
 **Velocity:**
 
-- Total plans completed: 12 (Phases 1–4)
+- Total plans completed: 14 (Phases 1–4)
 - Average duration: — (per-plan wall-time not tracked)
 - Total execution time: — (interactive Colab execution; heavy training spanned multiple sessions)
 
@@ -46,6 +46,7 @@ Progress: [█████████░] 88%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 5 | 5 | - | - |
+| 8 | 2 | - | - |
 
 **Recent Trend:**
 

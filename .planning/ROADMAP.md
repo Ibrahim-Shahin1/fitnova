@@ -230,4 +230,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Backend Inference Integration (Squat) | 5/5 | Complete    | 2026-05-26 |
 | 6. Overhead Press | 5/5 | Complete   | 2026-05-29 |
 | 7. Image-Based Errors (CVCSPC) | 5/5 | Complete | 2026-05-30 |
-| 8. Ensemble, Evaluation & Visualization Pack | 2/2 | Complete | 2026-05-31 |
+| 8. Ensemble, Evaluation & Visualization Pack | 2/2 | Complete    | 2026-05-30 |
