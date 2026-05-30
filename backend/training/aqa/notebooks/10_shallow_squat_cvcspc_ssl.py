@@ -139,3 +139,77 @@ for _cid in _sample:
     _tp = glob.glob(f"{TRAJ_ROOT}/**/{_cid}.json", recursive=True)
     _tl = len(json.loads(open(_tp[0]).read())) if _tp else "NO-TRAJ"
     print(f"  {_cid:18s}  {_nf:6d}    {_tl}")
+
+
+# %% [markdown]
+# ## Probe (BLOCKING human-verify) — phase-matched triplet on real frames
+#
+# Instantiates the SSL dataset (with the val/test exclusion), confirms the post-exclusion clip count,
+# checks _traj2phase spans ~0..360°, and plots one draw: the two clips' phase curves with the
+# anchor/positive/negative phases marked + the decoded anchor/positive/negative frames. Confirm the
+# anchor (v0) and positive (v1) are at a SIMILAR pose (same phase, different rep) and the negative
+# (v1) is at a DIFFERENT pose.
+
+# %%
+import matplotlib.pyplot as plt
+import numpy as np
+
+from backend.training.aqa.datasets.cvcspc_ssl import (
+    IMAGENET_MEAN,
+    IMAGENET_STD,
+    ShallowSquatSSLDataset,
+)
+
+ds = ShallowSquatSSLDataset(
+    frames_root=FRAMES_ROOT, trajectories_root=TRAJ_ROOT,
+    traj_nan_path=TRAJ_NAN_PATH, exclude_ids=EXCLUDE_IDS, ssl_contrastive_phase_gap=30.0,
+)
+print(f"SSL dataset clips after exclusion: {len(ds)}  (4970 - 179 holdout - degenerate)")
+
+_p0 = ds._load_phase(ds._clip_ids[0])
+print(f"sample phase span: {_p0.min():.1f}..{_p0.max():.1f} deg (n={len(_p0)})")
+
+random.seed(0)
+sel = ds._select_triplet(0)
+v0, v1, p = sel["v0"], sel["v1"], sel["p_anchor"]
+ai, pi, ni = sel["anchor_idx"], sel["positive_idx"], sel["negative_idx"]
+ph0, ph1 = sel["phase0"], sel["phase1"]
+print(f"\nanchor   clip {v0} @ phase {ph0[ai]:.1f}  (target {p:.1f})")
+print(f"positive clip {v1} @ phase {ph1[pi]:.1f}")
+print(f"negative clip {v1} @ phase {ph1[ni]:.1f}  (|gap|={abs(ph1[ni] - p):.1f} >= 30)")
+
+
+def _denorm(t):
+    m = np.array(IMAGENET_MEAN).reshape(3, 1, 1)
+    s = np.array(IMAGENET_STD).reshape(3, 1, 1)
+    return np.clip(t.numpy() * s + m, 0, 1).transpose(1, 2, 0)
+
+
+a_img = _denorm(ds._load_frame(v0, ai))
+p_img = _denorm(ds._load_frame(v1, pi))
+n_img = _denorm(ds._load_frame(v1, ni))
+
+fig, axes = plt.subplots(1, 4, figsize=(18, 4))
+axes[0].plot(ph0, label=f"anchor clip {v0}")
+axes[0].plot(ph1, label=f"pos/neg clip {v1}")
+axes[0].axhline(p, color="k", ls="--", lw=0.8)
+axes[0].scatter([ai], [ph0[ai]], c="g", s=70, zorder=5, label="anchor")
+axes[0].scatter([pi], [ph1[pi]], c="b", s=70, zorder=5, label="positive")
+axes[0].scatter([ni], [ph1[ni]], c="r", s=70, zorder=5, label="negative")
+axes[0].set_title("bar-traj phase (deg)")
+axes[0].set_xlabel("frame")
+axes[0].legend(fontsize=7)
+for ax, im, ttl, c in zip(
+    axes[1:], [a_img, p_img, n_img],
+    ["anchor (v0)", "positive (v1)", "negative (v1)"], ["g", "b", "r"],
+):
+    ax.imshow(im)
+    ax.set_title(ttl, color=c)
+    ax.axis("off")
+
+_figdir = ".planning/phases/07-image-based-errors-cvcspc/figures"
+os.makedirs(_figdir, exist_ok=True)
+plt.tight_layout()
+plt.savefig(f"{_figdir}/cvcspc_triplet_probe.png", dpi=110, bbox_inches="tight")
+plt.show()
+print(f"\nsaved {_figdir}/cvcspc_triplet_probe.png")
