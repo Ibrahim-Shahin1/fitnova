@@ -12,7 +12,7 @@ This milestone rebuilds FitNova's form-correction feature from scratch on the Fi
 - [x] **Phase 4: Squat Motion-Disentangling SSL** - Self-supervised pretraining + fine-tune + comparison  *(complete 2026-05-25)*
 - [x] **Phase 5: Backend Inference Integration (Squat)** - Replace the old subsystem; live + upload API (completed 2026-05-26)
 - [x] **Phase 6: Overhead Press** - Extend the video pipeline to OHP Elbow/Knees errors (completed 2026-05-29)
-- [ ] **Phase 7: Image-Based Errors (CVCSPC)** - Shallow-Squat and Barbell Row detectors
+- [ ] **Phase 7: Image-Based Errors (CVCSPC)** - Shallow-Squat detector (BarbellRow/IMG-03 descoped)
 - [ ] **Phase 8: Ensemble, Evaluation & Visualization Pack** - Final integration and the comparison deliverable
 
 ## Phase Details
