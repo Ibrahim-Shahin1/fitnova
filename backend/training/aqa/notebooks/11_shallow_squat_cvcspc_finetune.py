@@ -129,3 +129,31 @@ _ft_results[_n] = run_image_epoch(
 _r = _ft_results[_n]
 print(f"\nseed {_n}: best_f1_val={_r['best_f1_val']:.4f}  (last epoch {_r['epoch']})")
 print(f"best.pt: {_r['best_checkpoint_path']}")
+
+
+# %% [markdown]
+# ## Step 2 (cont.) — seeds 1337 + 7
+#
+# Trains the remaining seeds, then prints the per-seed best val F1 vs the Plan-02 baseline (loaded
+# from Drive — not hardcoded). ~5 min/seed.
+
+# %%
+for _n in SEEDS[1:]:
+    print(f"\n===== seed {_n} =====")
+    _ft_results[_n] = run_image_epoch(
+        run_name=f"shallow_squat_cvcspc_finetune_seed{_n}",
+        drive_root=MYDRIVE,
+        images_root=IMAGES_ROOT, labels_path=LABELS_PATH, splits_root=SPLITS_ROOT,
+        seed=_n, config=ImageConfig(), resume=True, max_epochs=50,
+        dataset_cls=ShallowSquatDataset,
+        model_builder=lambda: build_cvcspc_finetune_model(),
+    )
+
+print("\n\nper-seed best val F1 — CVCSPC fine-tune vs Plan-02 baseline:")
+for _n in SEEDS:
+    _bl = torch.load(
+        f"{MYDRIVE}/FitNova/checkpoints/phase07/shallow_squat_baseline_seed{_n}/best.pt",
+        map_location="cpu", weights_only=False,
+    )["best_f1_val"]
+    _cv = _ft_results[_n]["best_f1_val"]
+    print(f"  seed {_n:5d}: CVCSPC {_cv:.4f}  vs  baseline {_bl:.4f}  (delta {_cv - _bl:+.4f})")
