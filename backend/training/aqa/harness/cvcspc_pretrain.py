@@ -238,9 +238,168 @@ def run_cvcspc_pretrain_epoch(
 ) -> dict:
     """CVCSPC SSL pretraining — 3-branch triplet forward + Adam + triplet-accuracy monitor.
 
-    Body landed in Task 3. Auto-resumes from
-    {drive_root}/FitNova/checkpoints/{checkpoint_phase}/{run_name}/latest.txt; writes
-    epoch_NNN.pt every epoch + backbone.pt on triplet-accuracy improvement (update_latest=False);
-    anneals the phase gap and re-applies it on resume.
+    Auto-resumes from {drive_root}/FitNova/checkpoints/{checkpoint_phase}/{run_name}/latest.txt;
+    writes epoch_NNN.pt every epoch + backbone.pt on triplet-accuracy improvement
+    (update_latest=False). The phase gap anneals every config.phase_gap_decay_every epochs
+    (floor 30°) and is re-applied on resume. Uses Adam to match the official code; with the
+    default weight_decay=0 this is identical to AdamW.
     """
-    raise NotImplementedError("run_cvcspc_pretrain_epoch body lands in Task 3")
+    try:
+        from tqdm.auto import tqdm
+    except ImportError:
+        tqdm = None  # type: ignore[assignment]
+
+    config = config or CVCSPCConfig()
+    effective_max_epochs = max_epochs if max_epochs is not None else config.max_epochs
+    _set_global_seed(seed)
+
+    config_repr = {
+        "seed": seed,
+        "batch_size": config.batch_size,
+        "num_workers": config.num_workers,
+        "learning_rate": config.learning_rate,
+        "weight_decay": config.weight_decay,
+        "scheduler_name": config.scheduler_name,
+        "scheduler_t_max": config.scheduler_t_max,
+        "projector_hidden": config.projector_hidden,
+        "projector_out_dim": config.projector_out_dim,
+        "phase_gap_start": config.phase_gap_start,
+        "phase_gap_decay_every": config.phase_gap_decay_every,
+        "mask_prob": config.mask_prob,
+        "mask_amt_lo": config.mask_amt_lo,
+        "mask_amt_hi": config.mask_amt_hi,
+        "model_arch": config.model_arch,
+    }
+    config_hash_str = hash_config(config_repr)
+    run_dir = os.path.join(drive_root, "FitNova/checkpoints", checkpoint_phase, run_name)
+    os.makedirs(run_dir, exist_ok=True)
+    backbone_path = os.path.join(run_dir, "backbone.pt")
+    logger.info("run_dir: %s (config_hash=%s)", run_dir, config_hash_str)
+
+    loader = build_cvcspc_loader(
+        ssl_dataset_cls(
+            frames_root=frames_root,
+            trajectories_root=trajectories_root,
+            traj_nan_path=traj_nan_path,
+            ssl_contrastive_phase_gap=config.phase_gap_start,
+            mask_prob=config.mask_prob,
+            mask_amt_lo=config.mask_amt_lo,
+            mask_amt_hi=config.mask_amt_hi,
+            seed=seed,
+        ),
+        config,
+        seed=seed,
+    )
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    backbone, projector = build_cvcspc_model(config)
+    backbone = backbone.to(device)
+    projector = projector.to(device)
+    optimizer = torch.optim.Adam(
+        list(backbone.parameters()) + list(projector.parameters()),
+        lr=config.learning_rate, weight_decay=config.weight_decay,
+    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.scheduler_t_max)
+
+    metrics_history: list[dict] = []
+    triplet_acc_history: list[dict] = []
+    best_triplet_acc = -1.0
+    start_epoch = 0
+
+    if resume:
+        prior = load_latest_checkpoint(run_dir, expected_config_hash=config_hash_str, map_location="cpu")
+        if prior is not None:
+            backbone.load_state_dict(prior["backbone_state_dict"])
+            projector.load_state_dict(prior["projector_state_dict"])
+            optimizer.load_state_dict(prior["optimizer_state_dict"])
+            if prior.get("scheduler_state_dict") is not None:
+                scheduler.load_state_dict(prior["scheduler_state_dict"])
+            restore_rng_state(prior["rng_state"])
+            metrics_history = list(prior["metrics_history"])
+            triplet_acc_history = list(prior.get("triplet_acc_history", []))
+            start_epoch = int(prior["epoch"]) + 1
+            best_triplet_acc = max(
+                (e.get("triplet_acc", -1.0) for e in triplet_acc_history), default=-1.0,
+            )
+            n_decays = start_epoch // config.phase_gap_decay_every
+            config.phase_gap_start = max(30.0, config.phase_gap_start - n_decays)
+            loader.dataset.phase_gap = config.phase_gap_start
+            logger.info(
+                "Resumed epoch_%03d.pt; start_epoch=%d best_triplet_acc=%.4f phase_gap=%.1f",
+                int(prior["epoch"]), start_epoch, best_triplet_acc, config.phase_gap_start,
+            )
+
+    if start_epoch >= effective_max_epochs:
+        logger.info("Already at/past effective_max_epochs=%d (start_epoch=%d)", effective_max_epochs, start_epoch)
+        return {
+            "epoch": start_epoch - 1,
+            "metrics_history": metrics_history,
+            "triplet_acc_history": triplet_acc_history,
+            "backbone_path": backbone_path,
+            "checkpoint_path": os.path.join(run_dir, f"epoch_{start_epoch - 1:03d}.pt"),
+            "config_hash": config_hash_str,
+        }
+
+    last_ckpt_path = ""
+    for epoch in range(start_epoch, effective_max_epochs):
+        epoch_start_t = time.perf_counter()
+        backbone.train()
+        projector.train()
+        ssl_losses: list[float] = []
+        it = loader if tqdm is None else tqdm(loader, desc=f"CVCSPC epoch {epoch}/{effective_max_epochs - 1}", leave=False)
+        for batch in it:
+            phi_a = projector(backbone(batch["anchor"].to(device, non_blocking=True)))
+            phi_p = projector(backbone(batch["positive"].to(device, non_blocking=True)))
+            phi_n = projector(backbone(batch["negative"].to(device, non_blocking=True)))
+            loss = cvcspc_triplet_loss(phi_a, phi_p, phi_n)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            ssl_losses.append(float(loss.item()))
+        scheduler.step()
+
+        triplet_acc = None
+        if epoch % config.triplet_acc_cadence == 0:
+            triplet_acc = _triplet_accuracy(backbone, projector, loader, device)
+            triplet_acc_history.append({"epoch": epoch, "triplet_acc": triplet_acc})
+            logger.info("epoch=%d triplet_acc=%.4f", epoch, triplet_acc)
+
+        epoch_wall = time.perf_counter() - epoch_start_t
+        metrics_history.append({
+            "epoch": epoch,
+            "ssl_loss_mean": float(np.mean(ssl_losses)) if ssl_losses else float("nan"),
+            "ssl_loss_per_batch": ssl_losses,
+            "phase_gap": config.phase_gap_start,
+            "epoch_wall_time_s": epoch_wall,
+        })
+        logger.info("epoch=%d ssl_loss=%.6f phase_gap=%.1f wall=%.1fs",
+                    epoch, metrics_history[-1]["ssl_loss_mean"], config.phase_gap_start, epoch_wall)
+
+        payload = build_cvcspc_checkpoint_payload(
+            epoch=epoch, backbone=backbone, projector=projector, optimizer=optimizer,
+            scheduler=scheduler, metrics_history=metrics_history,
+            triplet_acc_history=triplet_acc_history, config_hash=config_hash_str, config_repr=config_repr,
+        )
+        last_ckpt_path = os.path.join(run_dir, f"epoch_{epoch:03d}.pt")
+        atomic_save_checkpoint(payload, last_ckpt_path)
+
+        if triplet_acc is not None and triplet_acc > best_triplet_acc:
+            best_triplet_acc = triplet_acc
+            atomic_save_checkpoint(payload, backbone_path, update_latest=False)
+            logger.info("New best triplet_acc=%.4f -> wrote backbone.pt", best_triplet_acc)
+
+        prune_checkpoints(run_dir, keep_last=3, keep_best=True)
+
+        if (epoch + 1) % config.phase_gap_decay_every == 0 and config.phase_gap_start > 30.0:
+            config.phase_gap_start = max(30.0, config.phase_gap_start - 1.0)
+            loader.dataset.phase_gap = config.phase_gap_start
+            logger.info("phase_gap annealed to %.1f", config.phase_gap_start)
+
+    return {
+        "epoch": epoch,
+        "metrics_history": metrics_history,
+        "triplet_acc_history": triplet_acc_history,
+        "backbone_path": backbone_path,
+        "checkpoint_path": last_ckpt_path,
+        "config_hash": config_hash_str,
+    }
