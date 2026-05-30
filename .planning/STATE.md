@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 8 context gathered (EVAL-01/02/03; comprehensive viz pack; context-only comparators)
-last_updated: "2026-05-30T21:14:00.600Z"
-last_activity: 2026-05-30 -- Phase 8 planning complete
+stopped_at: "Phase 8 Plan 01 complete: 12_full_evaluation.ipynb + 4 master figures + AQA green"
+last_updated: "2026-05-30T21:34:01.051Z"
+last_activity: 2026-05-30
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 25
-  completed_plans: 18
+  completed_plans: 19
   percent: 63
 ---
 
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-19)
 
 **Core value:** A user can record/upload a lift and get trustworthy, plain-language form-error feedback grounded in a published dataset and method.
-**Current focus:** Phase 7 COMPLETE (Shallow-Squat CVCSPC, F1 0.8902 > paper 0.8694) — Phase 8 (final ensemble + evaluation + viz pack) next
+**Current focus:** Phase 8 — Ensemble, Evaluation & Visualization Pack
 
 ## Current Position
 
-Phase: 7 (Shallow-Squat CVCSPC) COMPLETE — all 5 plans done. Phases 1–7 COMPLETE; Phase 8 (final ensemble + evaluation + visualization pack) remains. IMG-03 (BarbellRow) + SC3 (serving) DESCOPED.
-Plan: Phase 7 = 5/5 complete. Headline: faithful CVCSPC, official 540-crop test F1 0.8902 (3-seed ensemble, PR-AUC 0.9668) BEATS paper CVCSPC 0.8694 by +0.021; +0.0152 SSL lift over the supervised baseline 0.8750 (all 3 seeds beat baseline); val->test gap 0.0217 (no overfit); SSL triplet-accuracy 0.48->0.959. Deliverable pack: docs/notebooks/09-11_shallow_squat_* (paired .py + executed .ipynb), 6 docs/figures/shallow_squat_*, FINDINGS_SHALLOW_SQUAT.md, shallow_squat_test_scores.csv, results.pkl, 07-05-SUMMARY. Production checkpoints on Drive: phase07/shallow_squat_cvcspc_v1/backbone.pt + shallow_squat_cvcspc_finetune_seed{42,1337,7}/best.pt; ensemble mean-of-sigmoids @ threshold 0.395. Deviations documented: 3-term loss (code) vs paper 2-term; Adam==AdamW@wd0; val/test-clip exclusion added (leakage-free, 4791-clip SSL set); Drive-FUSE _atomic_write_text hardened. NEXT: Phase 8 = MD+CVCSPC ensemble where the paper applies it + the full identical-metric comparison (ours vs Parmar/GYMetricPose/LMM) across all errors + consolidated viz/results pack. Plan 01 (Wave-0 scaffold + 15 unit tests, 44 passed) + Plan 02 (Colab baseline: 3-seed ImageNet ResNet-18, official test F1 0.8750 @ t*=0.473, PR-AUC 0.9506, val->test gap 0.010 — the SSL-lift control) DONE. NOTE: the supervised baseline 0.8750 EXCEEDS paper CVCSPC 0.8694 / SimSiam 0.8286 (near-balanced, visually-discriminative task; no paper supervised-ImageNet row) — so the Plan-03/04 CVCSPC SSL is a FAITHFUL METHOD REPRODUCTION; the lift over this strong baseline may be small/zero/negative and is reported honestly. NEXT: Plan 03 (Colab, FRESH notebook, L4) = faithful CVCSPC SSL pretrain (Step-0 frame-extract 4970 unlabeled clips -> {frames_root}/{vid}/frame.jpg + traj_nan exclusion + the trajectory/phase-matching probe + phase-contrastive triplet pretrain + triplet-accuracy monitor) -> backbone.pt. 04 = fine-tune from backbone via the model_builder seam + ensemble + eval vs baseline 0.8750 + paper 0.8694 + results.pkl. 05 = deliverable pack. checkpoint_phase=phase07. Key facts: single binary error (Linear(512,1)+BCE, pos_weight 1.313); 3-term loss (train_test.py:68, code deviates from paper's 2-term — documented); Adam (official) == AdamW at wd=0; Drive-FUSE _atomic_write_text hardened (read-back + retry); CVCSPC feasible on Squat-alone.
+Phase: 8 (Ensemble, Evaluation & Visualization Pack) — EXECUTING
+Plan: 2 of 2
 PRIOR (Phase 6, complete): OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770), +0.050 SSL lift, paper-matched, val-test gap 0.011; deliverable shipped (docs/figures/ohp_*.png, docs/notebooks/05-08_ohp_*, FINDINGS_OHP, results.pkl).
 Status: Ready to execute
-Last activity: 2026-05-30 -- Phase 8 planning complete
+Last activity: 2026-05-30
 
 Progress: [█████████░] 88%
 
@@ -57,6 +57,7 @@ Progress: [█████████░] 88%
 | Phase 05 P02 | 60 | 3 tasks | 4 files |
 | Phase 05 P03 | 15 | 2 tasks | 3 files |
 | Phase 05-backend-inference-integration-squat P05 | 65 | 2 tasks | 14 files |
+| Phase 08 P01 | 30 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,7 @@ Recent decisions affecting current work:
 - [Phase ?]: git rm --cached after git mv to untrack archived weights — gitignore only applies to untracked files
 - [Phase ?]: render_squat_result.py uses decode_clip_cv2 (cv2 backend) — torchvision 0.27 removed read_video; KFE detected=True on BadSquat_45 confidence=0.4817
 - [Phase ?]: API-01 closed: old TF+MediaPipe form subsystem reversibly archived; new PyTorch SquatFormService is the sole form-correction runtime
+- [Phase ?]: sklearn f1_score used directly in notebook — nbconvert kernel cwd does not include repo root; f1_score(pos_label=1, zero_division=0) is exactly equivalent to f1_per_error
 
 ### Pending Todos
 
@@ -119,6 +121,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-30T20:33:00.596Z
-Stopped at: Phase 8 context gathered (EVAL-01/02/03; comprehensive viz pack; context-only comparators)
-Resume file: .planning/phases/08-ensemble-evaluation-visualization-pack/08-CONTEXT.md
+Last session: 2026-05-30T21:34:01.045Z
+Stopped at: Phase 8 Plan 01 complete: 12_full_evaluation.ipynb + 4 master figures + AQA green
+Resume file: None

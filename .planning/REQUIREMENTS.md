@@ -40,9 +40,9 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 ### Evaluation & Visualization
 
-- [ ] **EVAL-01**: Identical-metric comparison (ours vs Parmar / GYMetricPose / LMM) across all errors
+- [x] **EVAL-01**: Identical-metric comparison (ours vs Parmar / GYMetricPose / LMM) across all errors
 - [ ] **EVAL-02**: MD + CVCSPC ensemble evaluated where the paper applies it
-- [ ] **EVAL-03**: Consolidated visualization / results pack
+- [x] **EVAL-03**: Consolidated visualization / results pack
 
 ## v2 Requirements
 
@@ -86,9 +86,9 @@ Deferred to a future milestone.
 | IMG-01 | Phase 7 | Complete |
 | IMG-02 | Phase 7 | Complete |
 | IMG-03 | Phase 7 | Descoped |
-| EVAL-01 | Phase 8 | Pending |
+| EVAL-01 | Phase 8 | Complete |
 | EVAL-02 | Phase 8 | Pending |
-| EVAL-03 | Phase 8 | Pending |
+| EVAL-03 | Phase 8 | Complete |
 
 **Coverage:**
 
