@@ -63,3 +63,63 @@ for _m in [
     "backend/training/aqa/harness/cvcspc_pretrain.py",
 ]:
     print(f"  {'OK ' if os.path.isfile(_m) else 'MISSING'} {_m}")
+
+
+# %% [markdown]
+# ## Step 0 — env + dep probe + GPU check + Drive mount + stage Shallow-Squat images
+#
+# **F8 import-order constraint:** the first executable line MUST be
+# `from backend.training.aqa.harness import _envinit` (sets `CUBLAS_WORKSPACE_CONFIG`
+# before any `import torch`). Do not reorder.
+#
+# No PyAV — crops load via PIL (no video decode). Stages `images.zip` (3738 crops) +
+# `labels_shallow_depth.json` + `splits/` from the consolidated Drive root to
+# `/content/squat_shallow_images/` (~100 MB copy + extract; resume-safe on disconnect).
+
+# %%
+from backend.training.aqa.harness import _envinit  # F8: CUBLAS_WORKSPACE_CONFIG before torch
+
+import importlib.metadata
+import os
+import shutil
+import sys
+
+for _pkg in ["torch", "torchvision", "scikit-learn", "numpy", "tqdm"]:
+    print(f"  {_pkg:<14} {importlib.metadata.version(_pkg)}")
+
+import torch
+import torchvision
+
+print("\npython     :", sys.version.split()[0])
+print("torch      :", torch.__version__)
+print("torchvision:", torchvision.__version__)
+print("CUDA available:", torch.cuda.is_available())
+print("CUBLAS_WORKSPACE_CONFIG:", os.environ.get("CUBLAS_WORKSPACE_CONFIG"))
+
+assert torch.cuda.is_available(), (
+    "GPU required — Runtime > Change runtime type > Hardware accelerator: L4 (T4 also fine)"
+)
+print(f"GPU: {torch.cuda.get_device_name(0)} "
+      f"({torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB)")
+
+from backend.training.aqa.harness.colab import mount_drive, stage_shallow_squat_images
+
+MYDRIVE = mount_drive()
+DRIVE_ROOT_3001 = MYDRIVE  # consolidated Drive root (no -3-001 split on Drive)
+
+_expected = os.path.join(
+    DRIVE_ROOT_3001,
+    "Fitness-AQA_dataset_release/Squat/Labeled_Dataset/Shallow_Squat_Error_Dataset/images.zip",
+)
+print(f"\nimages.zip on Drive: {'FOUND' if os.path.isfile(_expected) else 'NOT FOUND'}\n  {_expected}")
+
+SHALLOW_ROOT = stage_shallow_squat_images(DRIVE_ROOT_3001, local_root="/content/squat_shallow_images")
+IMAGES_ROOT = os.path.join(SHALLOW_ROOT, "crops_unaligned")
+LABELS_PATH = os.path.join(SHALLOW_ROOT, "labels_shallow_depth.json")
+SPLITS_ROOT = os.path.join(SHALLOW_ROOT, "splits")
+
+_n_jpg = sum(1 for _r, _d, _fs in os.walk(IMAGES_ROOT) for _f in _fs if _f.endswith(".jpg"))
+print(f"\nstaged: {_n_jpg} jpgs at {IMAGES_ROOT}")
+print(f"labels: {'OK' if os.path.isfile(LABELS_PATH) else 'MISSING'}   "
+      f"splits: {'OK' if os.path.isdir(SPLITS_ROOT) else 'MISSING'}")
+print(f"free disk on /content: {shutil.disk_usage('/content').free / 1e9:.1f} GB")
