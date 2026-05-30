@@ -177,3 +177,40 @@ for _i, _ax in enumerate(axes):
 plt.suptitle("Shallow-Squat train crops (denormalized) — y=1 is shallow-depth error")
 plt.tight_layout()
 plt.show()
+
+
+# %% [markdown]
+# ## Step 2 — model + VRAM probe (single-logit head assert)
+#
+# Builds the ImageNet ResNet-18 + `Linear(512,1)` head, asserts the single-logit head shape
+# (zeros[2,3,224,224] -> [2,1]), and runs one forward+backward at batch 32 to measure peak VRAM.
+# First call downloads the IMAGENET1K_V1 weights (~45 MB).
+
+# %%
+import torch.nn as nn
+
+from backend.training.aqa.harness.image_supervised_train import build_resnet18
+
+_device = torch.device("cuda")
+_model = build_resnet18().to(_device)
+assert isinstance(_model.fc, nn.Linear) and _model.fc.out_features == 1, "head must be Linear(512, 1)"
+with torch.no_grad():
+    _probe = _model(torch.zeros(2, 3, 224, 224, device=_device))
+print("head:", _model.fc, "| forward zeros[2,3,224,224] ->", tuple(_probe.shape))
+assert tuple(_probe.shape) == (2, 1), f"expected [2,1], got {tuple(_probe.shape)}"
+
+torch.cuda.reset_peak_memory_stats()
+_imgs, _labels = next(iter(loaders["train"]))
+_target = _labels.view(-1, 1).to(_device)
+_crit = nn.BCEWithLogitsLoss(pos_weight=_pw.to(_device))
+_logits = _model(_imgs.to(_device))
+_loss = _crit(_logits, _target)
+_loss.backward()
+_peak_gb = torch.cuda.max_memory_allocated() / 1e9
+_total_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
+print(f"forward+backward batch {_imgs.shape[0]}: loss={_loss.item():.4f}, "
+      f"peak VRAM={_peak_gb:.2f} GB / {_total_gb:.1f} GB")
+assert _peak_gb < _total_gb, "VRAM exceeded — drop batch_size"
+
+del _model, _logits, _loss
+torch.cuda.empty_cache()
