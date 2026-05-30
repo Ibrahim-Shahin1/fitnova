@@ -95,3 +95,37 @@ assert tuple(_out.shape) == (2, 1)
 print(f"head {_m.fc} | forward zeros[2,3,224,224] -> {tuple(_out.shape)}")
 del _m
 torch.cuda.empty_cache()
+
+
+# %% [markdown]
+# ## Step 2 — multi-seed CVCSPC fine-tune (seed 42 first)
+#
+# Fine-tunes from the CVCSPC backbone via the model_builder seam (NOT ImageNet-from-scratch).
+# Same recipe as the Plan-02 baseline (Adam 1e-4, 50ep/8-patience cosine, batch 32) so the only
+# difference is the initialization — an apples-to-apples SSL-lift measurement. ~5 min/seed,
+# resume-safe.
+
+# %%
+import logging
+
+from backend.training.aqa.datasets.shallow_squat import ShallowSquatDataset
+from backend.training.aqa.harness.image_supervised_train import ImageConfig, run_image_epoch
+
+logging.basicConfig(level=logging.WARNING, format="%(message)s", force=True)
+logging.getLogger("aqa.phase07").setLevel(logging.INFO)
+
+SEEDS = [42, 1337, 7]
+_ft_results = {}
+
+_n = 42
+_ft_results[_n] = run_image_epoch(
+    run_name=f"shallow_squat_cvcspc_finetune_seed{_n}",
+    drive_root=MYDRIVE,
+    images_root=IMAGES_ROOT, labels_path=LABELS_PATH, splits_root=SPLITS_ROOT,
+    seed=_n, config=ImageConfig(), resume=True, max_epochs=50,
+    dataset_cls=ShallowSquatDataset,
+    model_builder=lambda: build_cvcspc_finetune_model(),
+)
+_r = _ft_results[_n]
+print(f"\nseed {_n}: best_f1_val={_r['best_f1_val']:.4f}  (last epoch {_r['epoch']})")
+print(f"best.pt: {_r['best_checkpoint_path']}")
