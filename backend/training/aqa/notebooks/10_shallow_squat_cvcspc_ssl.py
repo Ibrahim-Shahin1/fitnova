@@ -213,3 +213,52 @@ plt.tight_layout()
 plt.savefig(f"{_figdir}/cvcspc_triplet_probe.png", dpi=110, bbox_inches="tight")
 plt.show()
 print(f"\nsaved {_figdir}/cvcspc_triplet_probe.png")
+
+
+# %% [markdown]
+# ## Step 1 + 2 — SSL dataset smoke + VRAM probe
+#
+# Builds the CVCSPC loader (reusing the probe's `ds`), confirms the triplet batch shapes
+# (B,3,224,224) per branch, then builds the model + runs one 3-branch forward+backward to measure
+# peak VRAM at batch 25, checks the projector output is unit-norm, and _triplet_accuracy returns [0,1].
+
+# %%
+from backend.training.aqa.datasets.cvcspc_ssl import build_cvcspc_loader
+from backend.training.aqa.harness.cvcspc_pretrain import (
+    CVCSPCConfig,
+    _triplet_accuracy,
+    build_cvcspc_model,
+    cvcspc_triplet_loss,
+)
+
+_cfg = CVCSPCConfig()
+print("CVCSPCConfig:", _cfg)
+
+_loader = build_cvcspc_loader(ds, _cfg, seed=42)
+_batch = next(iter(_loader))
+for _k in ("anchor", "positive", "negative"):
+    print(f"  {_k:9s} {tuple(_batch[_k].shape)} {_batch[_k].dtype}")
+    assert _batch[_k].shape == (_cfg.batch_size, 3, 224, 224)
+
+_device = torch.device("cuda")
+_backbone, _projector = build_cvcspc_model(_cfg)
+_backbone, _projector = _backbone.to(_device), _projector.to(_device)
+
+torch.cuda.reset_peak_memory_stats()
+_phi_a = _projector(_backbone(_batch["anchor"].to(_device)))
+_phi_p = _projector(_backbone(_batch["positive"].to(_device)))
+_phi_n = _projector(_backbone(_batch["negative"].to(_device)))
+_loss = cvcspc_triplet_loss(_phi_a, _phi_p, _phi_n)
+_loss.backward()
+_peak_gb = torch.cuda.max_memory_allocated() / 1e9
+print(f"\n3-branch fwd+bwd batch {_cfg.batch_size}: loss={_loss.item():.4f}, "
+      f"peak VRAM={_peak_gb:.2f} GB / 23.7 GB")
+_unit = torch.allclose(_phi_a.norm(dim=-1), torch.ones(_cfg.batch_size, device=_device), atol=1e-4)
+print(f"projector out {tuple(_phi_a.shape)}, unit-norm={_unit}")
+
+_ta = _triplet_accuracy(_backbone, _projector, [_batch], _device)
+print(f"triplet-accuracy on the smoke batch: {_ta:.3f} (untrained -> ~0.5)")
+assert 0.0 <= _ta <= 1.0
+
+del _backbone, _projector, _loss
+torch.cuda.empty_cache()
