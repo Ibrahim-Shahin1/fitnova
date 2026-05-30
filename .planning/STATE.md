@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Phase 7 (Shallow-Squat CVCSPC) PLANNED — 5 plans, plan-check PASS + revision (2 blockers fixed: separate 2D ResNet-18 trainer; traj_nan exclusion). BarbellRow/IMG-03 DESCOPED. Faithful CVCSPC confirmed feasible on the Squat-alone unlabeled set. NEXT: execute Phase 7 — Plan 01 local CPU scaffold+tests, 02-04 Colab cell-by-cell, 05 local pack."
+stopped_at: "Phase 7 Plan 01 (Wave 0) COMPLETE — Shallow-Squat CVCSPC scaffold + unit tests GREEN (44 passed, 4 deselected; +15 Phase-7 tests, no Squat/OHP regression). 5 atomic commits 26dce44..62dd9be pushed to origin. NEXT: Plan 02 (Colab) — ImageNet ResNet-18 supervised baseline on the official Shallow-Squat splits (multi-seed, test F1 = SSL-lift control)."
 last_updated: "2026-05-30"
-last_activity: "2026-05-30 -- Phase 7 PLANNED: 5 plans committed (abd6bde). Research corrected an earlier wrong 'CVCSPC needs BarbellRow' premise (it pretrains on the Squat unlabeled set alone). IMG-03 descoped. Phases 1-6 complete."
+last_activity: "2026-05-30 -- Phase 7 Plan 01 executed (Wave-0 local CPU): shallow_squat.py + cvcspc_ssl.py + cvcspc_pretrain.py (3-term loss + phase-matched triplet) + image_supervised_train.py + colab staging/frame-extract + 15 unit tests; Wave-0 gate 44 passed/4 deselected. Pushed 62dd9be."
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 22
-  completed_plans: 17
+  completed_plans: 18
   percent: 75
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-19)
 
 ## Current Position
 
-Phase: 7 (Shallow-Squat CVCSPC) PLANNED — 5 plans (07-01..05), 4 waves, plan-check PASS + revision applied. Phases 1–6 COMPLETE. Next: execute Phase 7. IMG-03 (BarbellRow) DESCOPED.
-Plan: Phase 7 = 0/5 executed. Shallow-Squat image classifier (ImageNet ResNet-18 supervised baseline -> faithful CVCSPC pose-contrastive SSL on the unlabeled Back-Squat set -> fine-tune -> F1 vs paper 0.869). Plan 01 = Wave-0 LOCAL CPU (new datasets/shallow_squat.py + cvcspc_ssl.py + image_supervised_train.py + cvcspc_pretrain.py + colab staging/frame-extract + unit tests for the 3-term loss + phase-matched triplet; gate = pytest green + no Phase-3/4/6 regression). 02 = baseline (Colab). 03 = CVCSPC SSL pretrain (Colab, frame-extract 4970 unlabeled Squat clips + traj_nan exclusion). 04 = fine-tune+ensemble+eval+results.pkl. 05 = deliverable pack. checkpoint_phase=phase07. Key facts: single binary error (Linear(512,1)+BCE); 3-term loss (train_test.py:64-68, code deviates from paper's 2-term — documented); CVCSPC feasible on Squat-alone (research corrected the BarbellRow premise).
+Phase: 7 (Shallow-Squat CVCSPC) EXECUTING — Plan 01 (Wave 0) COMPLETE; Plans 02-05 remain. Phases 1–6 COMPLETE. IMG-03 (BarbellRow) DESCOPED.
+Plan: Phase 7 = 1/5 executed. Plan 01 (Wave-0 LOCAL CPU) DONE: shallow_squat.py + cvcspc_ssl.py + image_supervised_train.py + cvcspc_pretrain.py + colab staging/frame-extract + 15 unit tests (3-term loss closed-form+directional, phase-matched cross-rep triplet, traj_nan exclusion, masking aug, single-head shapes, no-BN configurable projector, seams); Wave-0 gate 44 passed/4 deselected, no Squat/OHP regression; pushed 26dce44..62dd9be. NEXT: Plan 02 (Colab) = ImageNet ResNet-18 baseline (multi-seed, official Shallow-Squat splits 2542/529/540, test F1 = the SSL-lift control). 03 = CVCSPC SSL pretrain (Colab, FRESH notebook, frame-extract 4970 unlabeled clips + traj_nan exclusion) -> backbone.pt. 04 = fine-tune (model_builder seam) + ensemble + eval + results.pkl. 05 = deliverable pack. checkpoint_phase=phase07. Key facts: single binary error (Linear(512,1)+BCE, pos_weight~1.28); 3-term loss (train_test.py:68, code deviates from paper's 2-term — documented); Adam (official) == AdamW at wd=0; CVCSPC feasible on Squat-alone.
 PRIOR (Phase 6, complete): OHP test macro 0.6622 (Elbows 0.4474 / Knees 0.8770), +0.050 SSL lift, paper-matched, val-test gap 0.011; deliverable shipped (docs/figures/ohp_*.png, docs/notebooks/05-08_ohp_*, FINDINGS_OHP, results.pkl).
-Status: executing — Phase 7 planned, ready to execute (Plan 01 local CPU first)
-Last activity: 2026-05-30 -- Phase 7 PLANNED (5 plans, plan-check-revised)
+Status: executing — Phase 7 Plan 01 (Wave 0) complete; Plan 02 baseline (Colab) next
+Last activity: 2026-05-30 -- Phase 7 Plan 01 (Wave 0) complete: scaffold + 15 unit tests green (44 passed/4 deselected)
 
 Progress: [████████░░] 75%
 
