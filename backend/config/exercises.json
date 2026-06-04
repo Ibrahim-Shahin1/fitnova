@@ -1,0 +1,272 @@
+{
+  "squat": {
+    "idx": 0,
+    "display_name": "Squat",
+    "camera_view": "side",
+    "distance_m": 2.8,
+    "phone_height_cm": 100,
+    "orientation": "landscape",
+    "key_errors_detected": ["knees", "hips", "back"],
+    "guidelines": "Place the phone side-on at hip height about 2.8 m away. Your knees, hips, and the bar path must stay in frame for the entire rep. Avoid angling the camera up — keep it level."
+  },
+  "deadlift": {
+    "idx": 1,
+    "display_name": "Deadlift",
+    "camera_view": "side",
+    "distance_m": 3.0,
+    "phone_height_cm": 90,
+    "orientation": "landscape",
+    "key_errors_detected": ["back", "hips", "knees"],
+    "guidelines": "Position the phone at hip height 3 m away on your side. The bar path from the floor to lockout must be fully visible. Keep the camera level to ensure proper form analysis."
+  },
+  "pushup": {
+    "idx": 2,
+    "display_name": "Push-up",
+    "camera_view": "either",
+    "distance_m": 2.2,
+    "phone_height_cm": 40,
+    "orientation": "landscape",
+    "key_errors_detected": ["shoulders", "elbows", "back"],
+    "guidelines": "Place the phone low and close, 2.2 m away, capturing your entire body from head to toes. The elbow bend and shoulder position are critical — get the camera angle right so your arms and torso are clearly visible."
+  },
+  "diamond_pushup": {
+    "idx": 3,
+    "display_name": "Diamond Push-up",
+    "camera_view": "either",
+    "distance_m": 2.2,
+    "phone_height_cm": 40,
+    "orientation": "landscape",
+    "key_errors_detected": ["elbows", "shoulders", "back"],
+    "guidelines": "Set the phone low and centered 2.2 m away to capture your full body. Diamond push-ups demand tight elbow control — the camera must show your hand position and arm alignment clearly."
+  },
+  "barbell_row": {
+    "idx": 4,
+    "display_name": "Barbell Row",
+    "camera_view": "side",
+    "distance_m": 2.8,
+    "phone_height_cm": 110,
+    "orientation": "landscape",
+    "key_errors_detected": ["back", "shoulders", "elbows"],
+    "guidelines": "Position the phone at upper torso height 2.8 m to your side. The bar, your elbows, and spine position during the row must stay in frame. Maintain a level camera to catch form deviations."
+  },
+  "barbell_dead_row": {
+    "idx": 5,
+    "display_name": "Barbell Dead Row",
+    "camera_view": "side",
+    "distance_m": 2.8,
+    "phone_height_cm": 110,
+    "orientation": "landscape",
+    "key_errors_detected": ["back", "hips", "shoulders"],
+    "guidelines": "Place the phone at shoulder height 2.8 m away on your side. Capture the bar path and hip hinge position from start to finish. Keep the camera steady and level."
+  },
+  "barbell_shrug": {
+    "idx": 6,
+    "display_name": "Barbell Shrug",
+    "camera_view": "either",
+    "distance_m": 2.5,
+    "phone_height_cm": 120,
+    "orientation": "landscape",
+    "key_errors_detected": ["shoulders", "neck", "wrists"],
+    "guidelines": "Place the phone at shoulder level 2.5 m away, front or side. The bar and shoulder elevation are the focus — ensure the bar and shoulders remain in frame throughout the movement."
+  },
+  "one_arm_row": {
+    "idx": 7,
+    "display_name": "One Arm Dumbbell Row",
+    "camera_view": "side",
+    "distance_m": 2.5,
+    "phone_height_cm": 110,
+    "orientation": "landscape",
+    "key_errors_detected": ["back", "shoulders", "hips"],
+    "guidelines": "Set the phone at shoulder height 2.5 m to your side. The dumbbell, your rowing elbow, and trunk rotation must all be visible. Avoid twisting the camera — keep it perpendicular to your body."
+  },
+  "dumbbell_overhead_shoulder_press": {
+    "idx": 8,
+    "display_name": "Dumbbell Overhead Shoulder Press",
+    "camera_view": "front",
+    "distance_m": 2.0,
+    "phone_height_cm": 120,
+    "orientation": "portrait",
+    "key_errors_detected": ["shoulders", "elbows", "back"],
+    "guidelines": "Face the phone 2.0 m away. Both dumbbells and your full arm path from shoulder to lockout must be visible. Keep your head still and capture the complete range of motion."
+  },
+  "neutral_overhead_shoulder_press": {
+    "idx": 9,
+    "display_name": "Neutral Overhead Shoulder Press",
+    "camera_view": "front",
+    "distance_m": 2.0,
+    "phone_height_cm": 120,
+    "orientation": "portrait",
+    "key_errors_detected": ["shoulders", "elbows", "back"],
+    "guidelines": "Stand facing the phone 2.0 m away. Ensure both dumbbells and your shoulders are centered in frame. Neutral grip demands proper shoulder alignment — the camera must capture elbow and wrist position."
+  },
+  "dumbbell_biceps_curls": {
+    "idx": 10,
+    "display_name": "Dumbbell Biceps Curls",
+    "camera_view": "front",
+    "distance_m": 1.8,
+    "phone_height_cm": 130,
+    "orientation": "portrait",
+    "key_errors_detected": ["elbows", "shoulders", "wrists"],
+    "guidelines": "Face the phone 1.8 m away at chest height. Both dumbbells and the full arc of your curl must be visible. Keep your upper arms stationary — the camera should clearly show elbow angle and shoulder stability."
+  },
+  "dumbbell_hammer_curls": {
+    "idx": 11,
+    "display_name": "Dumbbell Hammer Curls",
+    "camera_view": "front",
+    "distance_m": 1.8,
+    "phone_height_cm": 130,
+    "orientation": "portrait",
+    "key_errors_detected": ["elbows", "shoulders", "wrists"],
+    "guidelines": "Stand 1.8 m in front of the phone at chest level. The neutral grip and curl arc are critical — capture both dumbbells from start to peak contraction without motion blur."
+  },
+  "dumbbell_curl_trifecta": {
+    "idx": 12,
+    "display_name": "Dumbbell Curl Trifecta",
+    "camera_view": "front",
+    "distance_m": 1.8,
+    "phone_height_cm": 130,
+    "orientation": "portrait",
+    "key_errors_detected": ["elbows", "shoulders", "wrists"],
+    "guidelines": "Position yourself 1.8 m in front of the phone at chest height. The varying grip positions and elbow angles must all be visible. Keep the frame stable to capture each phase of the trifecta."
+  },
+  "drag_curl": {
+    "idx": 13,
+    "display_name": "Drag Curl",
+    "camera_view": "front",
+    "distance_m": 1.8,
+    "phone_height_cm": 130,
+    "orientation": "portrait",
+    "key_errors_detected": ["elbows", "shoulders", "back"],
+    "guidelines": "Face the phone 1.8 m away at chest level. The drag curl's unique elbow path — kept tight to the body — must be clearly visible. Capture the entire range without allowing the bar to drift forward."
+  },
+  "dumbbell_reverse_lunge": {
+    "idx": 14,
+    "display_name": "Dumbbell Reverse Lunge",
+    "camera_view": "side",
+    "distance_m": 2.5,
+    "phone_height_cm": 100,
+    "orientation": "landscape",
+    "key_errors_detected": ["knees", "hips", "back"],
+    "guidelines": "Place the phone at hip height 2.5 m to your side. Your front and rear knee angles, hip position, and torso alignment must all stay in frame. Avoid angling up — level camera is essential."
+  },
+  "dumbbell_high_pulls": {
+    "idx": 15,
+    "display_name": "Dumbbell High Pulls",
+    "camera_view": "front",
+    "distance_m": 2.0,
+    "phone_height_cm": 100,
+    "orientation": "portrait",
+    "key_errors_detected": ["elbows", "shoulders", "wrists"],
+    "guidelines": "Stand facing the phone 2.0 m away. The dumbbell path from hip to shoulder height and elbow position are critical. Capture the explosive pull and elbow drive clearly."
+  },
+  "dumbbell_scaptions": {
+    "idx": 16,
+    "display_name": "Dumbbell Scaptions",
+    "camera_view": "front",
+    "distance_m": 1.8,
+    "phone_height_cm": 140,
+    "orientation": "portrait",
+    "key_errors_detected": ["shoulders", "elbows", "wrists"],
+    "guidelines": "Face the phone 1.8 m away at shoulder height. The scaption plane (45° angle) and dumbbell path must be visible. Keep your torso still — the focus is shoulder mobility and control."
+  },
+  "side_lateral_raise": {
+    "idx": 17,
+    "display_name": "Side Lateral Raise",
+    "camera_view": "front",
+    "distance_m": 2.0,
+    "phone_height_cm": 120,
+    "orientation": "portrait",
+    "key_errors_detected": ["shoulders", "elbows", "wrists"],
+    "guidelines": "Stand 2.0 m in front of the phone. Both dumbbells and shoulder abduction arc must be fully visible. Keep the frame centered on your shoulders — arm elevation and elbow angle are key."
+  },
+  "overhead_trap_raises": {
+    "idx": 18,
+    "display_name": "Overhead Trap Raises",
+    "camera_view": "front",
+    "distance_m": 2.0,
+    "phone_height_cm": 100,
+    "orientation": "portrait",
+    "key_errors_detected": ["shoulders", "neck", "elbows"],
+    "guidelines": "Face the phone 2.0 m away at chest level. The dumbbells must travel overhead with minimal torso lean. Capture the full lockout and trap engagement clearly."
+  },
+  "w_raise": {
+    "idx": 19,
+    "display_name": "W Raise",
+    "camera_view": "front",
+    "distance_m": 1.8,
+    "phone_height_cm": 140,
+    "orientation": "portrait",
+    "key_errors_detected": ["shoulders", "elbows", "back"],
+    "guidelines": "Stand 1.8 m from the phone at shoulder height. The W position of your arms and rear delt engagement must be visible. Maintain posture — any spinal drift will affect form analysis."
+  },
+  "band_pull_apart": {
+    "idx": 20,
+    "display_name": "Band Pull Apart",
+    "camera_view": "front",
+    "distance_m": 2.0,
+    "phone_height_cm": 130,
+    "orientation": "portrait",
+    "key_errors_detected": ["shoulders", "back", "elbows"],
+    "guidelines": "Face the camera 2.0 m away at chest height. The band and arm position throughout the pull must be clear. Capture shoulder external rotation and scapular retraction."
+  },
+  "burpees": {
+    "idx": 21,
+    "display_name": "Burpees",
+    "camera_view": "either",
+    "distance_m": 2.8,
+    "phone_height_cm": 100,
+    "orientation": "landscape",
+    "key_errors_detected": ["back", "shoulders", "knees"],
+    "guidelines": "Place the phone 2.8 m away to capture your entire body. The squat, push-up, and jump phases must all be visible. Landscape orientation is needed for the full range of motion."
+  },
+  "clean_and_press": {
+    "idx": 22,
+    "display_name": "Clean and Press",
+    "camera_view": "side",
+    "distance_m": 3.0,
+    "phone_height_cm": 100,
+    "orientation": "landscape",
+    "key_errors_detected": ["back", "hips", "shoulders"],
+    "guidelines": "Set the phone 3.0 m to your side at hip height. The bar path from floor through catch position and overhead lockout must be fully visible. Keep the camera level for proper depth analysis."
+  },
+  "man_maker": {
+    "idx": 23,
+    "display_name": "Man Maker",
+    "camera_view": "either",
+    "distance_m": 2.8,
+    "phone_height_cm": 50,
+    "orientation": "landscape",
+    "key_errors_detected": ["back", "shoulders", "elbows"],
+    "guidelines": "Place the phone low and centered 2.8 m away. The push-up position and rowing motion must both be visible. Landscape is essential to capture the full plank range."
+  },
+  "mule_kick": {
+    "idx": 24,
+    "display_name": "Mule Kick",
+    "camera_view": "either",
+    "distance_m": 2.5,
+    "phone_height_cm": 60,
+    "orientation": "landscape",
+    "key_errors_detected": ["shoulders", "back", "hips"],
+    "guidelines": "Set the phone low 2.5 m away to capture your full body in plank. The glute kick and arm stability are critical — the camera must show the complete range without obstruction."
+  },
+  "overhead_extension_thruster": {
+    "idx": 25,
+    "display_name": "Overhead Extension Thruster",
+    "camera_view": "either",
+    "distance_m": 2.5,
+    "phone_height_cm": 110,
+    "orientation": "landscape",
+    "key_errors_detected": ["shoulders", "elbows", "knees"],
+    "guidelines": "Position the phone 2.5 m away to capture your full body. The squat dip, explosive drive, and overhead lockout must all be visible. Landscape orientation shows the complete compound movement."
+  },
+  "standing_ab_twists": {
+    "idx": 26,
+    "display_name": "Standing Ab Twists",
+    "camera_view": "either",
+    "distance_m": 2.0,
+    "phone_height_cm": 90,
+    "orientation": "landscape",
+    "key_errors_detected": ["shoulders", "back", "hips"],
+    "guidelines": "Place the phone 2.0 m away at hip height to capture your full torso. The rotational range and core engagement must be visible. Keep the camera centered — rotation should be around the vertical axis."
+  }
+}

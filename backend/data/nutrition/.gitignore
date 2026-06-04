@@ -1,0 +1,3 @@
+# Food.com is research-only + large; do not commit derived data
+*
+!.gitignore

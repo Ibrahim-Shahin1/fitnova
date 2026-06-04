@@ -1,0 +1,44 @@
+{
+  "lower_back": {
+    "label": "Lower back",
+    "avoid_keywords": ["deadlift", "good morning", "barbell row", "bent over row", "back extension", "romanian deadlift", "stiff leg", "t-bar row"],
+    "prefer_keywords": ["machine", "cable", "chest supported", "supported", "seated"],
+    "notes": "Avoid spinal loading. Substitute with chest-supported or machine variants."
+  },
+  "knees": {
+    "label": "Knees",
+    "avoid_keywords": ["jump", "plyometric", "pistol squat", "box jump", "deep lunge", "burpee", "jump squat", "split squat"],
+    "prefer_keywords": ["seated", "machine", "leg extension", "leg curl", "hip thrust"],
+    "notes": "Avoid impact and deep flexion. Substitute with machine work."
+  },
+  "shoulders": {
+    "label": "Shoulders",
+    "avoid_keywords": ["overhead press", "behind the neck", "upright row", "snatch", "jerk", "military press", "arnold press"],
+    "prefer_keywords": ["incline", "neutral grip", "landmine", "machine", "cable"],
+    "notes": "Avoid overhead loading. Use neutral-grip and landmine alternatives."
+  },
+  "wrists": {
+    "label": "Wrists / elbows",
+    "avoid_keywords": ["skullcrusher", "preacher curl", "barbell curl", "close grip bench", "wrist curl"],
+    "prefer_keywords": ["cable", "ez bar", "rope", "neutral grip", "machine"],
+    "notes": "Avoid heavy pronated/supinated grip. Use cables and EZ bars."
+  },
+  "neck": {
+    "label": "Neck",
+    "avoid_keywords": ["shrug", "behind the neck", "bridge", "neck curl", "neck extension"],
+    "prefer_keywords": ["seated", "supported", "neutral", "machine"],
+    "notes": "Avoid loaded cervical movement."
+  },
+  "hips": {
+    "label": "Hips",
+    "avoid_keywords": ["deep squat", "lunge", "split squat", "bulgarian", "sumo deadlift", "hip abduction"],
+    "prefer_keywords": ["machine", "leg press", "hip thrust", "glute bridge", "seated"],
+    "notes": "Avoid deep hip flexion under load."
+  },
+  "ankles": {
+    "label": "Ankles",
+    "avoid_keywords": ["jump", "calf raise", "plyometric", "box jump", "sprint", "jump rope"],
+    "prefer_keywords": ["seated", "machine", "supported", "isometric", "upper body"],
+    "notes": "Avoid impact and dynamic ankle loading."
+  }
+}

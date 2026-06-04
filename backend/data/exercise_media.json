@@ -1,0 +1,3572 @@
+{
+  "(BACK) Barbell Pendlay Row": {
+    "gif_url": "https://static.exercisedb.dev/media/r0z6xzQ.gif",
+    "type": "gif",
+    "_matched_to": "barbell pendlay row",
+    "_score": 100.0
+  },
+  "(CHEST) Decline Barbell Bench Press": {
+    "gif_url": "https://static.exercisedb.dev/media/GrO65fd.gif",
+    "type": "gif",
+    "_matched_to": "barbell decline bench press",
+    "_score": 100.0
+  },
+  "(Dumbbell) Calf Raise (Single Leg)": {
+    "gif_url": "https://static.exercisedb.dev/media/c9MnDRp.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell raise",
+    "_score": 84.84848484848484
+  },
+  "(GLUTES) Barbell Hip Thrust": {
+    "gif_url": "https://static.exercisedb.dev/media/f7Y9eDZ.gif",
+    "type": "gif",
+    "_matched_to": "barbell thruster",
+    "_score": 82.35294117647058
+  },
+  "(HAMSTRINGS) Barbell RDL": {
+    "gif_url": "https://static.exercisedb.dev/media/25GPyDY.gif",
+    "type": "gif",
+    "_matched_to": "barbell curl",
+    "_score": 86.95652173913044
+  },
+  "(POSTERIOR CHAIN) Barbell Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/ila4NZS.gif",
+    "type": "gif",
+    "_matched_to": "barbell deadlift",
+    "_score": 100.0
+  },
+  "(SHOULDERS) Seated Dumbbell Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/znQUdHY.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated shoulder press",
+    "_score": 100.0
+  },
+  "(SHOULDERS) Seated Smith Machine Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/xUwnBMT.gif",
+    "type": "gif",
+    "_matched_to": "smith seated shoulder press",
+    "_score": 87.09677419354838
+  },
+  "(TOTAL) Barbell Clean And Press": {
+    "gif_url": "https://static.exercisedb.dev/media/SGY8Zui.gif",
+    "type": "gif",
+    "_matched_to": "barbell clean and press",
+    "_score": 100.0
+  },
+  "(TRICEPS) Weighted Bench Dip": {
+    "gif_url": "https://static.exercisedb.dev/media/MU9HnE7.gif",
+    "type": "gif",
+    "_matched_to": "weighted bench dip",
+    "_score": 100.0
+  },
+  "45° Incline Barbell Press": {
+    "gif_url": "https://static.exercisedb.dev/media/3TZduzM.gif",
+    "type": "gif",
+    "_matched_to": "barbell incline bench press",
+    "_score": 82.35294117647058
+  },
+  "AD Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/SGY8Zui.gif",
+    "type": "gif",
+    "_matched_to": "barbell clean and press",
+    "_score": 82.05128205128204
+  },
+  "Abs Crunch (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/s8nrDXF.gif",
+    "type": "gif",
+    "_matched_to": "weighted crunch",
+    "_score": 88.23529411764706
+  },
+  "Air Bike": {
+    "gif_url": "https://static.exercisedb.dev/media/1ZFqTDN.gif",
+    "type": "gif",
+    "_matched_to": "air bike",
+    "_score": 100.0
+  },
+  "Alternating Dumbbell Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/BU15nH4.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell alternate biceps curl",
+    "_score": 83.63636363636364
+  },
+  "Alternating Incline Dumbbell Chest Press (Bottom Hold)": {
+    "gif_url": "https://static.exercisedb.dev/media/TVdivgY.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline alternate press",
+    "_score": 88.88888888888889
+  },
+  "Ankle Circles": {
+    "gif_url": "https://static.exercisedb.dev/media/uL9CsKm.gif",
+    "type": "gif",
+    "_matched_to": "ankle circles",
+    "_score": 100.0
+  },
+  "Archer Pull Up": {
+    "gif_url": "https://static.exercisedb.dev/media/72BC5Za.gif",
+    "type": "gif",
+    "_matched_to": "archer pull up",
+    "_score": 100.0
+  },
+  "Archer Push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/A9qxk2F.gif",
+    "type": "gif",
+    "_matched_to": "archer push up",
+    "_score": 100.0
+  },
+  "B-Stance Romanian Deadlift (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/rR0LJzx.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell romanian deadlift",
+    "_score": 85.24590163934427
+  },
+  "Back Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/rUXfn3R.gif",
+    "type": "gif",
+    "_matched_to": "lever back extension",
+    "_score": 82.35294117647058
+  },
+  "Back Extension (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/rUXfn3R.gif",
+    "type": "gif",
+    "_matched_to": "lever back extension",
+    "_score": 82.35294117647058
+  },
+  "Balance Board": {
+    "gif_url": "https://static.exercisedb.dev/media/xAySMB0.gif",
+    "type": "gif",
+    "_matched_to": "balance board",
+    "_score": 100.0
+  },
+  "Band Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/sTg7iys.gif",
+    "type": "gif",
+    "_matched_to": "band front lateral raise",
+    "_score": 85.71428571428572
+  },
+  "Banded Overhead Squat": {
+    "gif_url": "https://static.exercisedb.dev/media/gfk9kD4.gif",
+    "type": "gif",
+    "_matched_to": "barbell overhead squat",
+    "_score": 83.72093023255813
+  },
+  "Barbell Curls": {
+    "gif_url": "https://static.exercisedb.dev/media/25GPyDY.gif",
+    "type": "gif",
+    "_matched_to": "barbell curl",
+    "_score": 96.0
+  },
+  "Barbell Front Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/b2Uoz54.gif",
+    "type": "gif",
+    "_matched_to": "barbell front raise",
+    "_score": 100.0
+  },
+  "Barbell RDL": {
+    "gif_url": "https://static.exercisedb.dev/media/25GPyDY.gif",
+    "type": "gif",
+    "_matched_to": "barbell curl",
+    "_score": 86.95652173913044
+  },
+  "Barbell Reverse Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/xNrS20v.gif",
+    "type": "gif",
+    "_matched_to": "barbell reverse curl",
+    "_score": 100.0
+  },
+  "Barbell Rollout": {
+    "gif_url": "https://static.exercisedb.dev/media/7M66AVi.gif",
+    "type": "gif",
+    "_matched_to": "barbell rollerout",
+    "_score": 93.75
+  },
+  "Barbell Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/PzQanLE.gif",
+    "type": "gif",
+    "_matched_to": "cable shoulder press",
+    "_score": 85.71428571428572
+  },
+  "Barbell Strict Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/82LxxkW.gif",
+    "type": "gif",
+    "_matched_to": "barbell wrist curl",
+    "_score": 86.48648648648648
+  },
+  "Barbell Wrist Curl (12-15)": {
+    "gif_url": "https://static.exercisedb.dev/media/82LxxkW.gif",
+    "type": "gif",
+    "_matched_to": "barbell wrist curl",
+    "_score": 100.0
+  },
+  "Battle Ropes": {
+    "gif_url": "https://static.exercisedb.dev/media/RJa4tCo.gif",
+    "type": "gif",
+    "_matched_to": "battling ropes",
+    "_score": 84.61538461538461
+  },
+  "Bear Crawl": {
+    "gif_url": "https://static.exercisedb.dev/media/0Yz8WdV.gif",
+    "type": "gif",
+    "_matched_to": "bear crawl",
+    "_score": 100.0
+  },
+  "Behind The Neck Press": {
+    "gif_url": "https://static.exercisedb.dev/media/Gpn4ADc.gif",
+    "type": "gif",
+    "_matched_to": "smith behind neck press",
+    "_score": 90.9090909090909
+  },
+  "Behind The Neck Press (Seated)": {
+    "gif_url": "https://static.exercisedb.dev/media/Gpn4ADc.gif",
+    "type": "gif",
+    "_matched_to": "smith behind neck press",
+    "_score": 90.9090909090909
+  },
+  "Behind-The-Neck Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/Gpn4ADc.gif",
+    "type": "gif",
+    "_matched_to": "smith behind neck press",
+    "_score": 90.9090909090909
+  },
+  "Behind-the-Neck Push Press": {
+    "gif_url": "https://static.exercisedb.dev/media/Gpn4ADc.gif",
+    "type": "gif",
+    "_matched_to": "smith behind neck press",
+    "_score": 85.71428571428572
+  },
+  "Bench Press (AM)": {
+    "gif_url": "https://static.exercisedb.dev/media/khlHMqs.gif",
+    "type": "gif",
+    "_matched_to": "band bench press",
+    "_score": 86.66666666666667
+  },
+  "Bench Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/EIeI8Vf.gif",
+    "type": "gif",
+    "_matched_to": "barbell bench press",
+    "_score": 100.0
+  },
+  "Bench Press (Close Grip)": {
+    "gif_url": "https://static.exercisedb.dev/media/WcHl7ru.gif",
+    "type": "gif",
+    "_matched_to": "smith close-grip bench press",
+    "_score": 88.0
+  },
+  "Bench Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/SpYC0Kp.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell bench press",
+    "_score": 100.0
+  },
+  "Bench Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/ETZfAbZ.gif",
+    "type": "gif",
+    "_matched_to": "smith decline bench press",
+    "_score": 88.0
+  },
+  "Bench Press (Wide Grip)": {
+    "gif_url": "https://static.exercisedb.dev/media/zoOvPcx.gif",
+    "type": "gif",
+    "_matched_to": "smith wide grip bench press",
+    "_score": 87.5
+  },
+  "Bench Press - Cable": {
+    "gif_url": "https://static.exercisedb.dev/media/7xI5MXA.gif",
+    "type": "gif",
+    "_matched_to": "cable bench press",
+    "_score": 100.0
+  },
+  "Bench Press Incline (Close Grip)": {
+    "gif_url": "https://static.exercisedb.dev/media/gx7s7uF.gif",
+    "type": "gif",
+    "_matched_to": "barbell incline close grip bench press",
+    "_score": 88.23529411764706
+  },
+  "Bench Press Pause (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/SpYC0Kp.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell bench press",
+    "_score": 86.95652173913044
+  },
+  "Bent Over Row (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/eZyBC3j.gif",
+    "type": "gif",
+    "_matched_to": "barbell bent over row",
+    "_score": 100.0
+  },
+  "Bent Over Row (Barbell, Paused)": {
+    "gif_url": "https://static.exercisedb.dev/media/eZyBC3j.gif",
+    "type": "gif",
+    "_matched_to": "barbell bent over row",
+    "_score": 85.71428571428572
+  },
+  "Bent Over Row (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/BJ0Hz5L.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell bent over row",
+    "_score": 100.0
+  },
+  "Bent Over Row (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/ZX9UZmj.gif",
+    "type": "gif",
+    "_matched_to": "smith bent over row",
+    "_score": 82.6086956521739
+  },
+  "Bent Over Row (cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/X3cqyXz.gif",
+    "type": "gif",
+    "_matched_to": "lever bent over row",
+    "_score": 84.21052631578947
+  },
+  "Bent-Over Row (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/ZX9UZmj.gif",
+    "type": "gif",
+    "_matched_to": "smith bent over row",
+    "_score": 82.6086956521739
+  },
+  "Bicep Curl (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/otqIxU4.gif",
+    "type": "gif",
+    "_matched_to": "cable lying bicep curl",
+    "_score": 84.21052631578947
+  },
+  "Bicep Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/NbVPDMW.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell biceps curl",
+    "_score": 97.43589743589743
+  },
+  "Bicep Curl (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/zILLZ98.gif",
+    "type": "gif",
+    "_matched_to": "smith machine bicep curl",
+    "_score": 85.71428571428572
+  },
+  "Bicep Curl Cable Seated": {
+    "gif_url": "https://static.exercisedb.dev/media/8oYqOt9.gif",
+    "type": "gif",
+    "_matched_to": "cable seated curl",
+    "_score": 85.0
+  },
+  "Bicep Curls (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/otqIxU4.gif",
+    "type": "gif",
+    "_matched_to": "cable lying bicep curl",
+    "_score": 82.05128205128204
+  },
+  "Bicycle Crunch": {
+    "gif_url": "https://static.exercisedb.dev/media/tZkGYZ9.gif",
+    "type": "gif",
+    "_matched_to": "band bicycle crunch",
+    "_score": 84.84848484848484
+  },
+  "Bicycle crunch": {
+    "gif_url": "https://static.exercisedb.dev/media/tZkGYZ9.gif",
+    "type": "gif",
+    "_matched_to": "band bicycle crunch",
+    "_score": 84.84848484848484
+  },
+  "Bodyweight Triceps Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/s0HKO2I.gif",
+    "type": "gif",
+    "_matched_to": "bodyweight kneeling triceps extension",
+    "_score": 86.15384615384616
+  },
+  "Bosu Ball Squats": {
+    "gif_url": "https://static.exercisedb.dev/media/T2fA5Ir.gif",
+    "type": "gif",
+    "_matched_to": "squat on bosu ball",
+    "_score": 88.23529411764706
+  },
+  "Box Squat (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/W9pFVv1.gif",
+    "type": "gif",
+    "_matched_to": "barbell bench squat",
+    "_score": 83.33333333333334
+  },
+  "Burpee": {
+    "gif_url": "https://static.exercisedb.dev/media/dK9394r.gif",
+    "type": "gif",
+    "_matched_to": "burpee",
+    "_score": 100.0
+  },
+  "Burpee (No Push Up)": {
+    "gif_url": "https://static.exercisedb.dev/media/dK9394r.gif",
+    "type": "gif",
+    "_matched_to": "burpee",
+    "_score": 100.0
+  },
+  "Cable Chest Press": {
+    "gif_url": "https://static.exercisedb.dev/media/nIR4Rwl.gif",
+    "type": "gif",
+    "_matched_to": "cable seated chest press",
+    "_score": 82.92682926829268
+  },
+  "Cable Cross Tricep Pushdown": {
+    "gif_url": "https://static.exercisedb.dev/media/qRZ5S1N.gif",
+    "type": "gif",
+    "_matched_to": "cable one arm tricep pushdown",
+    "_score": 82.14285714285714
+  },
+  "Cable Crunch": {
+    "gif_url": "https://static.exercisedb.dev/media/q2ADGqV.gif",
+    "type": "gif",
+    "_matched_to": "cable side crunch",
+    "_score": 82.75862068965517
+  },
+  "Cable Crunch (Myo Rep )": {
+    "gif_url": "https://static.exercisedb.dev/media/q2ADGqV.gif",
+    "type": "gif",
+    "_matched_to": "cable side crunch",
+    "_score": 82.75862068965517
+  },
+  "Cable Hip Abduction": {
+    "gif_url": "https://static.exercisedb.dev/media/hBGWILP.gif",
+    "type": "gif",
+    "_matched_to": "cable hip adduction",
+    "_score": 94.73684210526316
+  },
+  "Cable Incline Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/tBWXbIT.gif",
+    "type": "gif",
+    "_matched_to": "cable incline fly",
+    "_score": 85.71428571428572
+  },
+  "Cable Incline Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/tBWXbIT.gif",
+    "type": "gif",
+    "_matched_to": "cable incline fly",
+    "_score": 100.0
+  },
+  "Cable Lateral Raise (Lengthened-Mid Position)": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 100.0
+  },
+  "Cable Preacher Curls": {
+    "gif_url": "https://static.exercisedb.dev/media/P2lNrGL.gif",
+    "type": "gif",
+    "_matched_to": "cable preacher curl",
+    "_score": 97.43589743589743
+  },
+  "Cable Pushdown": {
+    "gif_url": "https://static.exercisedb.dev/media/3ZflifB.gif",
+    "type": "gif",
+    "_matched_to": "cable pushdown",
+    "_score": 100.0
+  },
+  "Cable Reverse Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/eOG0r6v.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse curl",
+    "_score": 100.0
+  },
+  "Cable Reverse Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/eOG0r6v.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse curl",
+    "_score": 85.71428571428572
+  },
+  "Cable Reverse Flye": {
+    "gif_url": "https://static.exercisedb.dev/media/eOG0r6v.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse curl",
+    "_score": 83.33333333333334
+  },
+  "Cable Romanian Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/wQ2c4XD.gif",
+    "type": "gif",
+    "_matched_to": "barbell romanian deadlift",
+    "_score": 87.5
+  },
+  "Cable Rope Seated Crunches": {
+    "gif_url": "https://static.exercisedb.dev/media/8xUv4J7.gif",
+    "type": "gif",
+    "_matched_to": "cable seated crunch",
+    "_score": 84.44444444444444
+  },
+  "Cable Shrugs": {
+    "gif_url": "https://static.exercisedb.dev/media/Eg98Ft9.gif",
+    "type": "gif",
+    "_matched_to": "cable shrug",
+    "_score": 95.65217391304348
+  },
+  "Cable Tricep Kickback": {
+    "gif_url": "https://static.exercisedb.dev/media/vvNjDJS.gif",
+    "type": "gif",
+    "_matched_to": "cable two arm tricep kickback",
+    "_score": 84.0
+  },
+  "Cable Tricep Pushdown (12-15)": {
+    "gif_url": "https://static.exercisedb.dev/media/gAwDzB3.gif",
+    "type": "gif",
+    "_matched_to": "cable triceps pushdown (v-bar)",
+    "_score": 85.71428571428572
+  },
+  "Cable Triceps Kickback": {
+    "gif_url": "https://static.exercisedb.dev/media/vvNjDJS.gif",
+    "type": "gif",
+    "_matched_to": "cable two arm tricep kickback",
+    "_score": 82.35294117647058
+  },
+  "Cable Twists": {
+    "gif_url": "https://static.exercisedb.dev/media/aVs3BR3.gif",
+    "type": "gif",
+    "_matched_to": "cable twist",
+    "_score": 95.65217391304348
+  },
+  "Cable V-Bar Seated Rows": {
+    "gif_url": "https://static.exercisedb.dev/media/pwt0pnM.gif",
+    "type": "gif",
+    "_matched_to": "cable seated high row (v-bar)",
+    "_score": 88.0
+  },
+  "Cable Wrist Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/LrV4s90.gif",
+    "type": "gif",
+    "_matched_to": "cable wrist curl",
+    "_score": 100.0
+  },
+  "Cable Wrist Curls (12-15)": {
+    "gif_url": "https://static.exercisedb.dev/media/LrV4s90.gif",
+    "type": "gif",
+    "_matched_to": "cable wrist curl",
+    "_score": 96.96969696969697
+  },
+  "Cable Wrist Pushdown": {
+    "gif_url": "https://static.exercisedb.dev/media/3ZflifB.gif",
+    "type": "gif",
+    "_matched_to": "cable pushdown",
+    "_score": 82.35294117647058
+  },
+  "Cable abduction": {
+    "gif_url": "https://static.exercisedb.dev/media/hBGWILP.gif",
+    "type": "gif",
+    "_matched_to": "cable hip adduction",
+    "_score": 82.35294117647058
+  },
+  "Cable twists": {
+    "gif_url": "https://static.exercisedb.dev/media/aVs3BR3.gif",
+    "type": "gif",
+    "_matched_to": "cable twist",
+    "_score": 95.65217391304348
+  },
+  "Cable/Machine Fly (12-15)": {
+    "gif_url": "https://static.exercisedb.dev/media/tBWXbIT.gif",
+    "type": "gif",
+    "_matched_to": "cable incline fly",
+    "_score": 82.35294117647058
+  },
+  "Calf Raise (Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/bJYHBIN.gif",
+    "type": "gif",
+    "_matched_to": "bodyweight standing calf raise",
+    "_score": 82.35294117647058
+  },
+  "Cheat Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 84.21052631578947
+  },
+  "Chest Dips": {
+    "gif_url": "https://static.exercisedb.dev/media/9WTm7dq.gif",
+    "type": "gif",
+    "_matched_to": "chest dip",
+    "_score": 94.73684210526316
+  },
+  "Chest Dips (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/9WTm7dq.gif",
+    "type": "gif",
+    "_matched_to": "chest dip",
+    "_score": 94.73684210526316
+  },
+  "Chest Fly Press (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/wDN97Ca.gif",
+    "type": "gif",
+    "_matched_to": "machine inner chest press",
+    "_score": 83.33333333333334
+  },
+  "Chest Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/SpYC0Kp.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell bench press",
+    "_score": 85.0
+  },
+  "Chest Press (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/wDN97Ca.gif",
+    "type": "gif",
+    "_matched_to": "machine inner chest press",
+    "_score": 86.36363636363636
+  },
+  "Chest Press (Resistance Band)": {
+    "gif_url": "https://static.exercisedb.dev/media/4x5Okof.gif",
+    "type": "gif",
+    "_matched_to": "resistance band seated chest press",
+    "_score": 88.52459016393442
+  },
+  "Chest Press (dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/SpYC0Kp.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell bench press",
+    "_score": 85.0
+  },
+  "Chin-Up (Assisted)": {
+    "gif_url": "https://static.exercisedb.dev/media/T2mxWqc.gif",
+    "type": "gif",
+    "_matched_to": "chin-up",
+    "_score": 100.0
+  },
+  "Chin-Up (Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/T2mxWqc.gif",
+    "type": "gif",
+    "_matched_to": "chin-up",
+    "_score": 100.0
+  },
+  "Chin-Up (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/T2mxWqc.gif",
+    "type": "gif",
+    "_matched_to": "chin-up",
+    "_score": 100.0
+  },
+  "Clap Pushups": {
+    "gif_url": "https://static.exercisedb.dev/media/wigSg76.gif",
+    "type": "gif",
+    "_matched_to": "clap push up",
+    "_score": 91.66666666666666
+  },
+  "Clapping Push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/wigSg76.gif",
+    "type": "gif",
+    "_matched_to": "clap push up",
+    "_score": 85.71428571428572
+  },
+  "Clean Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/eGDudUV.gif",
+    "type": "gif",
+    "_matched_to": "cable deadlift",
+    "_score": 85.71428571428572
+  },
+  "Close Grip Barbell Incline": {
+    "gif_url": "https://static.exercisedb.dev/media/EcaV7aL.gif",
+    "type": "gif",
+    "_matched_to": "barbell lying close-grip press",
+    "_score": 82.14285714285714
+  },
+  "Close Grip Bench Press (12,10,8,6,4)": {
+    "gif_url": "https://static.exercisedb.dev/media/WcHl7ru.gif",
+    "type": "gif",
+    "_matched_to": "smith close-grip bench press",
+    "_score": 88.0
+  },
+  "Close Grip Bench Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/yB9SvIF.gif",
+    "type": "gif",
+    "_matched_to": "smith machine decline close grip bench press",
+    "_score": 90.0
+  },
+  "Close Grip Incline Bench Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/gx7s7uF.gif",
+    "type": "gif",
+    "_matched_to": "barbell incline close grip bench press",
+    "_score": 88.23529411764706
+  },
+  "Close Grip Pull Up": {
+    "gif_url": "https://static.exercisedb.dev/media/x6KpKpq.gif",
+    "type": "gif",
+    "_matched_to": "close-grip push-up",
+    "_score": 88.88888888888889
+  },
+  "Close-Grip Push-Ups": {
+    "gif_url": "https://static.exercisedb.dev/media/x6KpKpq.gif",
+    "type": "gif",
+    "_matched_to": "close-grip push-up",
+    "_score": 97.2972972972973
+  },
+  "Coffin Press Dumbbell": {
+    "gif_url": "https://static.exercisedb.dev/media/QfAKy1G.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell cuban press",
+    "_score": 82.92682926829268
+  },
+  "Concentration Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/kmVVAfu.gif",
+    "type": "gif",
+    "_matched_to": "band concentration curl",
+    "_score": 87.8048780487805
+  },
+  "Cross Body Hammer Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/Qyk5J3p.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell cross body hammer curl",
+    "_score": 83.01886792452831
+  },
+  "Cuban Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/QfAKy1G.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell cuban press",
+    "_score": 100.0
+  },
+  "Cuff Lateral Raise (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 88.37209302325581
+  },
+  "Curl Up (McGill)": {
+    "gif_url": "https://static.exercisedb.dev/media/g2oKspu.gif",
+    "type": "gif",
+    "_matched_to": "curl-up",
+    "_score": 100.0
+  },
+  "Curl-Up": {
+    "gif_url": "https://static.exercisedb.dev/media/g2oKspu.gif",
+    "type": "gif",
+    "_matched_to": "curl-up",
+    "_score": 100.0
+  },
+  "DB Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 85.71428571428572
+  },
+  "Dead Bug": {
+    "gif_url": "https://static.exercisedb.dev/media/iny3m5y.gif",
+    "type": "gif",
+    "_matched_to": "dead bug",
+    "_score": 100.0
+  },
+  "Dead Bug (Resistance Band)": {
+    "gif_url": "https://static.exercisedb.dev/media/iny3m5y.gif",
+    "type": "gif",
+    "_matched_to": "dead bug",
+    "_score": 100.0
+  },
+  "Deadlift (Barbell / KG)": {
+    "gif_url": "https://static.exercisedb.dev/media/ila4NZS.gif",
+    "type": "gif",
+    "_matched_to": "barbell deadlift",
+    "_score": 91.42857142857143
+  },
+  "Deadlift (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ila4NZS.gif",
+    "type": "gif",
+    "_matched_to": "barbell deadlift",
+    "_score": 100.0
+  },
+  "Deadlift (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/nUwVh7b.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell deadlift",
+    "_score": 100.0
+  },
+  "Decline Bench Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/GrO65fd.gif",
+    "type": "gif",
+    "_matched_to": "barbell decline bench press",
+    "_score": 100.0
+  },
+  "Decline Bench Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/DwhEmmE.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell decline bench press",
+    "_score": 100.0
+  },
+  "Decline Bench Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/ETZfAbZ.gif",
+    "type": "gif",
+    "_matched_to": "smith decline bench press",
+    "_score": 86.36363636363636
+  },
+  "Decline Cable Press": {
+    "gif_url": "https://static.exercisedb.dev/media/2Pya1cP.gif",
+    "type": "gif",
+    "_matched_to": "cable decline press",
+    "_score": 100.0
+  },
+  "Decline Chest Press": {
+    "gif_url": "https://static.exercisedb.dev/media/vsVoPHt.gif",
+    "type": "gif",
+    "_matched_to": "lever decline chest press",
+    "_score": 86.36363636363636
+  },
+  "Decline Chest Press (Hammer Strength)": {
+    "gif_url": "https://static.exercisedb.dev/media/vsVoPHt.gif",
+    "type": "gif",
+    "_matched_to": "lever decline chest press",
+    "_score": 86.36363636363636
+  },
+  "Decline Crunch": {
+    "gif_url": "https://static.exercisedb.dev/media/9Ap7miY.gif",
+    "type": "gif",
+    "_matched_to": "decline crunch",
+    "_score": 100.0
+  },
+  "Decline Crunch (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/9Ap7miY.gif",
+    "type": "gif",
+    "_matched_to": "decline crunch",
+    "_score": 100.0
+  },
+  "Decline Flye - Dumbbell": {
+    "gif_url": "https://static.exercisedb.dev/media/xXm4nYq.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell decline fly",
+    "_score": 97.5609756097561
+  },
+  "Decline Push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/i5cEhka.gif",
+    "type": "gif",
+    "_matched_to": "decline push-up",
+    "_score": 100.0
+  },
+  "Decline Ring push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/i5cEhka.gif",
+    "type": "gif",
+    "_matched_to": "decline push-up",
+    "_score": 85.71428571428572
+  },
+  "Decline Sit Up (Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/QLL2gdc.gif",
+    "type": "gif",
+    "_matched_to": "decline sit-up",
+    "_score": 100.0
+  },
+  "Decline Sit Up (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/QLL2gdc.gif",
+    "type": "gif",
+    "_matched_to": "decline sit-up",
+    "_score": 100.0
+  },
+  "Deficit Romanian Deadlift (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/wQ2c4XD.gif",
+    "type": "gif",
+    "_matched_to": "barbell romanian deadlift",
+    "_score": 86.20689655172413
+  },
+  "Diamond Push Ups": {
+    "gif_url": "https://static.exercisedb.dev/media/soIB2rj.gif",
+    "type": "gif",
+    "_matched_to": "diamond push-up",
+    "_score": 96.7741935483871
+  },
+  "Diamond Push-up": {
+    "gif_url": "https://static.exercisedb.dev/media/soIB2rj.gif",
+    "type": "gif",
+    "_matched_to": "diamond push-up",
+    "_score": 100.0
+  },
+  "Diamond Pushup": {
+    "gif_url": "https://static.exercisedb.dev/media/soIB2rj.gif",
+    "type": "gif",
+    "_matched_to": "diamond push-up",
+    "_score": 96.55172413793103
+  },
+  "Diamond push up": {
+    "gif_url": "https://static.exercisedb.dev/media/soIB2rj.gif",
+    "type": "gif",
+    "_matched_to": "diamond push-up",
+    "_score": 100.0
+  },
+  "Donkey Calf Raises": {
+    "gif_url": "https://static.exercisedb.dev/media/u5ESqzH.gif",
+    "type": "gif",
+    "_matched_to": "donkey calf raise",
+    "_score": 97.14285714285714
+  },
+  "Double Kettlebell Front Squat": {
+    "gif_url": "https://static.exercisedb.dev/media/DB0n8AG.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell front squat",
+    "_score": 86.27450980392157
+  },
+  "Double Kettlebell Press": {
+    "gif_url": "https://static.exercisedb.dev/media/I4KkPdl.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell double push press",
+    "_score": 90.19607843137256
+  },
+  "Dumbbell Bench Pullover": {
+    "gif_url": "https://static.exercisedb.dev/media/9XjtHvS.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell pullover",
+    "_score": 85.0
+  },
+  "Dumbbell Hamstring Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/slDvUAU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell hammer curl",
+    "_score": 83.72093023255813
+  },
+  "Dumbbell Incline Bench Row": {
+    "gif_url": "https://static.exercisedb.dev/media/ns0SIbU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline bench press",
+    "_score": 88.88888888888889
+  },
+  "Dumbbell Push Press": {
+    "gif_url": "https://static.exercisedb.dev/media/FS63wTN.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell push press",
+    "_score": 100.0
+  },
+  "Dumbbell RDL": {
+    "gif_url": "https://static.exercisedb.dev/media/yz9nUhF.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell fly",
+    "_score": 83.33333333333334
+  },
+  "Dumbbell Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/znQUdHY.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated shoulder press",
+    "_score": 86.79245283018868
+  },
+  "Dumbbell Supinated Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/TiaZTxx.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated curl",
+    "_score": 88.37209302325581
+  },
+  "Dumbell Incline Shrugs": {
+    "gif_url": "https://static.exercisedb.dev/media/JymLInS.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline shrug",
+    "_score": 95.45454545454545
+  },
+  "Dumbell Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/DsgkuIt.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell lateral raise",
+    "_score": 97.67441860465115
+  },
+  "Dumbell Straight Leg Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/oom75KC.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell straight leg deadlift",
+    "_score": 98.30508474576271
+  },
+  "Dumbell Wide curl": {
+    "gif_url": "https://static.exercisedb.dev/media/qm9veZw.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell lying wide curl",
+    "_score": 82.92682926829268
+  },
+  "EZ Bar Upright Row": {
+    "gif_url": "https://static.exercisedb.dev/media/UDlhcO8.gif",
+    "type": "gif",
+    "_matched_to": "barbell upright row",
+    "_score": 86.48648648648648
+  },
+  "Ez Bar Cable Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/YTur5nR.gif",
+    "type": "gif",
+    "_matched_to": "cable one arm curl",
+    "_score": 85.71428571428572
+  },
+  "FHL Calf Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/2ORFMoR.gif",
+    "type": "gif",
+    "_matched_to": "hack calf raise",
+    "_score": 82.75862068965517
+  },
+  "Farmer's Walk": {
+    "gif_url": "https://static.exercisedb.dev/media/qPEzJjA.gif",
+    "type": "gif",
+    "_matched_to": "farmers walk",
+    "_score": 96.0
+  },
+  "Farmer's Walk (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/qPEzJjA.gif",
+    "type": "gif",
+    "_matched_to": "farmers walk",
+    "_score": 96.0
+  },
+  "Farmer’s Walk (Carry Rig)": {
+    "gif_url": "https://static.exercisedb.dev/media/qPEzJjA.gif",
+    "type": "gif",
+    "_matched_to": "farmers walk",
+    "_score": 96.0
+  },
+  "Fat Grip Reverse Curls(Ez Bar)": {
+    "gif_url": "https://static.exercisedb.dev/media/Y5X65IB.gif",
+    "type": "gif",
+    "_matched_to": "ez barbell reverse grip curl",
+    "_score": 84.21052631578947
+  },
+  "Finger Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/awG04cF.gif",
+    "type": "gif",
+    "_matched_to": "finger curls",
+    "_score": 95.65217391304348
+  },
+  "Floor Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/vtusOWT.gif",
+    "type": "gif",
+    "_matched_to": "barbell one arm floor press",
+    "_score": 82.6086956521739
+  },
+  "Flutter Kick": {
+    "gif_url": "https://static.exercisedb.dev/media/UVo2Qs2.gif",
+    "type": "gif",
+    "_matched_to": "flutter kicks",
+    "_score": 96.0
+  },
+  "Flutter Kicks": {
+    "gif_url": "https://static.exercisedb.dev/media/UVo2Qs2.gif",
+    "type": "gif",
+    "_matched_to": "flutter kicks",
+    "_score": 100.0
+  },
+  "Fly Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/8DiFDVA.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell rear fly",
+    "_score": 85.71428571428572
+  },
+  "Forward Jump": {
+    "gif_url": "https://static.exercisedb.dev/media/uZKq7lo.gif",
+    "type": "gif",
+    "_matched_to": "forward jump",
+    "_score": 100.0
+  },
+  "French Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/EIeI8Vf.gif",
+    "type": "gif",
+    "_matched_to": "barbell bench press",
+    "_score": 92.3076923076923
+  },
+  "Frog Squat (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/HsvHqgf.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell squat",
+    "_score": 84.84848484848484
+  },
+  "Front Lever": {
+    "gif_url": "https://static.exercisedb.dev/media/PkCN2lv.gif",
+    "type": "gif",
+    "_matched_to": "front lever",
+    "_score": 100.0
+  },
+  "Front Raise (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/u2X71Np.gif",
+    "type": "gif",
+    "_matched_to": "cable front raise",
+    "_score": 100.0
+  },
+  "Front Squat (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/zG0zs85.gif",
+    "type": "gif",
+    "_matched_to": "barbell front squat",
+    "_score": 100.0
+  },
+  "Front Squat (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/zG0zs85.gif",
+    "type": "gif",
+    "_matched_to": "barbell front squat",
+    "_score": 87.17948717948718
+  },
+  "Glute Bridge (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/qKBpF7I.gif",
+    "type": "gif",
+    "_matched_to": "barbell glute bridge",
+    "_score": 100.0
+  },
+  "Glute Bridge (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/GibBPPg.gif",
+    "type": "gif",
+    "_matched_to": "glute bridge march",
+    "_score": 89.47368421052632
+  },
+  "Glute Bridge Smith": {
+    "gif_url": "https://static.exercisedb.dev/media/GibBPPg.gif",
+    "type": "gif",
+    "_matched_to": "glute bridge march",
+    "_score": 83.33333333333334
+  },
+  "Glute Hyperextension": {
+    "gif_url": "https://static.exercisedb.dev/media/zhMwOwE.gif",
+    "type": "gif",
+    "_matched_to": "hyperextension",
+    "_score": 82.35294117647058
+  },
+  "Glute Kickback (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/HEJ6DIX.gif",
+    "type": "gif",
+    "_matched_to": "cable kickback",
+    "_score": 82.35294117647058
+  },
+  "Glute-Ham Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/Vvwjz6N.gif",
+    "type": "gif",
+    "_matched_to": "glute-ham raise",
+    "_score": 100.0
+  },
+  "Good Morning Seated": {
+    "gif_url": "https://static.exercisedb.dev/media/XsCcxCC.gif",
+    "type": "gif",
+    "_matched_to": "lever seated good morning",
+    "_score": 86.36363636363636
+  },
+  "Guillotine Bench Press": {
+    "gif_url": "https://static.exercisedb.dev/media/GXoaSgn.gif",
+    "type": "gif",
+    "_matched_to": "barbell guillotine bench press",
+    "_score": 84.61538461538461
+  },
+  "Hack Squat Calf Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/2ORFMoR.gif",
+    "type": "gif",
+    "_matched_to": "hack calf raise",
+    "_score": 83.33333333333334
+  },
+  "Hammer Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/slDvUAU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell hammer curl",
+    "_score": 100.0
+  },
+  "Hammer Curl Dumbbell": {
+    "gif_url": "https://static.exercisedb.dev/media/slDvUAU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell hammer curl",
+    "_score": 100.0
+  },
+  "Hammer Curl Dumbell": {
+    "gif_url": "https://static.exercisedb.dev/media/slDvUAU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell hammer curl",
+    "_score": 97.43589743589743
+  },
+  "Hammer Preacher Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/b6hQYMb.gif",
+    "type": "gif",
+    "_matched_to": "lever preacher curl",
+    "_score": 82.05128205128204
+  },
+  "Hammer Preacher Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/F1KxjBa.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell peacher hammer curl",
+    "_score": 98.24561403508771
+  },
+  "Hammer Preacher Curl (Dumbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/F1KxjBa.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell peacher hammer curl",
+    "_score": 96.42857142857143
+  },
+  "Hamstring Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/99rWm7w.gif",
+    "type": "gif",
+    "_matched_to": "hamstring stretch",
+    "_score": 100.0
+  },
+  "Handstand": {
+    "gif_url": "https://static.exercisedb.dev/media/XooAdhl.gif",
+    "type": "gif",
+    "_matched_to": "handstand",
+    "_score": 100.0
+  },
+  "Handstand Pushups": {
+    "gif_url": "https://static.exercisedb.dev/media/rQxwMxO.gif",
+    "type": "gif",
+    "_matched_to": "handstand push-up",
+    "_score": 94.11764705882352
+  },
+  "Hanging Knee Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/I3tsCnC.gif",
+    "type": "gif",
+    "_matched_to": "hanging leg raise",
+    "_score": 85.71428571428572
+  },
+  "Hanging Lat Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/f38OEuO.gif",
+    "type": "gif",
+    "_matched_to": "kneeling lat stretch",
+    "_score": 82.05128205128204
+  },
+  "Hanging Leg Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/I3tsCnC.gif",
+    "type": "gif",
+    "_matched_to": "hanging leg raise",
+    "_score": 100.0
+  },
+  "Hanging Leg Raise (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/I3tsCnC.gif",
+    "type": "gif",
+    "_matched_to": "hanging leg raise",
+    "_score": 100.0
+  },
+  "Hanging Oblique Knee Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/BaE7O6U.gif",
+    "type": "gif",
+    "_matched_to": "hanging oblique knee raise",
+    "_score": 100.0
+  },
+  "High Bar Squat (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/Gnfo4FM.gif",
+    "type": "gif",
+    "_matched_to": "barbell high bar squat",
+    "_score": 100.0
+  },
+  "High Bar Squat (Barbell, Paused)": {
+    "gif_url": "https://static.exercisedb.dev/media/Gnfo4FM.gif",
+    "type": "gif",
+    "_matched_to": "barbell high bar squat",
+    "_score": 86.27450980392157
+  },
+  "High Cable Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 88.37209302325581
+  },
+  "High Incline Dumbbell Press": {
+    "gif_url": "https://static.exercisedb.dev/media/PG1kcIb.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline hammer press",
+    "_score": 85.71428571428572
+  },
+  "High Incline Smith Press": {
+    "gif_url": "https://static.exercisedb.dev/media/5v7KYld.gif",
+    "type": "gif",
+    "_matched_to": "smith incline bench press",
+    "_score": 85.71428571428572
+  },
+  "High-Cable Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 88.37209302325581
+  },
+  "Hip Abduction": {
+    "gif_url": "https://static.exercisedb.dev/media/7WaDzyL.gif",
+    "type": "gif",
+    "_matched_to": "side hip abduction",
+    "_score": 83.87096774193549
+  },
+  "Hip Abduction (Band)": {
+    "gif_url": "https://static.exercisedb.dev/media/7WaDzyL.gif",
+    "type": "gif",
+    "_matched_to": "side hip abduction",
+    "_score": 83.87096774193549
+  },
+  "Hip Opener Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/oMypNrz.gif",
+    "type": "gif",
+    "_matched_to": "roller hip stretch",
+    "_score": 83.33333333333334
+  },
+  "Hip Thrust (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/f7Y9eDZ.gif",
+    "type": "gif",
+    "_matched_to": "barbell thruster",
+    "_score": 82.35294117647058
+  },
+  "Hip abduction": {
+    "gif_url": "https://static.exercisedb.dev/media/7WaDzyL.gif",
+    "type": "gif",
+    "_matched_to": "side hip abduction",
+    "_score": 83.87096774193549
+  },
+  "Hyperextension": {
+    "gif_url": "https://static.exercisedb.dev/media/zhMwOwE.gif",
+    "type": "gif",
+    "_matched_to": "hyperextension",
+    "_score": 100.0
+  },
+  "Hyperextension (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/zhMwOwE.gif",
+    "type": "gif",
+    "_matched_to": "hyperextension",
+    "_score": 100.0
+  },
+  "Inchworm": {
+    "gif_url": "https://static.exercisedb.dev/media/ZgsNQ6d.gif",
+    "type": "gif",
+    "_matched_to": "inchworm",
+    "_score": 100.0
+  },
+  "Incline Bench Ppress (Low Incline)": {
+    "gif_url": "https://static.exercisedb.dev/media/5v7KYld.gif",
+    "type": "gif",
+    "_matched_to": "smith incline bench press",
+    "_score": 84.44444444444444
+  },
+  "Incline Bench Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/3TZduzM.gif",
+    "type": "gif",
+    "_matched_to": "barbell incline bench press",
+    "_score": 100.0
+  },
+  "Incline Bench Press (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/Vh0GsK4.gif",
+    "type": "gif",
+    "_matched_to": "cable incline bench press",
+    "_score": 100.0
+  },
+  "Incline Bench Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ns0SIbU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline bench press",
+    "_score": 100.0
+  },
+  "Incline Bench Press (Dumbbell) (Paused)": {
+    "gif_url": "https://static.exercisedb.dev/media/ns0SIbU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline bench press",
+    "_score": 100.0
+  },
+  "Incline Bench Press (Paused)": {
+    "gif_url": "https://static.exercisedb.dev/media/5v7KYld.gif",
+    "type": "gif",
+    "_matched_to": "smith incline bench press",
+    "_score": 86.36363636363636
+  },
+  "Incline Bench Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/5v7KYld.gif",
+    "type": "gif",
+    "_matched_to": "smith incline bench press",
+    "_score": 86.36363636363636
+  },
+  "Incline Bicep Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/F3xgbjF.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline biceps curl",
+    "_score": 98.18181818181819
+  },
+  "Incline Cable Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/tBWXbIT.gif",
+    "type": "gif",
+    "_matched_to": "cable incline fly",
+    "_score": 85.71428571428572
+  },
+  "Incline Cable Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/tBWXbIT.gif",
+    "type": "gif",
+    "_matched_to": "cable incline fly",
+    "_score": 100.0
+  },
+  "Incline Cable Flys": {
+    "gif_url": "https://static.exercisedb.dev/media/tBWXbIT.gif",
+    "type": "gif",
+    "_matched_to": "cable incline fly",
+    "_score": 97.14285714285714
+  },
+  "Incline Cable Press": {
+    "gif_url": "https://static.exercisedb.dev/media/2Pya1cP.gif",
+    "type": "gif",
+    "_matched_to": "cable decline press",
+    "_score": 89.47368421052632
+  },
+  "Incline Chest Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/tBWXbIT.gif",
+    "type": "gif",
+    "_matched_to": "cable incline fly",
+    "_score": 82.35294117647058
+  },
+  "Incline Chest Fly (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ESOd5Pl.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline fly",
+    "_score": 86.95652173913044
+  },
+  "Incline Chest Press (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/wDN97Ca.gif",
+    "type": "gif",
+    "_matched_to": "machine inner chest press",
+    "_score": 92.3076923076923
+  },
+  "Incline Chest Press (Smith)": {
+    "gif_url": "https://static.exercisedb.dev/media/5v7KYld.gif",
+    "type": "gif",
+    "_matched_to": "smith incline bench press",
+    "_score": 88.0
+  },
+  "Incline Close Grip Bench Press": {
+    "gif_url": "https://static.exercisedb.dev/media/gx7s7uF.gif",
+    "type": "gif",
+    "_matched_to": "barbell incline close grip bench press",
+    "_score": 88.23529411764706
+  },
+  "Incline Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ae9UoXQ.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline curl",
+    "_score": 100.0
+  },
+  "Incline Dumbbel Curl (Low Bench)": {
+    "gif_url": "https://static.exercisedb.dev/media/ae9UoXQ.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline curl",
+    "_score": 97.5609756097561
+  },
+  "Incline Dumbbell Curl (12-15)": {
+    "gif_url": "https://static.exercisedb.dev/media/ae9UoXQ.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline curl",
+    "_score": 100.0
+  },
+  "Incline Dumbbell Curl Reverse 21s": {
+    "gif_url": "https://static.exercisedb.dev/media/RaflbWD.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline curl v. 2",
+    "_score": 86.20689655172413
+  },
+  "Incline Dumbbell Curls": {
+    "gif_url": "https://static.exercisedb.dev/media/ae9UoXQ.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline curl",
+    "_score": 97.67441860465115
+  },
+  "Incline Dumbbell Front Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/nxW6BkN.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline raise",
+    "_score": 88.0
+  },
+  "Incline Dumbbell Press (12,10,8,6,4)": {
+    "gif_url": "https://static.exercisedb.dev/media/ns0SIbU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline bench press",
+    "_score": 88.0
+  },
+  "Incline Dumbbell Row": {
+    "gif_url": "https://static.exercisedb.dev/media/7vG5o25.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline row",
+    "_score": 100.0
+  },
+  "Incline Dumbell Bench Press": {
+    "gif_url": "https://static.exercisedb.dev/media/ns0SIbU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline bench press",
+    "_score": 98.18181818181819
+  },
+  "Incline Dumbell Press": {
+    "gif_url": "https://static.exercisedb.dev/media/ns0SIbU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline bench press",
+    "_score": 85.71428571428572
+  },
+  "Incline Fly Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ESOd5Pl.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline fly",
+    "_score": 86.95652173913044
+  },
+  "Incline Hammer Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ByX0WxV.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline hammer curl",
+    "_score": 100.0
+  },
+  "Incline Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 85.0
+  },
+  "Incline Pushdown (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/1PK5Uo3.gif",
+    "type": "gif",
+    "_matched_to": "cable incline pushdown",
+    "_score": 100.0
+  },
+  "Incline Ring Push Ups": {
+    "gif_url": "https://static.exercisedb.dev/media/B1EVP9F.gif",
+    "type": "gif",
+    "_matched_to": "incline push-up",
+    "_score": 83.33333333333334
+  },
+  "Incline Treadmill Walk": {
+    "gif_url": "https://static.exercisedb.dev/media/rjiM4L3.gif",
+    "type": "gif",
+    "_matched_to": "walking on incline treadmill",
+    "_score": 88.0
+  },
+  "Incline Treadmill Walk (5–10 Incline, 3.0 Speed)": {
+    "gif_url": "https://static.exercisedb.dev/media/rjiM4L3.gif",
+    "type": "gif",
+    "_matched_to": "walking on incline treadmill",
+    "_score": 88.0
+  },
+  "Incline Tricep Extension (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/OVIKwsd.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline triceps extension",
+    "_score": 98.50746268656717
+  },
+  "Incline Tricep Extention (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/Hx1WC8I.gif",
+    "type": "gif",
+    "_matched_to": "cable incline triceps extension",
+    "_score": 95.08196721311475
+  },
+  "Incline cable flies": {
+    "gif_url": "https://static.exercisedb.dev/media/tBWXbIT.gif",
+    "type": "gif",
+    "_matched_to": "cable incline fly",
+    "_score": 88.88888888888889
+  },
+  "Incline dumbell row": {
+    "gif_url": "https://static.exercisedb.dev/media/7vG5o25.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline row",
+    "_score": 97.43589743589743
+  },
+  "Inverted Row": {
+    "gif_url": "https://static.exercisedb.dev/media/bZGHsAZ.gif",
+    "type": "gif",
+    "_matched_to": "inverted row",
+    "_score": 100.0
+  },
+  "JM Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/vmwLyCg.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell w-press",
+    "_score": 84.84848484848484
+  },
+  "Jump Rope": {
+    "gif_url": "https://static.exercisedb.dev/media/e1e76I2.gif",
+    "type": "gif",
+    "_matched_to": "jump rope",
+    "_score": 100.0
+  },
+  "Jump Squat": {
+    "gif_url": "https://static.exercisedb.dev/media/LIlE5Tn.gif",
+    "type": "gif",
+    "_matched_to": "jump squat",
+    "_score": 100.0
+  },
+  "Jump Squat (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/LIlE5Tn.gif",
+    "type": "gif",
+    "_matched_to": "jump squat",
+    "_score": 100.0
+  },
+  "Jump Switch Lunge": {
+    "gif_url": "https://static.exercisedb.dev/media/PM1PZjg.gif",
+    "type": "gif",
+    "_matched_to": "lunge with jump",
+    "_score": 93.75
+  },
+  "KOT Calf Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/2ORFMoR.gif",
+    "type": "gif",
+    "_matched_to": "hack calf raise",
+    "_score": 82.75862068965517
+  },
+  "Kas Glute Bridge": {
+    "gif_url": "https://static.exercisedb.dev/media/GibBPPg.gif",
+    "type": "gif",
+    "_matched_to": "glute bridge march",
+    "_score": 82.35294117647058
+  },
+  "Kelso Shrug (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/NJzBsGJ.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell shrug",
+    "_score": 82.35294117647058
+  },
+  "Kettlebell Clean & Press": {
+    "gif_url": "https://static.exercisedb.dev/media/kjE55n5.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell bent press",
+    "_score": 88.37209302325581
+  },
+  "Kettlebell Front Squat": {
+    "gif_url": "https://static.exercisedb.dev/media/DB0n8AG.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell front squat",
+    "_score": 100.0
+  },
+  "Kettlebell Press": {
+    "gif_url": "https://static.exercisedb.dev/media/kjE55n5.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell bent press",
+    "_score": 86.48648648648648
+  },
+  "Kettlebell Squat L/R": {
+    "gif_url": "https://static.exercisedb.dev/media/5bpPTHv.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell pistol squat",
+    "_score": 83.72093023255813
+  },
+  "Kettlebell Sumo High Pull": {
+    "gif_url": "https://static.exercisedb.dev/media/8ARQ9Hw.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell sumo high pull",
+    "_score": 100.0
+  },
+  "Kettlebell Swing": {
+    "gif_url": "https://static.exercisedb.dev/media/UHJlbu3.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell swing",
+    "_score": 100.0
+  },
+  "Kettlebell Swings": {
+    "gif_url": "https://static.exercisedb.dev/media/UHJlbu3.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell swing",
+    "_score": 96.96969696969697
+  },
+  "Kettlebell Windmill": {
+    "gif_url": "https://static.exercisedb.dev/media/9Tkqa9O.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell windmill",
+    "_score": 100.0
+  },
+  "Knee Raise (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/e4aFmFY.gif",
+    "type": "gif",
+    "_matched_to": "weighted front raise",
+    "_score": 82.05128205128204
+  },
+  "Kneeling Lunge Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/f38OEuO.gif",
+    "type": "gif",
+    "_matched_to": "kneeling lat stretch",
+    "_score": 85.71428571428572
+  },
+  "Larsen Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/EIeI8Vf.gif",
+    "type": "gif",
+    "_matched_to": "barbell bench press",
+    "_score": 82.05128205128204
+  },
+  "Lateral Hip Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/0L2KwtI.gif",
+    "type": "gif",
+    "_matched_to": "roller hip lat stretch",
+    "_score": 82.92682926829268
+  },
+  "Lateral Leg Raises": {
+    "gif_url": "https://static.exercisedb.dev/media/dRTfGZT.gif",
+    "type": "gif",
+    "_matched_to": "lever lateral raise",
+    "_score": 86.48648648648648
+  },
+  "Lateral Raise (Band)": {
+    "gif_url": "https://static.exercisedb.dev/media/sTg7iys.gif",
+    "type": "gif",
+    "_matched_to": "band front lateral raise",
+    "_score": 85.71428571428572
+  },
+  "Lateral Raise (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 100.0
+  },
+  "Lateral Raise (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/DsgkuIt.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell lateral raise",
+    "_score": 100.0
+  },
+  "Lateral Raise (Seated)": {
+    "gif_url": "https://static.exercisedb.dev/media/Hgs6Nl1.gif",
+    "type": "gif",
+    "_matched_to": "seated leg raise",
+    "_score": 83.33333333333334
+  },
+  "Lateral Raise Seated": {
+    "gif_url": "https://static.exercisedb.dev/media/Hgs6Nl1.gif",
+    "type": "gif",
+    "_matched_to": "seated leg raise",
+    "_score": 83.33333333333334
+  },
+  "Lean In Lateral Raise (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/DsgkuIt.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell lateral raise",
+    "_score": 84.61538461538461
+  },
+  "Leg Press Calf": {
+    "gif_url": "https://static.exercisedb.dev/media/7B4F5nZ.gif",
+    "type": "gif",
+    "_matched_to": "lever calf press",
+    "_score": 86.66666666666667
+  },
+  "Leg Raise (Captain's Chair)": {
+    "gif_url": "https://static.exercisedb.dev/media/weoDEpH.gif",
+    "type": "gif",
+    "_matched_to": "captains chair straight leg raise",
+    "_score": 86.20689655172413
+  },
+  "Leg Raise (Weighted Captains Chair)": {
+    "gif_url": "https://static.exercisedb.dev/media/weoDEpH.gif",
+    "type": "gif",
+    "_matched_to": "captains chair straight leg raise",
+    "_score": 87.87878787878788
+  },
+  "Legs Up Bench Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/EIeI8Vf.gif",
+    "type": "gif",
+    "_matched_to": "barbell bench press",
+    "_score": 82.6086956521739
+  },
+  "Low Bar Pin Squat": {
+    "gif_url": "https://static.exercisedb.dev/media/RGLscZM.gif",
+    "type": "gif",
+    "_matched_to": "smith low bar squat",
+    "_score": 83.33333333333334
+  },
+  "Low Cable Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/FVmZVhk.gif",
+    "type": "gif",
+    "_matched_to": "cable low fly",
+    "_score": 100.0
+  },
+  "Low Incline Dumbbell Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/ESOd5Pl.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline fly",
+    "_score": 90.9090909090909
+  },
+  "Low Incline Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/rDAiRf9.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline one arm press",
+    "_score": 85.71428571428572
+  },
+  "Lu Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/dRTfGZT.gif",
+    "type": "gif",
+    "_matched_to": "lever lateral raise",
+    "_score": 85.71428571428572
+  },
+  "Lu Lateral Raises": {
+    "gif_url": "https://static.exercisedb.dev/media/dRTfGZT.gif",
+    "type": "gif",
+    "_matched_to": "lever lateral raise",
+    "_score": 83.33333333333334
+  },
+  "Lunge (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/t8iSghb.gif",
+    "type": "gif",
+    "_matched_to": "barbell lunge",
+    "_score": 100.0
+  },
+  "Lunge (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/RRWFUcw.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell lunge",
+    "_score": 100.0
+  },
+  "Lying Bicep Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/otqIxU4.gif",
+    "type": "gif",
+    "_matched_to": "cable lying bicep curl",
+    "_score": 84.21052631578947
+  },
+  "Lying Cable Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/otqIxU4.gif",
+    "type": "gif",
+    "_matched_to": "cable lying bicep curl",
+    "_score": 84.21052631578947
+  },
+  "Lying Cable Tricep Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/uxJcFUU.gif",
+    "type": "gif",
+    "_matched_to": "cable lying triceps extension v. 2",
+    "_score": 91.80327868852459
+  },
+  "Lying Leg Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/17lJ1kr.gif",
+    "type": "gif",
+    "_matched_to": "lever lying leg curl",
+    "_score": 82.35294117647058
+  },
+  "Lying Leg Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/9IxJdtC.gif",
+    "type": "gif",
+    "_matched_to": "lying leg-hip raise",
+    "_score": 88.23529411764706
+  },
+  "Lying Rear Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/53Ttlck.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell lying rear lateral raise",
+    "_score": 84.21052631578947
+  },
+  "Lying Tricep Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/iZop9xO.gif",
+    "type": "gif",
+    "_matched_to": "barbell lying triceps extension",
+    "_score": 83.01886792452831
+  },
+  "Lying Tricep Extension (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/iZop9xO.gif",
+    "type": "gif",
+    "_matched_to": "barbell lying triceps extension",
+    "_score": 98.36065573770492
+  },
+  "Lying Triceps Extension (EZ Bar)": {
+    "gif_url": "https://static.exercisedb.dev/media/iZop9xO.gif",
+    "type": "gif",
+    "_matched_to": "barbell lying triceps extension",
+    "_score": 88.52459016393442
+  },
+  "Machine Chest Press (Flat)": {
+    "gif_url": "https://static.exercisedb.dev/media/wDN97Ca.gif",
+    "type": "gif",
+    "_matched_to": "machine inner chest press",
+    "_score": 86.36363636363636
+  },
+  "Machine Chest Press (Incline)": {
+    "gif_url": "https://static.exercisedb.dev/media/wDN97Ca.gif",
+    "type": "gif",
+    "_matched_to": "machine inner chest press",
+    "_score": 92.3076923076923
+  },
+  "Machine Chest Press (Neutral Grip)": {
+    "gif_url": "https://static.exercisedb.dev/media/wDN97Ca.gif",
+    "type": "gif",
+    "_matched_to": "machine inner chest press",
+    "_score": 86.36363636363636
+  },
+  "Machine Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/peAeMR3.gif",
+    "type": "gif",
+    "_matched_to": "band shoulder press",
+    "_score": 82.92682926829268
+  },
+  "Marching Glute Bridge": {
+    "gif_url": "https://static.exercisedb.dev/media/GibBPPg.gif",
+    "type": "gif",
+    "_matched_to": "glute bridge march",
+    "_score": 92.3076923076923
+  },
+  "Med Ball Chest Pass": {
+    "gif_url": "https://static.exercisedb.dev/media/aDoFKrE.gif",
+    "type": "gif",
+    "_matched_to": "medicine ball chest pass",
+    "_score": 88.37209302325581
+  },
+  "Medicine Ball Chest Pass": {
+    "gif_url": "https://static.exercisedb.dev/media/aDoFKrE.gif",
+    "type": "gif",
+    "_matched_to": "medicine ball chest pass",
+    "_score": 100.0
+  },
+  "Medicine Ball Pushups": {
+    "gif_url": "https://static.exercisedb.dev/media/W8KAlkI.gif",
+    "type": "gif",
+    "_matched_to": "push-up medicine ball",
+    "_score": 95.23809523809523
+  },
+  "Mid Cable Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/xLYSdtg.gif",
+    "type": "gif",
+    "_matched_to": "cable middle fly",
+    "_score": 89.65517241379311
+  },
+  "Military Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/CggQhII.gif",
+    "type": "gif",
+    "_matched_to": "lever military press",
+    "_score": 82.35294117647058
+  },
+  "Monster Walk": {
+    "gif_url": "https://static.exercisedb.dev/media/O95afRA.gif",
+    "type": "gif",
+    "_matched_to": "monster walk",
+    "_score": 100.0
+  },
+  "Monster Walks": {
+    "gif_url": "https://static.exercisedb.dev/media/O95afRA.gif",
+    "type": "gif",
+    "_matched_to": "monster walk",
+    "_score": 96.0
+  },
+  "Monster Walks (hip Circle)": {
+    "gif_url": "https://static.exercisedb.dev/media/O95afRA.gif",
+    "type": "gif",
+    "_matched_to": "monster walk",
+    "_score": 96.0
+  },
+  "Mountain Climber": {
+    "gif_url": "https://static.exercisedb.dev/media/RJgzwny.gif",
+    "type": "gif",
+    "_matched_to": "mountain climber",
+    "_score": 100.0
+  },
+  "Mountain Climbers": {
+    "gif_url": "https://static.exercisedb.dev/media/RJgzwny.gif",
+    "type": "gif",
+    "_matched_to": "mountain climber",
+    "_score": 96.96969696969697
+  },
+  "Muscle Up": {
+    "gif_url": "https://static.exercisedb.dev/media/yJUHKTn.gif",
+    "type": "gif",
+    "_matched_to": "muscle up",
+    "_score": 100.0
+  },
+  "Muscle Up (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/yJUHKTn.gif",
+    "type": "gif",
+    "_matched_to": "muscle up",
+    "_score": 100.0
+  },
+  "Neck Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/x2chWLO.gif",
+    "type": "gif",
+    "_matched_to": "neck side stretch",
+    "_score": 82.75862068965517
+  },
+  "Neutral Grip Dumbbell Bench Press": {
+    "gif_url": "https://static.exercisedb.dev/media/pP8wP2P.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell neutral grip bench press",
+    "_score": 100.0
+  },
+  "Neutral Grip Pull Up": {
+    "gif_url": "https://static.exercisedb.dev/media/0V2YQjW.gif",
+    "type": "gif",
+    "_matched_to": "pull up (neutral grip)",
+    "_score": 100.0
+  },
+  "Oblique Crunch": {
+    "gif_url": "https://static.exercisedb.dev/media/cJgSTmh.gif",
+    "type": "gif",
+    "_matched_to": "oblique crunch v. 2",
+    "_score": 87.5
+  },
+  "One Arm Bent Over Row": {
+    "gif_url": "https://static.exercisedb.dev/media/Fhdtwf3.gif",
+    "type": "gif",
+    "_matched_to": "lever one arm bent over row",
+    "_score": 87.5
+  },
+  "One Arm Cable Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/YTur5nR.gif",
+    "type": "gif",
+    "_matched_to": "cable one arm curl",
+    "_score": 100.0
+  },
+  "One Arm Lateral Raise (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/wEulIzp.gif",
+    "type": "gif",
+    "_matched_to": "cable one arm lateral raise",
+    "_score": 100.0
+  },
+  "One Arm Lateral Raise (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/n5cWCsI.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell one arm lateral raise",
+    "_score": 100.0
+  },
+  "One Arm Pulldown": {
+    "gif_url": "https://static.exercisedb.dev/media/U5INZY6.gif",
+    "type": "gif",
+    "_matched_to": "cable one arm pulldown",
+    "_score": 84.21052631578947
+  },
+  "One Leg Calf Raises": {
+    "gif_url": "https://static.exercisedb.dev/media/AxFoqAD.gif",
+    "type": "gif",
+    "_matched_to": "hack one leg calf raise",
+    "_score": 85.71428571428572
+  },
+  "Overhead Cable Bicep Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/wDUqY2u.gif",
+    "type": "gif",
+    "_matched_to": "cable overhead curl",
+    "_score": 86.36363636363636
+  },
+  "Overhead Cable Triceps Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/1xHyxys.gif",
+    "type": "gif",
+    "_matched_to": "cable high pulley overhead tricep extension",
+    "_score": 82.66666666666667
+  },
+  "Overhead Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/kTbSH9h.gif",
+    "type": "gif",
+    "_matched_to": "barbell seated overhead press",
+    "_score": 86.27450980392157
+  },
+  "Overhead Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/A6wtbuL.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell standing overhead press",
+    "_score": 83.63636363636364
+  },
+  "Overhead Tricep Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/Ser9eQp.gif",
+    "type": "gif",
+    "_matched_to": "lever triceps extension",
+    "_score": 83.33333333333334
+  },
+  "Overhead Tricep Extension (12-15)": {
+    "gif_url": "https://static.exercisedb.dev/media/Ser9eQp.gif",
+    "type": "gif",
+    "_matched_to": "lever triceps extension",
+    "_score": 83.33333333333334
+  },
+  "Overhead Tricep Extension (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/1xHyxys.gif",
+    "type": "gif",
+    "_matched_to": "cable high pulley overhead tricep extension",
+    "_score": 83.78378378378379
+  },
+  "Overhead Tricep Extension (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/kont8Ut.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated triceps extension",
+    "_score": 86.56716417910448
+  },
+  "Overhead Tricep Extension (Kettlebell)": {
+    "gif_url": "https://static.exercisedb.dev/media/Ser9eQp.gif",
+    "type": "gif",
+    "_matched_to": "lever triceps extension",
+    "_score": 83.33333333333334
+  },
+  "Overhead Triceps Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/Z5YStHW.gif",
+    "type": "gif",
+    "_matched_to": "overhead triceps stretch",
+    "_score": 100.0
+  },
+  "Partial Incline Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/OVLmUuL.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline palm-in press",
+    "_score": 86.66666666666667
+  },
+  "Partial Lateral Raise (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 82.6086956521739
+  },
+  "Pause Press(Bench)": {
+    "gif_url": "https://static.exercisedb.dev/media/7xI5MXA.gif",
+    "type": "gif",
+    "_matched_to": "cable bench press",
+    "_score": 82.35294117647058
+  },
+  "Pec Fly (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/yz9nUhF.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell fly",
+    "_score": 85.71428571428572
+  },
+  "Pec Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/JbC2iaV.gif",
+    "type": "gif",
+    "_matched_to": "spine stretch",
+    "_score": 83.33333333333334
+  },
+  "Pelvic Tilts": {
+    "gif_url": "https://static.exercisedb.dev/media/NKJ8o6x.gif",
+    "type": "gif",
+    "_matched_to": "pelvic tilt",
+    "_score": 95.65217391304348
+  },
+  "Pin Press Bench (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/EIeI8Vf.gif",
+    "type": "gif",
+    "_matched_to": "barbell bench press",
+    "_score": 90.47619047619048
+  },
+  "Piriformis Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/QY39eBr.gif",
+    "type": "gif",
+    "_matched_to": "seated piriformis stretch",
+    "_score": 83.72093023255813
+  },
+  "Planche Push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/gw9PqGk.gif",
+    "type": "gif",
+    "_matched_to": "full planche push-up",
+    "_score": 85.71428571428572
+  },
+  "Plank (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/VBAWRPG.gif",
+    "type": "gif",
+    "_matched_to": "weighted front plank",
+    "_score": 82.35294117647058
+  },
+  "Plank Pull Through": {
+    "gif_url": "https://static.exercisedb.dev/media/VtTbiP3.gif",
+    "type": "gif",
+    "_matched_to": "band pull through",
+    "_score": 85.71428571428572
+  },
+  "Plank To Push-up": {
+    "gif_url": "https://static.exercisedb.dev/media/KhHJ338.gif",
+    "type": "gif",
+    "_matched_to": "push-up to side plank",
+    "_score": 86.48648648648648
+  },
+  "Plank With Leg Lift": {
+    "gif_url": "https://static.exercisedb.dev/media/tFToB7l.gif",
+    "type": "gif",
+    "_matched_to": "reverse plank with leg lift",
+    "_score": 82.6086956521739
+  },
+  "Plank to Push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/KhHJ338.gif",
+    "type": "gif",
+    "_matched_to": "push-up to side plank",
+    "_score": 86.48648648648648
+  },
+  "Power Clean": {
+    "gif_url": "https://static.exercisedb.dev/media/SiWCcTN.gif",
+    "type": "gif",
+    "_matched_to": "power clean",
+    "_score": 100.0
+  },
+  "Preacher Curl (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/qOgPVf6.gif",
+    "type": "gif",
+    "_matched_to": "barbell preacher curl",
+    "_score": 100.0
+  },
+  "Preacher Curl (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/P2lNrGL.gif",
+    "type": "gif",
+    "_matched_to": "cable preacher curl",
+    "_score": 100.0
+  },
+  "Preacher Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/jivWf8n.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell preacher curl",
+    "_score": 100.0
+  },
+  "Preacher Curl (EZ Bar)": {
+    "gif_url": "https://static.exercisedb.dev/media/qOgPVf6.gif",
+    "type": "gif",
+    "_matched_to": "barbell preacher curl",
+    "_score": 82.92682926829268
+  },
+  "Preacher Hammer Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/b6hQYMb.gif",
+    "type": "gif",
+    "_matched_to": "lever preacher curl",
+    "_score": 82.05128205128204
+  },
+  "Preacher Reverse Bicep Curl (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/4LIG9xr.gif",
+    "type": "gif",
+    "_matched_to": "barbell reverse preacher curl",
+    "_score": 90.625
+  },
+  "Pull Through (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/VtTbiP3.gif",
+    "type": "gif",
+    "_matched_to": "band pull through",
+    "_score": 82.75862068965517
+  },
+  "Pull-Up": {
+    "gif_url": "https://static.exercisedb.dev/media/lBDjFxJ.gif",
+    "type": "gif",
+    "_matched_to": "pull-up",
+    "_score": 100.0
+  },
+  "Pull-Up (Assisted)": {
+    "gif_url": "https://static.exercisedb.dev/media/lBDjFxJ.gif",
+    "type": "gif",
+    "_matched_to": "pull-up",
+    "_score": 100.0
+  },
+  "Pull-Up (Band)": {
+    "gif_url": "https://static.exercisedb.dev/media/lBDjFxJ.gif",
+    "type": "gif",
+    "_matched_to": "pull-up",
+    "_score": 100.0
+  },
+  "Pull-Up (Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/lBDjFxJ.gif",
+    "type": "gif",
+    "_matched_to": "pull-up",
+    "_score": 100.0
+  },
+  "Pull-Up (Neutral Grip, Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/lBDjFxJ.gif",
+    "type": "gif",
+    "_matched_to": "pull-up",
+    "_score": 100.0
+  },
+  "Pull-Up (Neutral Grip, Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/lBDjFxJ.gif",
+    "type": "gif",
+    "_matched_to": "pull-up",
+    "_score": 100.0
+  },
+  "Pull-Up (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/lBDjFxJ.gif",
+    "type": "gif",
+    "_matched_to": "pull-up",
+    "_score": 100.0
+  },
+  "Pullover (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/9XjtHvS.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell pullover",
+    "_score": 100.0
+  },
+  "Pullover (EZ Bar)": {
+    "gif_url": "https://static.exercisedb.dev/media/i6LWjok.gif",
+    "type": "gif",
+    "_matched_to": "barbell pullover",
+    "_score": 83.87096774193549
+  },
+  "Pullover Barbell": {
+    "gif_url": "https://static.exercisedb.dev/media/i6LWjok.gif",
+    "type": "gif",
+    "_matched_to": "barbell pullover",
+    "_score": 100.0
+  },
+  "Push Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/FS63wTN.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell push press",
+    "_score": 86.48648648648648
+  },
+  "Push Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/FS63wTN.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell push press",
+    "_score": 100.0
+  },
+  "Push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/I4hDWkc.gif",
+    "type": "gif",
+    "_matched_to": "push-up",
+    "_score": 100.0
+  },
+  "Push Up (Defecit)": {
+    "gif_url": "https://static.exercisedb.dev/media/I4hDWkc.gif",
+    "type": "gif",
+    "_matched_to": "push-up",
+    "_score": 100.0
+  },
+  "Push Up (Incline)": {
+    "gif_url": "https://static.exercisedb.dev/media/I4hDWkc.gif",
+    "type": "gif",
+    "_matched_to": "push-up",
+    "_score": 100.0
+  },
+  "Push Up (Knees)": {
+    "gif_url": "https://static.exercisedb.dev/media/I4hDWkc.gif",
+    "type": "gif",
+    "_matched_to": "push-up",
+    "_score": 100.0
+  },
+  "Push Up (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/I4hDWkc.gif",
+    "type": "gif",
+    "_matched_to": "push-up",
+    "_score": 100.0
+  },
+  "RP Barbell Wrist Curls": {
+    "gif_url": "https://static.exercisedb.dev/media/82LxxkW.gif",
+    "type": "gif",
+    "_matched_to": "barbell wrist curl",
+    "_score": 90.0
+  },
+  "RP Seated Dumbbell Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/TiaZTxx.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated curl",
+    "_score": 93.02325581395348
+  },
+  "Rack Pull (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/za9Ni4z.gif",
+    "type": "gif",
+    "_matched_to": "barbell rack pull",
+    "_score": 100.0
+  },
+  "Rear Delt Cable": {
+    "gif_url": "https://static.exercisedb.dev/media/c3QQLPi.gif",
+    "type": "gif",
+    "_matched_to": "cable rear drive",
+    "_score": 83.87096774193549
+  },
+  "Rear Delt Fly (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/8DiFDVA.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell rear fly",
+    "_score": 87.17948717948718
+  },
+  "Reverse Abs Crunch (Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/RqOtqD7.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse crunch",
+    "_score": 89.47368421052632
+  },
+  "Reverse Bicep Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/q6y3OhV.gif",
+    "type": "gif",
+    "_matched_to": "lever bicep curl",
+    "_score": 88.23529411764706
+  },
+  "Reverse Bicep Curl (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/q6y3OhV.gif",
+    "type": "gif",
+    "_matched_to": "lever bicep curl",
+    "_score": 88.23529411764706
+  },
+  "Reverse Bicep Curl (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/q6y3OhV.gif",
+    "type": "gif",
+    "_matched_to": "lever bicep curl",
+    "_score": 88.23529411764706
+  },
+  "Reverse Bicep Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/nFc4FyV.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell biceps curl reverse",
+    "_score": 98.18181818181819
+  },
+  "Reverse Bicep Curl (EZ Bar)": {
+    "gif_url": "https://static.exercisedb.dev/media/q6y3OhV.gif",
+    "type": "gif",
+    "_matched_to": "lever bicep curl",
+    "_score": 88.23529411764706
+  },
+  "Reverse Bicep Curl (cable)!": {
+    "gif_url": "https://static.exercisedb.dev/media/q6y3OhV.gif",
+    "type": "gif",
+    "_matched_to": "lever bicep curl",
+    "_score": 88.23529411764706
+  },
+  "Reverse Cable Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/eOG0r6v.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse curl",
+    "_score": 100.0
+  },
+  "Reverse Cable Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/eOG0r6v.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse curl",
+    "_score": 85.71428571428572
+  },
+  "Reverse Crunch (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/nCU1Ekp.gif",
+    "type": "gif",
+    "_matched_to": "reverse crunch",
+    "_score": 100.0
+  },
+  "Reverse Curl Cable": {
+    "gif_url": "https://static.exercisedb.dev/media/eOG0r6v.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse curl",
+    "_score": 100.0
+  },
+  "Reverse Dumbbell Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/EAs3xL9.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell reverse fly",
+    "_score": 100.0
+  },
+  "Reverse Dumbell Fly": {
+    "gif_url": "https://static.exercisedb.dev/media/EAs3xL9.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell reverse fly",
+    "_score": 97.43589743589743
+  },
+  "Reverse Fly (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/eOG0r6v.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse curl",
+    "_score": 85.71428571428572
+  },
+  "Reverse Grip Bench Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/QyO6Uma.gif",
+    "type": "gif",
+    "_matched_to": "smith machine reverse decline close grip bench press",
+    "_score": 84.44444444444444
+  },
+  "Reverse Grip EZ Bar Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/Y5X65IB.gif",
+    "type": "gif",
+    "_matched_to": "ez barbell reverse grip curl",
+    "_score": 92.3076923076923
+  },
+  "Reverse Grip Preacher Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/kj3hy6W.gif",
+    "type": "gif",
+    "_matched_to": "lever reverse grip preacher curl",
+    "_score": 89.65517241379311
+  },
+  "Reverse Hyperextension": {
+    "gif_url": "https://static.exercisedb.dev/media/Krmb3cB.gif",
+    "type": "gif",
+    "_matched_to": "lever reverse hyperextension",
+    "_score": 88.0
+  },
+  "Reverse Leg Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/my33uHU.gif",
+    "type": "gif",
+    "_matched_to": "lever leg extension",
+    "_score": 90.0
+  },
+  "Reverse Lunge (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/VaP75jl.gif",
+    "type": "gif",
+    "_matched_to": "barbell rear lunge",
+    "_score": 87.17948717948718
+  },
+  "Reverse Lunge (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/SSsBDwB.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell rear lunge",
+    "_score": 87.8048780487805
+  },
+  "Reverse Wrist Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/Ezpnw9d.gif",
+    "type": "gif",
+    "_matched_to": "band reverse wrist curl",
+    "_score": 87.8048780487805
+  },
+  "Reverse Wrist Curl (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/LsZkfU6.gif",
+    "type": "gif",
+    "_matched_to": "barbell reverse wrist curl",
+    "_score": 100.0
+  },
+  "Reverse Wrist Curl (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/eYmsEPR.gif",
+    "type": "gif",
+    "_matched_to": "cable reverse wrist curl",
+    "_score": 100.0
+  },
+  "Reverse Wrist Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/BLCvwr2.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell reverse wrist curl",
+    "_score": 100.0
+  },
+  "Reverse Wrist Curls": {
+    "gif_url": "https://static.exercisedb.dev/media/Ezpnw9d.gif",
+    "type": "gif",
+    "_matched_to": "band reverse wrist curl",
+    "_score": 85.71428571428572
+  },
+  "Reverse-Grip Dumbbell Press": {
+    "gif_url": "https://static.exercisedb.dev/media/Ze7MoIb.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell one arm reverse grip press",
+    "_score": 87.09677419354838
+  },
+  "Ring Archer Pull Ups": {
+    "gif_url": "https://static.exercisedb.dev/media/72BC5Za.gif",
+    "type": "gif",
+    "_matched_to": "archer pull up",
+    "_score": 82.35294117647058
+  },
+  "Ring Dip": {
+    "gif_url": "https://static.exercisedb.dev/media/ezTvXcr.gif",
+    "type": "gif",
+    "_matched_to": "ring dips",
+    "_score": 94.11764705882352
+  },
+  "Ring Dip (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/ezTvXcr.gif",
+    "type": "gif",
+    "_matched_to": "ring dips",
+    "_score": 94.11764705882352
+  },
+  "Ring Triceps Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/Ser9eQp.gif",
+    "type": "gif",
+    "_matched_to": "lever triceps extension",
+    "_score": 84.44444444444444
+  },
+  "Ring Triceps Extensions": {
+    "gif_url": "https://static.exercisedb.dev/media/Ser9eQp.gif",
+    "type": "gif",
+    "_matched_to": "lever triceps extension",
+    "_score": 82.6086956521739
+  },
+  "Rolling Tricep Extension (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/mpKZGWz.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell lying triceps extension",
+    "_score": 92.3076923076923
+  },
+  "Romanian Deadlift (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/wQ2c4XD.gif",
+    "type": "gif",
+    "_matched_to": "barbell romanian deadlift",
+    "_score": 100.0
+  },
+  "Romanian Deadlift (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/rR0LJzx.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell romanian deadlift",
+    "_score": 100.0
+  },
+  "Romanian Deadlift (Trap Bar)": {
+    "gif_url": "https://static.exercisedb.dev/media/wQ2c4XD.gif",
+    "type": "gif",
+    "_matched_to": "barbell romanian deadlift",
+    "_score": 82.35294117647058
+  },
+  "Run": {
+    "gif_url": "https://static.exercisedb.dev/media/oLrKqDH.gif",
+    "type": "gif",
+    "_matched_to": "run",
+    "_score": 100.0
+  },
+  "Russian Twist": {
+    "gif_url": "https://static.exercisedb.dev/media/XVDdcoj.gif",
+    "type": "gif",
+    "_matched_to": "russian twist",
+    "_score": 100.0
+  },
+  "Russian Twist (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/XVDdcoj.gif",
+    "type": "gif",
+    "_matched_to": "russian twist",
+    "_score": 100.0
+  },
+  "SA Preacher Curl Cable (Bench)": {
+    "gif_url": "https://static.exercisedb.dev/media/P2lNrGL.gif",
+    "type": "gif",
+    "_matched_to": "cable preacher curl",
+    "_score": 92.6829268292683
+  },
+  "Scapular Pull-Up": {
+    "gif_url": "https://static.exercisedb.dev/media/uTBt1HV.gif",
+    "type": "gif",
+    "_matched_to": "scapular pull-up",
+    "_score": 100.0
+  },
+  "Scapular Push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/jV65tKx.gif",
+    "type": "gif",
+    "_matched_to": "scapula push-up",
+    "_score": 96.7741935483871
+  },
+  "Scissor Jumps": {
+    "gif_url": "https://static.exercisedb.dev/media/Eh2v5Iu.gif",
+    "type": "gif",
+    "_matched_to": "scissor jumps (male)",
+    "_score": 83.87096774193549
+  },
+  "Seated Barbell Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/znQUdHY.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated shoulder press",
+    "_score": 91.52542372881356
+  },
+  "Seated Bicep Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/8oYqOt9.gif",
+    "type": "gif",
+    "_matched_to": "cable seated curl",
+    "_score": 82.35294117647058
+  },
+  "Seated Cable Crunch": {
+    "gif_url": "https://static.exercisedb.dev/media/8xUv4J7.gif",
+    "type": "gif",
+    "_matched_to": "cable seated crunch",
+    "_score": 100.0
+  },
+  "Seated Cable Overhead Bicep Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/DpWMFP5.gif",
+    "type": "gif",
+    "_matched_to": "cable seated overhead curl",
+    "_score": 89.65517241379311
+  },
+  "Seated Cable Row": {
+    "gif_url": "https://static.exercisedb.dev/media/fUBheHs.gif",
+    "type": "gif",
+    "_matched_to": "cable seated row",
+    "_score": 100.0
+  },
+  "Seated Cable Row (One Arm)": {
+    "gif_url": "https://static.exercisedb.dev/media/fUBheHs.gif",
+    "type": "gif",
+    "_matched_to": "cable seated row",
+    "_score": 100.0
+  },
+  "Seated Calf Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/bOOdeyc.gif",
+    "type": "gif",
+    "_matched_to": "lever seated calf raise",
+    "_score": 85.0
+  },
+  "Seated Calf Raise (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/bOOdeyc.gif",
+    "type": "gif",
+    "_matched_to": "lever seated calf raise",
+    "_score": 85.0
+  },
+  "Seated DB Good Morning": {
+    "gif_url": "https://static.exercisedb.dev/media/d960PgE.gif",
+    "type": "gif",
+    "_matched_to": "barbell seated good morning",
+    "_score": 85.71428571428572
+  },
+  "Seated DB Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/znQUdHY.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated shoulder press",
+    "_score": 88.88888888888889
+  },
+  "Seated Dumbbell Calf Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/r29jP7S.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated calf raise",
+    "_score": 100.0
+  },
+  "Seated Dumbbell Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/TiaZTxx.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated curl",
+    "_score": 100.0
+  },
+  "Seated Dumbbell Hammer Curls": {
+    "gif_url": "https://static.exercisedb.dev/media/IGtBdNT.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated hammer curl",
+    "_score": 98.18181818181819
+  },
+  "Seated Dumbbell Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/hxyTtWj.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated lateral raise",
+    "_score": 100.0
+  },
+  "Seated Dumbbell Press": {
+    "gif_url": "https://static.exercisedb.dev/media/s5PdDyY.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell tate press",
+    "_score": 90.0
+  },
+  "Seated Front Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/e4aFmFY.gif",
+    "type": "gif",
+    "_matched_to": "weighted front raise",
+    "_score": 84.21052631578947
+  },
+  "Seated Good Morning": {
+    "gif_url": "https://static.exercisedb.dev/media/XsCcxCC.gif",
+    "type": "gif",
+    "_matched_to": "lever seated good morning",
+    "_score": 86.36363636363636
+  },
+  "Seated Good morning": {
+    "gif_url": "https://static.exercisedb.dev/media/XsCcxCC.gif",
+    "type": "gif",
+    "_matched_to": "lever seated good morning",
+    "_score": 86.36363636363636
+  },
+  "Seated High Cable Row (Upper Back & Traps)": {
+    "gif_url": "https://static.exercisedb.dev/media/pwt0pnM.gif",
+    "type": "gif",
+    "_matched_to": "cable seated high row (v-bar)",
+    "_score": 87.5
+  },
+  "Seated Hip Abduction": {
+    "gif_url": "https://static.exercisedb.dev/media/CHpahtl.gif",
+    "type": "gif",
+    "_matched_to": "lever seated hip abduction",
+    "_score": 86.95652173913044
+  },
+  "Seated Lateral Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/Hgs6Nl1.gif",
+    "type": "gif",
+    "_matched_to": "seated leg raise",
+    "_score": 83.33333333333334
+  },
+  "Seated Leg Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/Zg3XY7P.gif",
+    "type": "gif",
+    "_matched_to": "lever seated leg curl",
+    "_score": 83.33333333333334
+  },
+  "Seated Leg Curl (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/8oYqOt9.gif",
+    "type": "gif",
+    "_matched_to": "cable seated curl",
+    "_score": 89.47368421052632
+  },
+  "Seated Leg Extension (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/my33uHU.gif",
+    "type": "gif",
+    "_matched_to": "lever leg extension",
+    "_score": 82.05128205128204
+  },
+  "Seated Leg curl": {
+    "gif_url": "https://static.exercisedb.dev/media/Zg3XY7P.gif",
+    "type": "gif",
+    "_matched_to": "lever seated leg curl",
+    "_score": 83.33333333333334
+  },
+  "Seated Military Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ngPpyRS.gif",
+    "type": "gif",
+    "_matched_to": "barbell seated behind head military press",
+    "_score": 82.85714285714285
+  },
+  "Seated Overhead Pin Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/kTbSH9h.gif",
+    "type": "gif",
+    "_matched_to": "barbell seated overhead press",
+    "_score": 93.5483870967742
+  },
+  "Seated Overhead Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/kTbSH9h.gif",
+    "type": "gif",
+    "_matched_to": "barbell seated overhead press",
+    "_score": 100.0
+  },
+  "Seated Overhead Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/kTbSH9h.gif",
+    "type": "gif",
+    "_matched_to": "barbell seated overhead press",
+    "_score": 91.52542372881356
+  },
+  "Seated Overhead Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/kTbSH9h.gif",
+    "type": "gif",
+    "_matched_to": "barbell seated overhead press",
+    "_score": 84.0
+  },
+  "Seated Pin Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/bndCa3Q.gif",
+    "type": "gif",
+    "_matched_to": "barbell pin presses",
+    "_score": 83.72093023255813
+  },
+  "Seated Row (BB)": {
+    "gif_url": "https://static.exercisedb.dev/media/fUBheHs.gif",
+    "type": "gif",
+    "_matched_to": "cable seated row",
+    "_score": 82.75862068965517
+  },
+  "Seated Row (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/fUBheHs.gif",
+    "type": "gif",
+    "_matched_to": "cable seated row",
+    "_score": 100.0
+  },
+  "Seated Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/xUwnBMT.gif",
+    "type": "gif",
+    "_matched_to": "smith seated shoulder press",
+    "_score": 87.5
+  },
+  "Seated Shoulder Press (12,10,8,6,4)": {
+    "gif_url": "https://static.exercisedb.dev/media/xUwnBMT.gif",
+    "type": "gif",
+    "_matched_to": "smith seated shoulder press",
+    "_score": 87.5
+  },
+  "Seated Shoulder Press (Behind Neck)": {
+    "gif_url": "https://static.exercisedb.dev/media/xUwnBMT.gif",
+    "type": "gif",
+    "_matched_to": "smith seated shoulder press",
+    "_score": 87.5
+  },
+  "Seated Shoulder Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/znQUdHY.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated shoulder press",
+    "_score": 100.0
+  },
+  "Seated Wide-Grip Row (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/qcY50ZD.gif",
+    "type": "gif",
+    "_matched_to": "cable seated wide-grip row",
+    "_score": 100.0
+  },
+  "Seated Wrist Curls (12-15)": {
+    "gif_url": "https://static.exercisedb.dev/media/B6dAO1t.gif",
+    "type": "gif",
+    "_matched_to": "smith seated wrist curl",
+    "_score": 82.92682926829268
+  },
+  "Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/peAeMR3.gif",
+    "type": "gif",
+    "_matched_to": "band shoulder press",
+    "_score": 84.84848484848484
+  },
+  "Shoulder Press (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/peAeMR3.gif",
+    "type": "gif",
+    "_matched_to": "band shoulder press",
+    "_score": 84.84848484848484
+  },
+  "Shoulder Press (Plate Loaded)": {
+    "gif_url": "https://static.exercisedb.dev/media/peAeMR3.gif",
+    "type": "gif",
+    "_matched_to": "band shoulder press",
+    "_score": 84.84848484848484
+  },
+  "Shoulder Press (Seated)": {
+    "gif_url": "https://static.exercisedb.dev/media/xUwnBMT.gif",
+    "type": "gif",
+    "_matched_to": "smith seated shoulder press",
+    "_score": 87.5
+  },
+  "Shoulder Press (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/peAeMR3.gif",
+    "type": "gif",
+    "_matched_to": "band shoulder press",
+    "_score": 84.84848484848484
+  },
+  "Shoulder Press Smith Machine": {
+    "gif_url": "https://static.exercisedb.dev/media/903mzG8.gif",
+    "type": "gif",
+    "_matched_to": "smith shoulder press",
+    "_score": 83.33333333333334
+  },
+  "Shoulder Press Smith machine": {
+    "gif_url": "https://static.exercisedb.dev/media/903mzG8.gif",
+    "type": "gif",
+    "_matched_to": "smith shoulder press",
+    "_score": 83.33333333333334
+  },
+  "Shrug (Band)": {
+    "gif_url": "https://static.exercisedb.dev/media/trmte8s.gif",
+    "type": "gif",
+    "_matched_to": "band shrug",
+    "_score": 100.0
+  },
+  "Shrug (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/dG7tG5y.gif",
+    "type": "gif",
+    "_matched_to": "barbell shrug",
+    "_score": 100.0
+  },
+  "Shrug (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/NJzBsGJ.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell shrug",
+    "_score": 100.0
+  },
+  "Shrug Smith": {
+    "gif_url": "https://static.exercisedb.dev/media/OUQ0ZyW.gif",
+    "type": "gif",
+    "_matched_to": "smith shrug",
+    "_score": 100.0
+  },
+  "Side Bend (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/IpONWYv.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell side bend",
+    "_score": 100.0
+  },
+  "Side Crunch (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/q2ADGqV.gif",
+    "type": "gif",
+    "_matched_to": "cable side crunch",
+    "_score": 100.0
+  },
+  "Side Lateral Raise Cable": {
+    "gif_url": "https://static.exercisedb.dev/media/goJ6ezq.gif",
+    "type": "gif",
+    "_matched_to": "cable lateral raise",
+    "_score": 88.37209302325581
+  },
+  "Side Lying Hip Abduction": {
+    "gif_url": "https://static.exercisedb.dev/media/c8f5cSY.gif",
+    "type": "gif",
+    "_matched_to": "side lying hip adduction (male)",
+    "_score": 86.79245283018868
+  },
+  "Side-Lying Hip Abduction": {
+    "gif_url": "https://static.exercisedb.dev/media/c8f5cSY.gif",
+    "type": "gif",
+    "_matched_to": "side lying hip adduction (male)",
+    "_score": 86.79245283018868
+  },
+  "Single Arm Overhead Ext (Dumbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/mWBtgmb.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell single arm overhead carry",
+    "_score": 83.07692307692307
+  },
+  "Single Arm Overhead Tricep Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/dZl9Q27.gif",
+    "type": "gif",
+    "_matched_to": "barbell standing overhead triceps extension",
+    "_score": 83.54430379746836
+  },
+  "Single Arm Overhead Tricep Extension (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/dZl9Q27.gif",
+    "type": "gif",
+    "_matched_to": "barbell standing overhead triceps extension",
+    "_score": 83.54430379746836
+  },
+  "Single Arm Preacher Curl (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/hq2hyDH.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell standing preacher curl",
+    "_score": 84.375
+  },
+  "Single Arm Tricep Extension (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/sYCcnon.gif",
+    "type": "gif",
+    "_matched_to": "cable standing one arm triceps extension",
+    "_score": 84.93150684931507
+  },
+  "Single Cable Front Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/mTT3KLn.gif",
+    "type": "gif",
+    "_matched_to": "cable front shoulder raise",
+    "_score": 84.0
+  },
+  "Single Leg Calf Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/9JprnPh.gif",
+    "type": "gif",
+    "_matched_to": "band single leg calf raise",
+    "_score": 89.36170212765957
+  },
+  "Single Leg Calf Raise (Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/9JprnPh.gif",
+    "type": "gif",
+    "_matched_to": "band single leg calf raise",
+    "_score": 89.36170212765957
+  },
+  "Single Leg Calf Raise (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/9JprnPh.gif",
+    "type": "gif",
+    "_matched_to": "band single leg calf raise",
+    "_score": 89.36170212765957
+  },
+  "Single Leg Calf Raise (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/9JprnPh.gif",
+    "type": "gif",
+    "_matched_to": "band single leg calf raise",
+    "_score": 89.36170212765957
+  },
+  "Single Leg Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/gEyURal.gif",
+    "type": "gif",
+    "_matched_to": "barbell single leg deadlift",
+    "_score": 82.6086956521739
+  },
+  "Single Leg Deadlift (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/gKozT8X.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell single leg deadlift",
+    "_score": 100.0
+  },
+  "Single Leg Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/my33uHU.gif",
+    "type": "gif",
+    "_matched_to": "lever leg extension",
+    "_score": 82.05128205128204
+  },
+  "Single Leg Resistance Band Leg Extension": {
+    "gif_url": "https://static.exercisedb.dev/media/Y1MsI1l.gif",
+    "type": "gif",
+    "_matched_to": "resistance band leg extension",
+    "_score": 84.05797101449275
+  },
+  "Single Leg Squat (On Plates)": {
+    "gif_url": "https://static.exercisedb.dev/media/C31LMnP.gif",
+    "type": "gif",
+    "_matched_to": "one leg squat",
+    "_score": 82.75862068965517
+  },
+  "Single Leg Standing Leg Curl (Arsenal)": {
+    "gif_url": "https://static.exercisedb.dev/media/C5jncD2.gif",
+    "type": "gif",
+    "_matched_to": "standing single leg curl",
+    "_score": 92.3076923076923
+  },
+  "Single dumbbell overhead press": {
+    "gif_url": "https://static.exercisedb.dev/media/A6wtbuL.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell standing overhead press",
+    "_score": 90.32258064516128
+  },
+  "Sissy Squat": {
+    "gif_url": "https://static.exercisedb.dev/media/xdYPUtE.gif",
+    "type": "gif",
+    "_matched_to": "sissy squat",
+    "_score": 100.0
+  },
+  "Sissy Squat (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/xdYPUtE.gif",
+    "type": "gif",
+    "_matched_to": "sissy squat",
+    "_score": 100.0
+  },
+  "Sissy Squat Weighted": {
+    "gif_url": "https://static.exercisedb.dev/media/0lQnxMZ.gif",
+    "type": "gif",
+    "_matched_to": "weighted sissy squat",
+    "_score": 100.0
+  },
+  "Skater Hop": {
+    "gif_url": "https://static.exercisedb.dev/media/zfNHMN9.gif",
+    "type": "gif",
+    "_matched_to": "skater hops",
+    "_score": 95.23809523809523
+  },
+  "Skin The Cat": {
+    "gif_url": "https://static.exercisedb.dev/media/MSfvriJ.gif",
+    "type": "gif",
+    "_matched_to": "skin the cat",
+    "_score": 100.0
+  },
+  "Slight Incline Bench (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ns0SIbU.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell incline bench press",
+    "_score": 84.21052631578947
+  },
+  "Smith Hack Squat": {
+    "gif_url": "https://static.exercisedb.dev/media/ZuPXtCK.gif",
+    "type": "gif",
+    "_matched_to": "smith hack squat",
+    "_score": 100.0
+  },
+  "Smith Machine Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/903mzG8.gif",
+    "type": "gif",
+    "_matched_to": "smith shoulder press",
+    "_score": 83.33333333333334
+  },
+  "Smith Press": {
+    "gif_url": "https://static.exercisedb.dev/media/7zdxRTl.gif",
+    "type": "gif",
+    "_matched_to": "smith leg press",
+    "_score": 84.61538461538461
+  },
+  "Smith Shrug": {
+    "gif_url": "https://static.exercisedb.dev/media/OUQ0ZyW.gif",
+    "type": "gif",
+    "_matched_to": "smith shrug",
+    "_score": 100.0
+  },
+  "Smith Upright Row": {
+    "gif_url": "https://static.exercisedb.dev/media/1DN3iz4.gif",
+    "type": "gif",
+    "_matched_to": "smith upright row",
+    "_score": 100.0
+  },
+  "Snatch (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/HsvHqgf.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell squat",
+    "_score": 82.75862068965517
+  },
+  "Snatch (Kettlebell)": {
+    "gif_url": "https://static.exercisedb.dev/media/M74kdvm.gif",
+    "type": "gif",
+    "_matched_to": "kettlebell double snatch",
+    "_score": 82.92682926829268
+  },
+  "Snatch Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/UfePqpx.gif",
+    "type": "gif",
+    "_matched_to": "smith deadlift",
+    "_score": 82.75862068965517
+  },
+  "Snatch Pull": {
+    "gif_url": "https://static.exercisedb.dev/media/dG5Smob.gif",
+    "type": "gif",
+    "_matched_to": "snatch pull",
+    "_score": 100.0
+  },
+  "Spider Curl (EZ bar)": {
+    "gif_url": "https://static.exercisedb.dev/media/Ye5Qxb0.gif",
+    "type": "gif",
+    "_matched_to": "ez barbell spider curl",
+    "_score": 90.0
+  },
+  "Split Squat": {
+    "gif_url": "https://static.exercisedb.dev/media/9E25EOx.gif",
+    "type": "gif",
+    "_matched_to": "split squats",
+    "_score": 95.65217391304348
+  },
+  "Split Squat (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/9E25EOx.gif",
+    "type": "gif",
+    "_matched_to": "split squats",
+    "_score": 95.65217391304348
+  },
+  "Split Squat (Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/9E25EOx.gif",
+    "type": "gif",
+    "_matched_to": "split squats",
+    "_score": 95.65217391304348
+  },
+  "Split Squat (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/9E25EOx.gif",
+    "type": "gif",
+    "_matched_to": "split squats",
+    "_score": 95.65217391304348
+  },
+  "Split Squat (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/9E25EOx.gif",
+    "type": "gif",
+    "_matched_to": "split squats",
+    "_score": 95.65217391304348
+  },
+  "Squat (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/1gFNTZV.gif",
+    "type": "gif",
+    "_matched_to": "barbell jump squat",
+    "_score": 83.87096774193549
+  },
+  "Squat (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/HsvHqgf.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell squat",
+    "_score": 100.0
+  },
+  "Squat (Smith Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/Gu2rNJd.gif",
+    "type": "gif",
+    "_matched_to": "smith chair squat",
+    "_score": 83.33333333333334
+  },
+  "Squat Jumps": {
+    "gif_url": "https://static.exercisedb.dev/media/LIlE5Tn.gif",
+    "type": "gif",
+    "_matched_to": "jump squat",
+    "_score": 95.23809523809523
+  },
+  "Squat To Overhead Press": {
+    "gif_url": "https://static.exercisedb.dev/media/QChZi3x.gif",
+    "type": "gif",
+    "_matched_to": "squat to overhead reach",
+    "_score": 86.95652173913044
+  },
+  "Squat to Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/5vfAI0I.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell scott press",
+    "_score": 83.72093023255813
+  },
+  "Stability Ball Crunch": {
+    "gif_url": "https://static.exercisedb.dev/media/MCUhf1F.gif",
+    "type": "gif",
+    "_matched_to": "crunch (on stability ball)",
+    "_score": 93.33333333333333
+  },
+  "Standing Behind Neck Shoulder Press (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/xDh0lJr.gif",
+    "type": "gif",
+    "_matched_to": "standing behind neck press",
+    "_score": 85.24590163934427
+  },
+  "Standing Cable Row": {
+    "gif_url": "https://static.exercisedb.dev/media/4f8RXP8.gif",
+    "type": "gif",
+    "_matched_to": "cable standing row (v-bar)",
+    "_score": 85.71428571428572
+  },
+  "Standing Calf Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/yl2IYyy.gif",
+    "type": "gif",
+    "_matched_to": "cable standing calf raise",
+    "_score": 86.36363636363636
+  },
+  "Standing Calf Raise (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/yl2IYyy.gif",
+    "type": "gif",
+    "_matched_to": "cable standing calf raise",
+    "_score": 86.36363636363636
+  },
+  "Standing Dumbbell Wrist Extensions": {
+    "gif_url": "https://static.exercisedb.dev/media/PdmaD0N.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell standing triceps extension",
+    "_score": 89.85507246376811
+  },
+  "Standing Leg Curl": {
+    "gif_url": "https://static.exercisedb.dev/media/C5jncD2.gif",
+    "type": "gif",
+    "_matched_to": "standing single leg curl",
+    "_score": 82.92682926829268
+  },
+  "Standing Overhead Press (Smith Machine, Push Press)": {
+    "gif_url": "https://static.exercisedb.dev/media/A6wtbuL.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell standing overhead press",
+    "_score": 83.63636363636364
+  },
+  "Standng Calf Raise (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/yl2IYyy.gif",
+    "type": "gif",
+    "_matched_to": "cable standing calf raise",
+    "_score": 83.72093023255813
+  },
+  "Stationary Bike": {
+    "gif_url": "https://static.exercisedb.dev/media/H1PESYI.gif",
+    "type": "gif",
+    "_matched_to": "stationary bike run",
+    "_score": 88.23529411764706
+  },
+  "Stationary bike": {
+    "gif_url": "https://static.exercisedb.dev/media/H1PESYI.gif",
+    "type": "gif",
+    "_matched_to": "stationary bike run",
+    "_score": 88.23529411764706
+  },
+  "Step-Up (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/JsOV1SU.gif",
+    "type": "gif",
+    "_matched_to": "weighted muscle up",
+    "_score": 82.35294117647058
+  },
+  "Stiff Leg Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/kuMiR2T.gif",
+    "type": "gif",
+    "_matched_to": "band stiff leg deadlift",
+    "_score": 87.8048780487805
+  },
+  "Stiff Leg Deadlift (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/5eLRITT.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell stiff leg deadlift",
+    "_score": 100.0
+  },
+  "Straight Arm Cable Pulldown": {
+    "gif_url": "https://static.exercisedb.dev/media/x69MAlq.gif",
+    "type": "gif",
+    "_matched_to": "cable straight arm pulldown",
+    "_score": 100.0
+  },
+  "Straight Arm Pulldown": {
+    "gif_url": "https://static.exercisedb.dev/media/x69MAlq.gif",
+    "type": "gif",
+    "_matched_to": "cable straight arm pulldown",
+    "_score": 87.5
+  },
+  "Straight Leg Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/KUaoUV8.gif",
+    "type": "gif",
+    "_matched_to": "band straight leg deadlift",
+    "_score": 89.36170212765957
+  },
+  "Straight-Bar Overhead Triceps Extension (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/dZl9Q27.gif",
+    "type": "gif",
+    "_matched_to": "barbell standing overhead triceps extension",
+    "_score": 87.8048780487805
+  },
+  "Sumo Deadlift (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/KgI0tqW.gif",
+    "type": "gif",
+    "_matched_to": "barbell sumo deadlift",
+    "_score": 100.0
+  },
+  "Sumo Deadlift (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/nUwVh7b.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell deadlift",
+    "_score": 87.17948717948718
+  },
+  "Sumo Leg Press": {
+    "gif_url": "https://static.exercisedb.dev/media/7zdxRTl.gif",
+    "type": "gif",
+    "_matched_to": "smith leg press",
+    "_score": 82.75862068965517
+  },
+  "Thruster (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/f7Y9eDZ.gif",
+    "type": "gif",
+    "_matched_to": "barbell thruster",
+    "_score": 100.0
+  },
+  "Trap Bar Deadlift": {
+    "gif_url": "https://static.exercisedb.dev/media/jQGwmxN.gif",
+    "type": "gif",
+    "_matched_to": "trap bar deadlift",
+    "_score": 100.0
+  },
+  "Tricep Cable Kickback": {
+    "gif_url": "https://static.exercisedb.dev/media/vvNjDJS.gif",
+    "type": "gif",
+    "_matched_to": "cable two arm tricep kickback",
+    "_score": 84.0
+  },
+  "Tricep Dip (Bodyweight)": {
+    "gif_url": "https://static.exercisedb.dev/media/X6C6i5Y.gif",
+    "type": "gif",
+    "_matched_to": "triceps dip",
+    "_score": 95.23809523809523
+  },
+  "Tricep Extension (Banded)": {
+    "gif_url": "https://static.exercisedb.dev/media/obe5LMq.gif",
+    "type": "gif",
+    "_matched_to": "band side triceps extension",
+    "_score": 84.0
+  },
+  "Tricep Extension (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/iZop9xO.gif",
+    "type": "gif",
+    "_matched_to": "barbell lying triceps extension",
+    "_score": 87.27272727272728
+  },
+  "Tricep Extension (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/Hx1WC8I.gif",
+    "type": "gif",
+    "_matched_to": "cable incline triceps extension",
+    "_score": 83.01886792452831
+  },
+  "Tricep Extension (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/mpKZGWz.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell lying triceps extension",
+    "_score": 87.71929824561404
+  },
+  "Tricep Extension (Machine)": {
+    "gif_url": "https://static.exercisedb.dev/media/Ser9eQp.gif",
+    "type": "gif",
+    "_matched_to": "lever triceps extension",
+    "_score": 82.05128205128204
+  },
+  "Tricep Extension (Resistance Band)": {
+    "gif_url": "https://static.exercisedb.dev/media/obe5LMq.gif",
+    "type": "gif",
+    "_matched_to": "band side triceps extension",
+    "_score": 84.7457627118644
+  },
+  "Tricep Kickback (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/vvNjDJS.gif",
+    "type": "gif",
+    "_matched_to": "cable two arm tricep kickback",
+    "_score": 84.0
+  },
+  "Tricep Overhead Extension (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/kont8Ut.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell seated triceps extension",
+    "_score": 86.56716417910448
+  },
+  "Tricep Pushdown (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/gAwDzB3.gif",
+    "type": "gif",
+    "_matched_to": "cable triceps pushdown (v-bar)",
+    "_score": 85.71428571428572
+  },
+  "Triceps Extension (Straight Bar)": {
+    "gif_url": "https://static.exercisedb.dev/media/Ser9eQp.gif",
+    "type": "gif",
+    "_matched_to": "lever triceps extension",
+    "_score": 85.0
+  },
+  "Triceps Kickback (cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/vvNjDJS.gif",
+    "type": "gif",
+    "_matched_to": "cable two arm tricep kickback",
+    "_score": 82.35294117647058
+  },
+  "Triceps Pressdown": {
+    "gif_url": "https://static.exercisedb.dev/media/fSrPP6B.gif",
+    "type": "gif",
+    "_matched_to": "triceps press",
+    "_score": 86.66666666666667
+  },
+  "Triceps press": {
+    "gif_url": "https://static.exercisedb.dev/media/fSrPP6B.gif",
+    "type": "gif",
+    "_matched_to": "triceps press",
+    "_score": 100.0
+  },
+  "Underhand Lat Pulldown": {
+    "gif_url": "https://static.exercisedb.dev/media/k6tUeqS.gif",
+    "type": "gif",
+    "_matched_to": "band underhand pulldown",
+    "_score": 88.88888888888889
+  },
+  "Unilateral Preacher Curl (Dumbbell) Hammer": {
+    "gif_url": "https://static.exercisedb.dev/media/F1KxjBa.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell peacher hammer curl",
+    "_score": 82.35294117647058
+  },
+  "Upright Row (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/UDlhcO8.gif",
+    "type": "gif",
+    "_matched_to": "barbell upright row",
+    "_score": 100.0
+  },
+  "Upright Row (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/cALKspW.gif",
+    "type": "gif",
+    "_matched_to": "cable upright row",
+    "_score": 100.0
+  },
+  "Upright Row (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/ainizkb.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell upright row",
+    "_score": 100.0
+  },
+  "Walking Lunge": {
+    "gif_url": "https://static.exercisedb.dev/media/IZVHb27.gif",
+    "type": "gif",
+    "_matched_to": "walking lunge",
+    "_score": 100.0
+  },
+  "Walking Lunge (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/IZVHb27.gif",
+    "type": "gif",
+    "_matched_to": "walking lunge",
+    "_score": 100.0
+  },
+  "Walking Lunge (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/IZVHb27.gif",
+    "type": "gif",
+    "_matched_to": "walking lunge",
+    "_score": 100.0
+  },
+  "Walking Lunge (Weighted)": {
+    "gif_url": "https://static.exercisedb.dev/media/IZVHb27.gif",
+    "type": "gif",
+    "_matched_to": "walking lunge",
+    "_score": 100.0
+  },
+  "Walking Lunges": {
+    "gif_url": "https://static.exercisedb.dev/media/IZVHb27.gif",
+    "type": "gif",
+    "_matched_to": "walking lunge",
+    "_score": 96.2962962962963
+  },
+  "Walking Lunges (12,10,8,6,4)": {
+    "gif_url": "https://static.exercisedb.dev/media/IZVHb27.gif",
+    "type": "gif",
+    "_matched_to": "walking lunge",
+    "_score": 96.2962962962963
+  },
+  "Wall Push Up": {
+    "gif_url": "https://static.exercisedb.dev/media/LEH9jxP.gif",
+    "type": "gif",
+    "_matched_to": "push-up (wall)",
+    "_score": 100.0
+  },
+  "Weighted Hanging Leg Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/QOA0FD0.gif",
+    "type": "gif",
+    "_matched_to": "weighted hanging leg-hip raise",
+    "_score": 92.85714285714286
+  },
+  "Weighted Hanging Leg Raises": {
+    "gif_url": "https://static.exercisedb.dev/media/QOA0FD0.gif",
+    "type": "gif",
+    "_matched_to": "weighted hanging leg-hip raise",
+    "_score": 91.22807017543859
+  },
+  "Weighted Hanging Oblique Knee Raise": {
+    "gif_url": "https://static.exercisedb.dev/media/BaE7O6U.gif",
+    "type": "gif",
+    "_matched_to": "hanging oblique knee raise",
+    "_score": 85.24590163934427
+  },
+  "Weighted Pause Pull Ups": {
+    "gif_url": "https://static.exercisedb.dev/media/HMzLjXx.gif",
+    "type": "gif",
+    "_matched_to": "weighted pull-up",
+    "_score": 82.05128205128204
+  },
+  "Wide Grip Cable Row": {
+    "gif_url": "https://static.exercisedb.dev/media/qcY50ZD.gif",
+    "type": "gif",
+    "_matched_to": "cable seated wide-grip row",
+    "_score": 84.44444444444444
+  },
+  "Wide Grip Pull-Up": {
+    "gif_url": "https://static.exercisedb.dev/media/Qqi7bko.gif",
+    "type": "gif",
+    "_matched_to": "wide grip pull-up",
+    "_score": 100.0
+  },
+  "Wide Grip Rear Pull-Up": {
+    "gif_url": "https://static.exercisedb.dev/media/OYFhXVD.gif",
+    "type": "gif",
+    "_matched_to": "wide grip rear pull-up",
+    "_score": 100.0
+  },
+  "World's Greatest Stretch": {
+    "gif_url": "https://static.exercisedb.dev/media/DFGXwZr.gif",
+    "type": "gif",
+    "_matched_to": "world greatest stretch",
+    "_score": 95.65217391304348
+  },
+  "Wrist Curl (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/LrV4s90.gif",
+    "type": "gif",
+    "_matched_to": "cable wrist curl",
+    "_score": 100.0
+  },
+  "Wrist Curl Cable": {
+    "gif_url": "https://static.exercisedb.dev/media/LrV4s90.gif",
+    "type": "gif",
+    "_matched_to": "cable wrist curl",
+    "_score": 100.0
+  },
+  "Wrist Curls": {
+    "gif_url": "https://static.exercisedb.dev/media/2zNKRUB.gif",
+    "type": "gif",
+    "_matched_to": "wrist circles",
+    "_score": 83.33333333333334
+  },
+  "Wrist Curls (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/LrV4s90.gif",
+    "type": "gif",
+    "_matched_to": "cable wrist curl",
+    "_score": 96.96969696969697
+  },
+  "Wrist Curls (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/2zNKRUB.gif",
+    "type": "gif",
+    "_matched_to": "wrist circles",
+    "_score": 83.33333333333334
+  },
+  "Wrist Roller": {
+    "gif_url": "https://static.exercisedb.dev/media/bd5b860.gif",
+    "type": "gif",
+    "_matched_to": "wrist rollerer",
+    "_score": 92.3076923076923
+  },
+  "Y Raise (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/c9MnDRp.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell raise",
+    "_score": 93.33333333333333
+  },
+  "Z-Press (Dumbbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/vmwLyCg.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell w-press",
+    "_score": 93.75
+  },
+  "Z-Sit Shoulder Press": {
+    "gif_url": "https://static.exercisedb.dev/media/903mzG8.gif",
+    "type": "gif",
+    "_matched_to": "smith shoulder press",
+    "_score": 90.0
+  },
+  "Zercher Squat (Barbell)": {
+    "gif_url": "https://static.exercisedb.dev/media/LSTChY9.gif",
+    "type": "gif",
+    "_matched_to": "barbell zercher squat",
+    "_score": 100.0
+  },
+  "hip adduction (Cable)": {
+    "gif_url": "https://static.exercisedb.dev/media/hBGWILP.gif",
+    "type": "gif",
+    "_matched_to": "cable hip adduction",
+    "_score": 100.0
+  },
+  "standing overhead press": {
+    "gif_url": "https://static.exercisedb.dev/media/A6wtbuL.gif",
+    "type": "gif",
+    "_matched_to": "dumbbell standing overhead press",
+    "_score": 83.63636363636364
+  }
+}
